@@ -2,13 +2,16 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import reminders
 from app.auth import require_session
 from app.config import settings as config
 from app.csrf import CSRFMiddleware
+from app.db import SessionDep
 from app.routers import auth, clients, maintenance, overview, projects, retainers, settings
 
 
@@ -51,5 +54,11 @@ app.include_router(protected)
 
 
 @app.get("/api/health")
-def health() -> dict[str, str]:
+def health(session: SessionDep, response: Response) -> dict[str, str]:
+    # Checks the database too, so the container healthcheck fails when the API can't serve data.
+    try:
+        session.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "unavailable", "database": "unreachable"}
     return {"status": "ok"}
