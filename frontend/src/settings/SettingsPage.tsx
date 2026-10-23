@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useLogout } from '../auth/queries.ts'
 import { useSaveSettings, useSettings } from './queries.ts'
 import './SettingsPage.css'
 
@@ -47,6 +48,7 @@ export function SettingsPage() {
               sync from Discord every hour.
             </p>
           </section>
+          <SessionTile />
         </div>
       )}
     </>
@@ -113,6 +115,25 @@ function TimezoneTile({ timezone }: { timezone: string }) {
       )}
       {save.error && <p className="form-error settings-feedback">{save.error.message}</p>}
       {save.isSuccess && !save.isPending && <p className="settings-feedback settings-saved">Saved</p>}
+    </section>
+  )
+}
+
+function SessionTile() {
+  const logout = useLogout()
+  return (
+    <section className="tile span-12 tint-peach settings-session">
+      <div>
+        <h2 className="tile-label">Session</h2>
+        <p className="settings-text">
+          You're logged in on this browser. A session lasts 30 days from your last visit; setting a new
+          password in <code>AUTH_PASSWORD_HASH</code> logs out everywhere.
+        </p>
+      </div>
+      <button className="btn secondary" type="button" disabled={logout.isPending} onClick={() => logout.mutate()}>
+        Log out
+      </button>
+      {logout.error && <p className="form-error settings-feedback">{logout.error.message}</p>}
     </section>
   )
 }

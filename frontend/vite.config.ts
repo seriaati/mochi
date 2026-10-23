@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
+      // Keeps the browser's Host header, so the API sees requests from this page as same-origin
+      // (its cross-site write check compares Origin with it).
+      '/api': { target: 'http://localhost:8000', changeOrigin: false },
     },
   },
 })

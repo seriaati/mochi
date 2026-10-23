@@ -57,3 +57,20 @@
   font-weight: 600;
   color: var(--good);
 }
+
+.settings-session {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-session > div {
+  flex: 1 1 320px;
+}
+
+.settings-session .form-error {
+  flex-basis: 100%;
+  margin-top: 0;
+}

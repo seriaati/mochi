@@ -1,0 +1,35 @@
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 16px;
+}
+
+.login-tile {
+  width: min(400px, 100%);
+  padding: 32px;
+}
+
+.login-title {
+  margin-top: 28px;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.login-sub {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+
+.login-form {
+  margin-top: 24px;
+}
+
+@media (max-width: 700px) {
+  .login-tile {
+    padding: 24px;
+  }
+}
