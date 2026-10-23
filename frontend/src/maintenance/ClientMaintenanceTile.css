@@ -1,0 +1,90 @@
+.client-retainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 48px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.client-retainer + .client-retainer {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--chip);
+}
+
+.client-retainer .big-number small:last-child {
+  margin-left: 2px;
+}
+
+.client-retainer-text {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.client-retainer-text .link-btn {
+  margin-left: 4px;
+  color: var(--tint-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.client-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+}
+
+.client-months li {
+  width: 92px;
+}
+
+.client-month {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 16px;
+  background: var(--chip);
+  font-size: 12px;
+  color: var(--tint-ink);
+  text-align: left;
+}
+
+button.client-month {
+  cursor: pointer;
+}
+
+button.client-month:hover {
+  border-color: var(--lavender-dash);
+}
+
+.client-month b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.client-month.late {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.client-month.next {
+  background: none;
+  border: 1.5px dashed var(--lavender-dash);
+}
+
+@media (max-width: 640px) {
+  .client-months {
+    width: 100%;
+  }
+
+  .client-months li {
+    width: calc((100% - 16px) / 3);
+  }
+}

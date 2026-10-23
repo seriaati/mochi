@@ -1,0 +1,369 @@
+/* Greeting */
+.ov-headline {
+  margin-top: 4px;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.ov-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.ov-chips .chip {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+.ov-chips .btn,
+.ov-action .btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+}
+
+/* Next to collect, Overdue */
+.ov-who {
+  margin-top: 18px;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ov-meta,
+.ov-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+[class*='tint-'] .ov-meta,
+[class*='tint-'] .ov-sub { color: var(--muted); }
+.tile.ink .ov-meta { color: var(--hero-dim); }
+
+.ov-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.ov-hint {
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+[class*='tint-'] .ov-hint { color: var(--muted); }
+.tile.ink .ov-hint { color: var(--hero-dim); }
+
+.ov-hint a,
+.ov-empty a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ov-summary .ov-who + .ov-meta {
+  margin-top: 4px;
+}
+
+/* Links in tile heads, e.g. "See all". */
+.ov-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+[class*='tint-'] .ov-link { color: var(--muted); }
+.ov-link:hover { color: var(--ink); }
+
+.ov-empty {
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+
+[class*='tint-'] .ov-empty { color: var(--muted); }
+
+/* Earned this year */
+.ov-earned-head {
+  align-items: flex-start;
+}
+
+.ov-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  height: 150px;
+  margin-top: 24px;
+}
+
+.ov-chart i {
+  display: block;
+  border-radius: 8px;
+  background: var(--track);
+}
+
+.ov-chart i.now { background: var(--ink); }
+
+.ov-chart i.future {
+  background: none;
+  border: 1.5px dashed var(--dash);
+}
+
+.ov-months {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.ov-months .now {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Recurring maintenance */
+.ov-ring {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.ov-ring svg {
+  flex-shrink: 0;
+}
+
+.ov-ring .ov-empty {
+  flex: 1 1 200px;
+  margin: 0;
+}
+
+.ov-ring circle {
+  fill: none;
+  stroke-width: 14;
+}
+
+.ov-ring-track { stroke: var(--ring-track); }
+
+.ov-ring-auto {
+  stroke: var(--good);
+  stroke-linecap: round;
+}
+
+.ov-ring text {
+  fill: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ov-legend {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 260px;
+  font-size: 13px;
+  list-style: none;
+}
+
+.ov-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ov-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--ring-track);
+}
+
+.ov-legend i.auto { background: var(--good); }
+
+.ov-legend b {
+  margin-left: auto;
+  padding-left: 16px;
+  font-weight: 600;
+}
+
+/* Projects in progress */
+.ov-projects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  list-style: none;
+}
+
+.ov-project {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1.5fr) minmax(0, 1fr) minmax(90px, max-content);
+  gap: 16px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.ov-projects li:nth-child(odd) .ov-project {
+  background: var(--row);
+}
+
+.ov-project:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ov-project-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: var(--tint-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ov-project-name {
+  min-width: 0;
+}
+
+.ov-project-name b {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ov-project-name small {
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.ov-project-dates {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.ov-project-total {
+  font-weight: 700;
+  text-align: right;
+}
+
+.ov-project-total small {
+  display: block;
+  font-weight: 600;
+  color: var(--good);
+}
+
+/* Clients */
+.ov-stack {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  list-style: none;
+}
+
+.ov-stack li + li {
+  margin-left: -10px;
+}
+
+.ov-stack-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--lavender);
+  border-radius: 50%;
+  color: var(--tint-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* A lavender avatar would vanish into the tile, so it goes white like in the mockup. */
+.ov-stack-avatar.tint-lavender,
+.ov-stack-more {
+  background: var(--solid);
+  color: var(--lavender-ink);
+}
+
+.ov-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 22px;
+  font-size: 13px;
+  list-style: none;
+}
+
+.ov-channels li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--chip);
+}
+
+.ov-channels b {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Bento Night: the overdue tile reads in peach, like the mockup. */
+@media (prefers-color-scheme: dark) {
+  .ov-overdue { color: var(--peach-ink); }
+
+  .ov-overdue .btn {
+    background: var(--peach-ink);
+    color: var(--peach);
+  }
+}
+
+@media (max-width: 1000px) {
+  .ov > .tile {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 700px) {
+  .ov > .tile {
+    grid-column: 1 / -1;
+  }
+
+  .ov-headline {
+    font-size: 30px;
+  }
+
+  .ov-project {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 10px 12px;
+  }
+
+  .ov-project > div:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .ov-chart,
+  .ov-months {
+    gap: 4px;
+  }
+}

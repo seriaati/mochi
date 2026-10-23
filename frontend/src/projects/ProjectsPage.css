@@ -1,0 +1,167 @@
+.summary-tile .big-number {
+  font-size: 36px;
+  line-height: 1.1;
+}
+
+.summary-meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.project-card {
+  color: var(--ink);
+  transition: transform 0.15s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+}
+
+.project-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.project-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: var(--tint-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.project-card-client {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.project-card-client b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.project-card-head .chip {
+  margin-left: auto;
+}
+
+.project-card-name {
+  margin-top: 20px;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.project-card-track {
+  margin-top: 12px;
+}
+
+.project-dates {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.project-money {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.project-money div {
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--row);
+}
+
+.project-money dt {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.project-money dd {
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.project-money .added dd {
+  color: var(--good);
+}
+
+.split-bar {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+}
+
+.split-bar i {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--good-soft);
+}
+
+.split-bar i.on {
+  background: var(--good);
+}
+
+.split-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.split-label b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.split-label .due {
+  color: var(--warn);
+}
+
+.project-flag {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.project-card .muted {
+  opacity: 0.72;
+}
+
+@media (max-width: 600px) {
+  .project-money {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .project-money div:last-child {
+    grid-column: 1 / -1;
+  }
+}
