@@ -13,7 +13,8 @@ Requires Docker, [uv](https://docs.astral.sh/uv/) and [bun](https://bun.sh/).
 docker compose up -d                 # PostgreSQL on localhost:5433
 
 cd backend
-cp .env.example .env
+cp .env.example .env                 # then set AUTH_PASSWORD_HASH, and COOKIE_SECURE=false
+uv run python -m app.passwords hash-password
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload # API on localhost:8000
 
@@ -23,3 +24,15 @@ bun run dev                          # app on localhost:5173, proxies /api to th
 ```
 
 Tests: `cd backend && uv run pytest`. Lint and type-check the frontend with `bun run lint` and `bun run build`.
+
+## Login
+
+The dashboard has one user and a password. `backend/.env` holds only its scrypt hash, `AUTH_PASSWORD_HASH`, printed by `uv run python -m app.passwords hash-password`; without one, nobody can log in. Logging in sets an HttpOnly, SameSite=Lax session cookie that lasts 30 days from the last visit. Setting a new hash logs out every session.
+
+## Deployment
+
+With the frontend on Cloudflare Pages at `dash.example.com` and the API at `api.example.com`:
+
+- Frontend build: `VITE_API_URL=https://api.example.com` (see `frontend/.env.example`).
+- API: `AUTH_PASSWORD_HASH`, `FRONTEND_ORIGIN=https://dash.example.com` and `COOKIE_DOMAIN=.example.com` (see `backend/.env.example`). Keep `COOKIE_SECURE` on.
+- Login attempts are throttled per client IP. Behind a reverse proxy, run uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy IP>` so it sees real client IPs, not the proxy's.

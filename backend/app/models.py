@@ -236,3 +236,18 @@ class AppSettings(DiscordProfile, Base):
     timezone: Mapped[str] = mapped_column(String(64), server_default="Asia/Taipei")
     # Whose profile is cached here: DISCORD_MENTION_USER_ID when it was last synced.
     discord_user_id: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class AuthSession(Base):
+    """A login session (see app/auth.py). The cookie holds a random token; only its SHA-256 is
+    stored here, so a leaked database can't be replayed as a cookie."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)  # hex SHA-256 of the token
+    # SHA-256 of the AUTH_PASSWORD_HASH it logged in under: setting a new password ends it.
+    password_fingerprint: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
