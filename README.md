@@ -35,4 +35,5 @@ With the frontend on Cloudflare Pages at `dash.example.com` and the API at `api.
 
 - Frontend build: `VITE_API_URL=https://api.example.com` (see `frontend/.env.example`).
 - API: `AUTH_PASSWORD_HASH`, `FRONTEND_ORIGIN=https://dash.example.com` and `COOKIE_DOMAIN=.example.com` (see `backend/.env.example`). Keep `COOKIE_SECURE` on.
+- API image: `docker build -t freelance-backend backend`, then `docker run -d -p 8000:8000 --env-file backend/.env freelance-backend`. It runs `alembic upgrade head` on start, exiting if that fails, and its healthcheck calls `/api/health`, which returns 503 when the database is unreachable. Run a single container: the reminder loop and login throttle live in one process.
 - Login attempts are throttled per client IP. Behind a reverse proxy, run uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy IP>` so it sees real client IPs, not the proxy's.
