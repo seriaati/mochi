@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Dialog } from '../components/Dialog.tsx'
+import { useRef, useState, type FormEvent } from 'react'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { formatNTD, todayISO } from '../format.ts'
 import { nextAmount, targetOf, type Target } from './payments.ts'
 import { useDeletePayment, useSavePayment, type Payment, type Project } from './queries.ts'
@@ -14,6 +14,8 @@ type Props = {
 }
 
 export function PaymentDialog({ project, payment, target: initial = null, onClose }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const save = useSavePayment(project.id, payment?.id)
   const remove = useDeletePayment(project.id)
   const [target, setTarget] = useState<Target>(payment ? payment.addition_id : initial)
@@ -47,12 +49,12 @@ export function PaymentDialog({ project, payment, target: initial = null, onClos
         paid_on: form.get('paid_on') as string,
         note: (form.get('note') as string).trim() || null,
       },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
   return (
-    <Dialog title={payment ? 'Edit payment' : 'Record payment'} onClose={onClose}>
+    <Dialog title={payment ? 'Edit payment' : 'Record payment'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           For
@@ -104,7 +106,7 @@ export function PaymentDialog({ project, payment, target: initial = null, onClos
           <button className="btn" type="submit" disabled={save.isPending}>
             {payment ? 'Save' : 'Record payment'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {payment && (
@@ -112,7 +114,7 @@ export function PaymentDialog({ project, payment, target: initial = null, onClos
               className="btn danger"
               type="button"
               disabled={remove.isPending}
-              onClick={() => remove.mutate(payment.id, { onSuccess: onClose })}
+              onClick={() => remove.mutate(payment.id, { onSuccess: close })}
             >
               Remove
             </button>

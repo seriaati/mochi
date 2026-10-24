@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Dialog } from '../components/Dialog.tsx'
+import { useRef, useState, type FormEvent } from 'react'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { contactKinds } from './contactKinds.ts'
 import { useDeleteContact, useSaveContact, type Contact, type ContactKind } from './queries.ts'
 
@@ -11,6 +11,8 @@ type Props = {
 }
 
 export function ContactDialog({ clientId, contact, onClose }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const [kind, setKind] = useState<ContactKind>(contact?.kind ?? 'discord')
   const save = useSaveContact(clientId, contact?.id)
   const remove = useDeleteContact(clientId)
@@ -26,12 +28,12 @@ export function ContactDialog({ clientId, contact, onClose }: Props) {
         value: (form.get('value') as string).trim(),
         discord_user_id: kind === 'discord' && discordId ? discordId : null,
       },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
   return (
-    <Dialog title={contact ? 'Edit contact' : 'Add contact'} onClose={onClose}>
+    <Dialog title={contact ? 'Edit contact' : 'Add contact'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           Platform
@@ -72,7 +74,7 @@ export function ContactDialog({ clientId, contact, onClose }: Props) {
           <button className="btn" type="submit" disabled={save.isPending}>
             {contact ? 'Save' : 'Add contact'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {contact && (
@@ -80,7 +82,7 @@ export function ContactDialog({ clientId, contact, onClose }: Props) {
               className="btn danger"
               type="button"
               disabled={remove.isPending}
-              onClick={() => remove.mutate(contact.id, { onSuccess: onClose })}
+              onClick={() => remove.mutate(contact.id, { onSuccess: close })}
             >
               Remove
             </button>

@@ -615,9 +615,28 @@ button {
   from { opacity: 0; }
 }
 
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
 .dialog[open] { animation: dialog-in 0.35s var(--ease-spring); }
 .dialog::backdrop { background: var(--backdrop); }
 .dialog[open]::backdrop { animation: fade-in 0.25s ease-out; }
+
+/* Dialog.tsx unmounts the dialog when dialog-out ends; forwards keeps it hidden till then. */
+.dialog[open].closing {
+  animation: dialog-out 0.18s ease-in forwards;
+  pointer-events: none;
+}
+
+.dialog[open].closing::backdrop { animation: fade-out 0.18s ease-in forwards; }
 .dialog .btn.secondary { background: var(--field); }
 
 .dialog h2 {

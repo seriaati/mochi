@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Dialog } from '../components/Dialog.tsx'
+import { useRef, useState, type FormEvent } from 'react'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { formatDay, formatNTD, todayISO } from '../format.ts'
 import { monthName, openMonths } from './labels.ts'
 import {
@@ -17,6 +17,8 @@ const monthLabel = (month: Month) =>
 
 /** Marks one month of an "ask" retainer as paid. */
 export function RecordRetainerPaymentDialog({ retainer, period, onClose }: RecordProps) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const record = useRecordRetainerPayment(retainer.id)
   const months = openMonths(retainer)
   const [picked, setPicked] = useState(period ?? months[0]?.period ?? '')
@@ -26,12 +28,12 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
     const form = new FormData(event.currentTarget)
     record.mutate(
       { period: picked, amount: Number(form.get('amount')), paid_on: form.get('paid_on') as string },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
   return (
-    <Dialog title={`Record payment · ${retainer.client.name}`} onClose={onClose}>
+    <Dialog title={`Record payment · ${retainer.client.name}`} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           For
@@ -67,7 +69,7 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
           <button className="btn" type="submit" disabled={record.isPending || !picked}>
             Record payment
           </button>
-          <button className="btn secondary" type="button" onClick={onClose}>
+          <button className="btn secondary" type="button" onClick={close}>
             Cancel
           </button>
         </div>
@@ -80,11 +82,14 @@ type ViewProps = { retainer: Retainer; month: Month; onClose: () => void }
 
 /** A recorded monthly payment. To change one, remove it and record it again. */
 export function RetainerPaymentDialog({ retainer, month, onClose }: ViewProps) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const remove = useDeleteRetainerPayment(retainer.id)
 
   return (
     <Dialog
       title={`${retainer.client.name} · ${monthName(month.period, true)} ${month.period.slice(0, 4)}`}
+      ref={dialog}
       onClose={onClose}
     >
       <dl className="retainer-facts">
@@ -106,7 +111,7 @@ export function RetainerPaymentDialog({ retainer, month, onClose }: ViewProps) {
       </dl>
       {remove.error && <p className="form-error">{remove.error.message}</p>}
       <div className="form-actions">
-        <button className="btn secondary push" type="button" onClick={onClose}>
+        <button className="btn secondary push" type="button" onClick={close}>
           Close
         </button>
         {month.payment_id !== null && (
@@ -114,7 +119,7 @@ export function RetainerPaymentDialog({ retainer, month, onClose }: ViewProps) {
             className="btn danger"
             type="button"
             disabled={remove.isPending}
-            onClick={() => remove.mutate(month.payment_id!, { onSuccess: onClose })}
+            onClick={() => remove.mutate(month.payment_id!, { onSuccess: close })}
           >
             Remove payment
           </button>

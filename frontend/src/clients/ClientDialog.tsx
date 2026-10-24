@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Dialog } from '../components/Dialog.tsx'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { useDeleteClient, useSaveClient, type Client } from './queries.ts'
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
 }
 
 export function ClientDialog({ client, onClose, onSaved }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const save = useSaveClient(client?.id)
   const remove = useDeleteClient(client?.id ?? 0)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -25,7 +27,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
       { name: text('name') ?? '', contact_person: text('contact_person'), notes: text('notes') },
       {
         onSuccess: (saved) => {
-          onClose()
+          close()
           onSaved?.(saved)
         },
       },
@@ -33,7 +35,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
   }
 
   return (
-    <Dialog title={client ? 'Edit client' : 'Add client'} onClose={onClose}>
+    <Dialog title={client ? 'Edit client' : 'Add client'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           Name
@@ -52,7 +54,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
           <button className="btn" type="submit" disabled={save.isPending}>
             {client ? 'Save' : 'Add client'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {client && (

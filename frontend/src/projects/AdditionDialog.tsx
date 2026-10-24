@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Dialog } from '../components/Dialog.tsx'
+import { useRef, useState, type FormEvent } from 'react'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteAddition, useSaveAddition, type Addition } from './queries.ts'
 
@@ -11,6 +11,8 @@ type Props = {
 }
 
 export function AdditionDialog({ projectId, addition, onClose }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const save = useSaveAddition(projectId, addition?.id)
   const remove = useDeleteAddition(projectId)
   const [split, setSplit] = useState((addition?.deposit_percent ?? 0) > 0)
@@ -30,12 +32,12 @@ export function AdditionDialog({ projectId, addition, onClose }: Props) {
         agreed_on: text('agreed_on') ?? '',
         delivered_on: text('delivered_on'),
       },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
   return (
-    <Dialog title={addition ? 'Edit addition' : 'Add addition'} onClose={onClose}>
+    <Dialog title={addition ? 'Edit addition' : 'Add addition'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           Name
@@ -109,7 +111,7 @@ export function AdditionDialog({ projectId, addition, onClose }: Props) {
           <button className="btn" type="submit" disabled={save.isPending}>
             {addition ? 'Save' : 'Add addition'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {addition && (
@@ -119,7 +121,7 @@ export function AdditionDialog({ projectId, addition, onClose }: Props) {
               disabled={remove.isPending}
               onClick={() =>
                 confirmRemove || addition.paid === 0
-                  ? remove.mutate(addition.id, { onSuccess: onClose })
+                  ? remove.mutate(addition.id, { onSuccess: close })
                   : setConfirmRemove(true)
               }
             >

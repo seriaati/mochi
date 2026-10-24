@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
 import { useClients, type Client } from '../clients/queries.ts'
-import { Dialog } from '../components/Dialog.tsx'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteRetainer, useSaveRetainer, type Collection, type Retainer } from './queries.ts'
 
@@ -24,6 +24,8 @@ function defaultContact(client: Client | undefined): number | null {
 }
 
 export function RetainerDialog({ retainer, clientId, onClose }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const clients = useClients().data ?? []
   const save = useSaveRetainer(retainer?.id)
   const remove = useDeleteRetainer()
@@ -62,12 +64,12 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
         ended_on: (form.get('ended_on') as string) || null,
         tracked_from: `${tracked}-01`,
       },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
   return (
-    <Dialog title={retainer ? 'Edit retainer' : 'Add retainer'} onClose={onClose}>
+    <Dialog title={retainer ? 'Edit retainer' : 'Add retainer'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           Client
@@ -178,7 +180,7 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
           <button className="btn" type="submit" disabled={save.isPending}>
             {retainer ? 'Save' : 'Add retainer'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {retainer && (
@@ -188,7 +190,7 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
               disabled={remove.isPending}
               onClick={() =>
                 confirmingDelete
-                  ? remove.mutate(retainer.id, { onSuccess: onClose })
+                  ? remove.mutate(retainer.id, { onSuccess: close })
                   : setConfirmingDelete(true)
               }
             >

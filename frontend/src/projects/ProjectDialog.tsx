@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { useClients } from '../clients/queries.ts'
-import { Dialog } from '../components/Dialog.tsx'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteProject, useSaveProject, type Project } from './queries.ts'
 
@@ -16,6 +16,8 @@ type Props = {
 }
 
 export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }: Props) {
+  const dialog = useRef<DialogHandle>(null)
+  const close = () => dialog.current?.close()
   const clients = useClients()
   const save = useSaveProject(project?.id)
   const remove = useDeleteProject()
@@ -39,7 +41,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
       },
       {
         onSuccess: (saved) => {
-          onClose()
+          close()
           onSaved?.(saved)
         },
       },
@@ -48,12 +50,12 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
 
   if (clients.data?.length === 0) {
     return (
-      <Dialog title="New project" onClose={onClose}>
+      <Dialog title="New project" ref={dialog} onClose={onClose}>
         <p className="empty-note">
           A project belongs to a client. <Link to="/clients">Add a client</Link> first.
         </p>
         <div className="form-actions">
-          <button className="btn secondary" type="button" onClick={onClose}>
+          <button className="btn secondary" type="button" onClick={close}>
             Close
           </button>
         </div>
@@ -62,7 +64,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
   }
 
   return (
-    <Dialog title={project ? 'Edit project' : 'New project'} onClose={onClose}>
+    <Dialog title={project ? 'Edit project' : 'New project'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <label className="field">
           Client
@@ -145,7 +147,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
           <button className="btn" type="submit" disabled={save.isPending}>
             {project ? 'Save' : 'Create project'}
           </button>
-          <button className="btn secondary push" type="button" onClick={onClose}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
           {project && (
@@ -157,7 +159,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
                 confirmDelete
                   ? remove.mutate(project.id, {
                       onSuccess: () => {
-                        onClose()
+                        close()
                         onDeleted?.()
                       },
                     })

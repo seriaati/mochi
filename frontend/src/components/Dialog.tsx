@@ -1,19 +1,41 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 
-type Props = { title: string; onClose: () => void; children: ReactNode }
+/** Closes the dialog with its exit animation, then calls onClose. */
+export type DialogHandle = { close: () => void }
 
-/** A modal native <dialog>: render it to open, stop rendering it to close. Escape calls onClose. */
-export function Dialog({ title, onClose, children }: Props) {
-  const ref = useRef<HTMLDialogElement>(null)
+type Props = { title: string; onClose: () => void; children: ReactNode; ref?: Ref<DialogHandle> }
+
+/**
+ * A modal native <dialog>: render it to open. Close it through its ref (or Escape) to animate out
+ * before onClose; stopping rendering it closes it at once.
+ */
+export function Dialog({ title, onClose, children, ref }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
+  const [closing, setClosing] = useState(false)
+
+  useImperativeHandle(ref, () => ({ close: () => setClosing(true) }), [])
 
   useEffect(() => {
-    const dialog = ref.current
+    const dialog = dialogRef.current
     if (dialog && !dialog.open) dialog.showModal()
   }, [])
 
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby={titleId} onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      className={closing ? 'dialog closing' : 'dialog'}
+      aria-labelledby={titleId}
+      // Escape animates out too; when the browser won't let it be held, the dialog closes at once.
+      onCancel={(event) => {
+        event.preventDefault()
+        setClosing(true)
+      }}
+      onClose={onClose}
+      onAnimationEnd={(event) => {
+        if (event.animationName === 'dialog-out') onClose()
+      }}
+    >
       <h2 id={titleId}>{title}</h2>
       {children}
     </dialog>
