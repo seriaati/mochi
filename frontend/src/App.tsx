@@ -1,4 +1,5 @@
-import { NavLink, Route, Routes } from 'react-router'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { NavLink, Route, Routes, useLocation } from 'react-router'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
 import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
@@ -14,7 +15,37 @@ const pages = [
   { path: '/maintenance', label: 'Maintenance' },
 ]
 
+/** Where the sliding highlight sits: over the active link, following it on navigation and resize. */
+function useNavPill(nav: RefObject<HTMLElement | null>, pathname: string) {
+  const [pill, setPill] = useState<CSSProperties | null>(null)
+
+  useLayoutEffect(() => {
+    const el = nav.current
+    if (!el) return
+    const place = () => {
+      const active = el.querySelector<HTMLElement>('a.active')
+      setPill(
+        active && {
+          width: active.offsetWidth,
+          height: active.offsetHeight,
+          transform: `translate(${active.offsetLeft}px, ${active.offsetTop}px)`,
+        },
+      )
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [nav, pathname])
+
+  return pill
+}
+
 export default function App() {
+  const { pathname } = useLocation()
+  const nav = useRef<HTMLElement>(null)
+  const pill = useNavPill(nav, pathname)
+
   return (
     <div className="shell">
       <header className="topbar">
@@ -22,7 +53,8 @@ export default function App() {
           <i />
           Studio
         </div>
-        <nav className="nav" aria-label="Main">
+        <nav ref={nav} className="nav" aria-label="Main">
+          {pill && <span className="nav-pill" style={pill} aria-hidden="true" />}
           {pages.map((page) => (
             <NavLink key={page.path} to={page.path} end={page.path === '/'}>
               {page.label}
@@ -36,7 +68,8 @@ export default function App() {
           </NavLink>
         </nav>
       </header>
-      <main>
+      {/* Keyed so each page plays its entrance animation. */}
+      <main key={pathname} className="page">
         <Routes>
           <Route path="/" element={<OverviewPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

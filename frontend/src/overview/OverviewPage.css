@@ -160,9 +160,15 @@
 
 .ov-ring-track { stroke: var(--ring-track); }
 
+/* Sweeps round to its share. */
+@keyframes ring-in {
+  from { stroke-dasharray: 0 999; }
+}
+
 .ov-ring-auto {
   stroke: var(--good);
   stroke-linecap: round;
+  animation: ring-in 1s var(--ease-out) 0.25s backwards;
 }
 
 .ov-ring text {
