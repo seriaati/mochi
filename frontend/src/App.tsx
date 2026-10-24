@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { NavLink, Route, Routes, useLocation } from 'react-router'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
+import { useFavicon } from './favicon.ts'
 import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
 import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
 import { OverviewPage } from './overview/OverviewPage.tsx'
@@ -53,6 +54,7 @@ export default function App() {
   useEffect(() => {
     document.title = studio
   }, [studio])
+  useFavicon(logo)
 
   return (
     <div className="shell">

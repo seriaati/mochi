@@ -8,11 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>Studio</title>
-    <!-- The saved theme (see src/theme.ts), set before first paint so the page doesn't flash. -->
+    <!-- The saved theme (see src/theme.ts) and logo icon (src/favicon.ts), set before first
+         paint so the page doesn't flash. -->
     <script>
       try {
         const theme = localStorage.getItem('theme')
         if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+        const icon = localStorage.getItem('favicon')
+        if (icon) Object.assign(document.querySelector('link[rel="icon"]'), { type: 'image/png', href: icon })
       } catch {}
     </script>
   </head>
