@@ -4,15 +4,16 @@ Lookups go to a fake Discord (or a fake httpx.get for the request itself), never
 The clock is pinned to 23 October 2026, 10:00 in Asia/Taipei."""
 
 from collections.abc import Iterator
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import httpx2 as httpx
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 from sqlalchemy.orm import Session
 
-from app import discord, discord_sync
+from app import crypto, discord, discord_sync
 from app.clock import get_now
 from app.config import settings
 from app.main import app
@@ -70,7 +71,7 @@ def _not_paused(monkeypatch: pytest.MonkeyPatch) -> None:
 def fake(monkeypatch: pytest.MonkeyPatch) -> FakeDiscord:
     """Turns sync on with a bot token and swaps in the fake Discord."""
     fake = FakeDiscord()
-    monkeypatch.setattr(settings, "discord_bot_token", SecretStr(TOKEN))
+    monkeypatch.setattr(discord, "config", replace(discord.config, bot_token=SecretStr(TOKEN)))
     monkeypatch.setattr(discord, "fetch_user", fake)
     return fake
 
@@ -122,7 +123,7 @@ def test_parse_user() -> None:
 
 def fake_get(monkeypatch: pytest.MonkeyPatch, response: httpx.Response) -> list[dict]:
     monkeypatch.setattr(discord, "fetch_user", REAL_FETCH)
-    monkeypatch.setattr(settings, "discord_bot_token", SecretStr(TOKEN))
+    monkeypatch.setattr(discord, "config", replace(discord.config, bot_token=SecretStr(TOKEN)))
     monkeypatch.setattr(settings, "discord_api_base", "http://discord.test/api/v10")
     requests: list[dict] = []
 
@@ -381,8 +382,8 @@ def test_mention_profile(
     def mention() -> dict | None:
         return client.get("/api/maintenance").json()["reminders"]["mention"]
 
-    assert mention() is None  # no DISCORD_MENTION_USER_ID
-    monkeypatch.setattr(settings, "discord_mention_user_id", str(ME))
+    assert mention() is None  # no mention user
+    monkeypatch.setattr(discord, "config", replace(discord.config, mention_user_id=str(ME)))
     assert mention()["status"] == "pending"
 
     contact_row(session, DAN, None)
@@ -393,7 +394,7 @@ def test_mention_profile(
     assert discord_sync.due(session, NOW + timedelta(minutes=59)) == []
 
     # A new mention ID starts over.
-    monkeypatch.setattr(settings, "discord_mention_user_id", str(SORA))
+    monkeypatch.setattr(discord, "config", replace(discord.config, mention_user_id=str(SORA)))
     assert mention()["status"] == "pending"
     assert discord_sync.refresh_due(session, NOW + timedelta(minutes=1)) == 1
     assert mention()["display_name"] == "sora.px"
@@ -406,7 +407,7 @@ def test_no_token_means_no_lookups(
     client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # conftest leaves the token unset and fails any lookup.
-    monkeypatch.setattr(settings, "discord_mention_user_id", str(ME))
+    monkeypatch.setattr(discord, "config", replace(discord.config, mention_user_id=str(ME)))
     owner = add_client(client)
     contact = add_contact(client, owner, DAN)
     off = {"status": "off", "synced_at": None, "username": None, "display_name": None}
@@ -416,7 +417,7 @@ def test_no_token_means_no_lookups(
 
     response = client.post(f"/api/clients/{owner['id']}/discord/sync")
     assert response.status_code == 409
-    assert response.json()["detail"] == "Discord sync is off: set DISCORD_BOT_TOKEN first"
+    assert response.json()["detail"] == "Discord sync is off: add a bot token in Settings first"
 
 
 def test_cached_profiles_hide_while_sync_is_off(
@@ -424,7 +425,7 @@ def test_cached_profiles_hide_while_sync_is_off(
 ) -> None:
     owner = add_client(client)
     add_contact(client, owner, DAN)
-    monkeypatch.setattr(settings, "discord_bot_token", None)
+    monkeypatch.setattr(discord, "config", replace(discord.config, bot_token=None))
     fetched = get_client(client, owner)
     assert fetched["avatar_url"] is None
     assert fetched["contacts"][0]["discord_profile"]["status"] == "off"
@@ -433,7 +434,7 @@ def test_cached_profiles_hide_while_sync_is_off(
 def test_token_never_in_responses(
     client: TestClient, fake: FakeDiscord, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "discord_mention_user_id", str(ME))
+    monkeypatch.setattr(discord, "config", replace(discord.config, mention_user_id=str(ME)))
     owner = add_client(client)
     contact = add_contact(client, owner, DAN)
     fake.users[SORA] = httpx.HTTPStatusError(
@@ -461,7 +462,7 @@ def test_token_never_in_responses(
     for response in responses:
         assert response.status_code == 200, response.text
         assert TOKEN not in response.text
-    assert TOKEN not in repr(settings)
+    assert TOKEN not in repr(discord.config)
 
 
 def test_tick_uses_its_own_session(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -474,3 +475,67 @@ def test_tick_uses_its_own_session(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(discord_sync, "refresh_due", refresh)
     discord_sync.tick()
     assert calls == [(UTC, discord_sync.PAUSE_SECONDS)]
+
+
+# The bot token in Settings
+
+KEY = "k" * 32
+BOT_TOKEN = "MTk4NjIyNDgzNDcxOTI1MjQ4.Cl2FMQ.ZnCjm1XVW7vRze4b7Cq4se7kKWs"  # Discord docs' example
+
+
+def test_bot_token_is_stored_encrypted(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "encryption_key", SecretStr(KEY))
+    owner = add_client(client)
+    add_contact(client, owner, DAN)  # sync is off: no lookup
+    response = client.put("/api/settings/discord-bot-token", json={"token": f" {BOT_TOKEN} "})
+    assert response.status_code == 200, response.text
+    assert response.json()["discord_bot_token_set"] is True
+    assert response.json()["encryption_key_set"] is True
+    assert BOT_TOKEN not in response.text
+    assert BOT_TOKEN not in client.get("/api/settings").text
+
+    stored = session.get_one(AppSettings, 1).discord_bot_token_encrypted
+    assert stored is not None and BOT_TOKEN not in stored
+    assert crypto.decrypt(stored) == BOT_TOKEN
+    assert discord.config.bot_token == SecretStr(BOT_TOKEN)
+    assert get_client(client, owner)["contacts"][0]["discord_profile"]["status"] == "pending"
+
+    # Saving the other settings keeps it.
+    client.put("/api/settings", json={"timezone": "Asia/Tokyo"})
+    assert discord.config.bot_token == SecretStr(BOT_TOKEN)
+
+    # Under a different key it can't be read, so sync is off until it's entered again.
+    monkeypatch.setattr(settings, "encryption_key", SecretStr("x" * 32))
+    discord.load(session)
+    assert discord.config.bot_token is None
+    assert get_client(client, owner)["contacts"][0]["discord_profile"]["status"] == "off"
+
+    response = client.delete("/api/settings/discord-bot-token")
+    assert response.json()["discord_bot_token_set"] is False
+    assert session.get_one(AppSettings, 1).discord_bot_token_encrypted is None
+
+
+def test_bot_token_needs_an_encryption_key(client: TestClient, session: Session) -> None:
+    # conftest leaves ENCRYPTION_KEY unset.
+    response = client.put("/api/settings/discord-bot-token", json={"token": BOT_TOKEN})
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Set ENCRYPTION_KEY on the API before saving a bot token"
+    assert session.get_one(AppSettings, 1).discord_bot_token_encrypted is None
+    assert client.get("/api/settings").json()["encryption_key_set"] is False
+
+
+@pytest.mark.parametrize("token", ["", "not a token", "a.b", "a.b.c.d", "a.b.c\nX-Evil: 1"])
+def test_bad_bot_tokens_are_rejected(
+    client: TestClient, token: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "encryption_key", SecretStr(KEY))
+    response = client.put("/api/settings/discord-bot-token", json={"token": token})
+    assert response.status_code == 422
+
+
+def test_encryption_key_must_be_long() -> None:
+    with pytest.raises(ValidationError):
+        type(settings)(encryption_key="too short")
+    assert type(settings)(encryption_key=KEY).encryption_key == SecretStr(KEY)

@@ -17,24 +17,22 @@ def _password_hash(value: SecretStr) -> SecretStr:
 
 class Settings(BaseSettings):
     """Deployment config from the environment or .env. User preferences such as the
-    timezone live in the database instead (see AppSettings)."""
+    timezone and the Discord setup live in the database instead (see AppSettings)."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://freelance:freelance@localhost:5433/freelance"
 
-    # Maintenance reminders. Without a webhook URL, reminders are off.
-    discord_webhook_url: Annotated[str | None, BeforeValidator(blank_to_none)] = None
-    # Your own Discord user ID, @mentioned in each reminder.
-    discord_mention_user_id: Annotated[
-        Annotated[str, Field(pattern=r"^\d{17,20}$")] | None, BeforeValidator(blank_to_none)
-    ] = None
-
-    # Discord profile sync: names and avatars of clients' Discord contacts and of the mention
-    # user. Without a bot token, sync is off. The token never leaves the backend.
-    discord_bot_token: Annotated[SecretStr | None, BeforeValidator(blank_to_none)] = None
+    # The Discord webhook, mention user and bot token are set in the app (see AppSettings).
     # Only changed to point the lookups at a local mock API while testing.
     discord_api_base: str = "https://discord.com/api/v10"
+
+    # Encrypts the Discord webhook URL and bot token in the database: any random string of 32+
+    # characters. Without it, neither can be saved. A new key makes them unreadable, so they
+    # need entering again.
+    encryption_key: Annotated[
+        Annotated[SecretStr, Field(min_length=32)] | None, BeforeValidator(blank_to_none)
+    ] = None
 
     # Login. The scrypt hash of the dashboard password, from `python -m app.passwords hash-password`.
     # Without it, nobody can log in.

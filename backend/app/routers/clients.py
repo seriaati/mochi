@@ -135,7 +135,7 @@ def sync_discord(client_id: int, session: SessionDep, clock: ClockDep) -> Client
     """Looks up the client's Discord profiles now, however recently they were synced."""
     if not discord_sync.enabled():
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "Discord sync is off: set DISCORD_BOT_TOKEN first"
+            status.HTTP_409_CONFLICT, "Discord sync is off: add a bot token in Settings first"
         )
     client = _get_client(session, client_id)
     try:

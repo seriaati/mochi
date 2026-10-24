@@ -23,7 +23,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import discord, discord_sync
 from app.clock import Clock, clock_for, utc_now
-from app.config import settings
 from app.db import SessionLocal
 from app.maintenance import (
     REPEAT_DAYS,
@@ -173,7 +172,7 @@ def manual(session: Session, clock: Clock, client_id: int) -> Reminder | None:
 
 def content(reminders: list[Reminder], clock: Clock) -> str:
     lines = [reminder_line(r.client.name, r.months, r.contact, clock.today) for r in reminders]
-    return message(lines, settings.discord_mention_user_id)
+    return message(lines, discord.config.mention_user_id)
 
 
 def send(session: Session, reminders: list[Reminder], clock: Clock) -> str:
@@ -195,7 +194,7 @@ def send(session: Session, reminders: list[Reminder], clock: Clock) -> str:
 
 def send_due(session: Session, now: datetime) -> int:
     """Send whatever is due, in one post. Does nothing while no webhook is configured."""
-    if settings.discord_webhook_url is None:
+    if discord.config.webhook_url is None:
         return 0
     clock = clock_for(session, now)  # the timezone as saved right now
     due = due_now(session, clock)
@@ -205,7 +204,7 @@ def send_due(session: Session, now: datetime) -> int:
 
 
 def send_test() -> str:
-    text = message([TEST_LINE], settings.discord_mention_user_id)
+    text = message([TEST_LINE], discord.config.mention_user_id)
     discord.post(text)
     return text
 

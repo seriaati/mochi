@@ -1,5 +1,5 @@
 """Discord profile sync: display names, usernames and avatars of clients' Discord contacts and
-of you (DISCORD_MENTION_USER_ID), looked up by user ID with the bot token.
+of you (the mention user in Settings), looked up by user ID with the bot token.
 
 A profile is looked up when a contact's Discord user ID is saved (inline, with a short timeout),
 when you press Sync now, and by the background loop in app/reminders.py: each tick refreshes
@@ -22,7 +22,6 @@ from sqlalchemy.orm import Session
 
 from app import discord
 from app.clock import utc_now
-from app.config import settings
 from app.db import SessionLocal
 from app.models import AppSettings, ContactMethod, DiscordProfile, SyncStatus
 from app.schemas.clients import DiscordProfileOut, ProfileStatus
@@ -41,11 +40,11 @@ _paused_until: datetime | None = None
 
 
 def enabled() -> bool:
-    return settings.discord_bot_token is not None
+    return discord.config.bot_token is not None
 
 
 def _mention_id() -> int | None:
-    mention = settings.discord_mention_user_id
+    mention = discord.config.mention_user_id
     return int(mention) if mention else None
 
 
@@ -119,7 +118,7 @@ def due(session: Session, now: datetime) -> list[ContactMethod | AppSettings]:
     mention = _mention_id()
     if mention is not None:
         me = session.get_one(AppSettings, 1)
-        if me.discord_user_id != mention:  # DISCORD_MENTION_USER_ID changed
+        if me.discord_user_id != mention:  # the mention user changed
             clear(me)
             me.discord_user_id = mention
         rows += session.scalars(select(AppSettings).where(_stale(AppSettings, now)))
@@ -199,7 +198,7 @@ def primary_avatar(contacts: Iterable[ContactMethod]) -> str | None:
 
 
 def mention_out(session: Session) -> DiscordProfileOut | None:
-    """Your profile, for DISCORD_MENTION_USER_ID; pending until synced for that ID."""
+    """Your profile, for the mention user in Settings; pending until synced for that ID."""
     mention = _mention_id()
     if mention is None:
         return None

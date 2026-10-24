@@ -105,11 +105,10 @@ def _auth_config(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def _no_discord(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Reminders and profile sync are off and nothing can reach Discord, whatever .env says.
-    Tests that need a webhook or lookups swap in fakes."""
-    monkeypatch.setattr(settings, "discord_webhook_url", None)
-    monkeypatch.setattr(settings, "discord_mention_user_id", None)
-    monkeypatch.setattr(settings, "discord_bot_token", None)
+    """Reminders and profile sync are off, with no ENCRYPTION_KEY, and nothing can reach
+    Discord, whatever .env says. Tests that need a webhook or lookups swap in fakes."""
+    monkeypatch.setattr(discord, "config", discord.Config())
+    monkeypatch.setattr(settings, "encryption_key", None)
 
     def refuse(*args: object) -> None:
         raise AssertionError("tests must not reach Discord")

@@ -97,7 +97,7 @@ function DiscordCard({ clientId, contact }: { clientId: number; contact: Contact
       </div>
       {profile && (
         <div className="discord-sync">
-          <span title={profile.status === 'off' ? 'Set DISCORD_BOT_TOKEN in backend/.env to sync names and avatars' : undefined}>
+          <span title={profile.status === 'off' ? 'Add a Discord bot token in Settings to sync names and avatars' : undefined}>
             {syncLabel(profile)}
           </span>
           {profile.status !== 'off' && (

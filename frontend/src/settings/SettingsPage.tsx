@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useLogout } from '../auth/queries.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
-import { useSaveSettings, useSettings, type Settings } from './queries.ts'
+import { useSaveBotToken, useSaveSettings, useSettings, type Settings } from './queries.ts'
 import './SettingsPage.css'
 
 const zones = Intl.supportedValuesOf('timeZone')
@@ -57,23 +57,8 @@ export function SettingsPage() {
           <StudioTile settings={settings.data} />
           <ThemeTile />
           <TimezoneTile settings={settings.data} />
-          <section className="tile span-5 tint-blue">
-            <h2 className="tile-label">Discord</h2>
-            <p className="settings-text">
-              The webhook URL and your Discord user ID live in <code>backend/.env</code> as{' '}
-              <code>DISCORD_WEBHOOK_URL</code> and <code>DISCORD_MENTION_USER_ID</code>. Restart the API after
-              changing them.
-            </p>
-            <p className="settings-text">
-              Each client gets one reminder at 09:00 on the due date in the timezone set here, then every 2
-              days while anything is unpaid. A fee counts as overdue 2 days after its due date.
-            </p>
-            <p className="settings-text">
-              With a bot token in <code>DISCORD_BOT_TOKEN</code>, clients' Discord names and avatars, and yours,
-              sync from Discord every hour.
-            </p>
-          </section>
           <SessionTile />
+          <DiscordTile settings={settings.data} />
         </div>
       )}
     </>
@@ -257,10 +242,135 @@ function TimezoneTile({ settings }: { settings: Settings }) {
   )
 }
 
+function DiscordTile({ settings }: { settings: Settings }) {
+  const save = useSaveSettings()
+  const saveToken = useSaveBotToken()
+  const [replacing, setReplacing] = useState(false)
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    save.mutate({
+      ...settings,
+      discord_webhook_url: form.get('discord_webhook_url') as string,
+      discord_mention_user_id: form.get('discord_mention_user_id') as string,
+    })
+  }
+
+  function submitToken(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const token = new FormData(event.currentTarget).get('token') as string
+    saveToken.mutate(token, { onSuccess: () => setReplacing(false) })
+  }
+
+  const tokenForm = !settings.discord_bot_token_set || replacing
+  const noKey = !settings.encryption_key_set
+
+  return (
+    <section className="tile span-12 tint-blue">
+      <h2 className="tile-label">Discord</h2>
+      {noKey && (
+        <p className="form-error settings-feedback">
+          Set <code>ENCRYPTION_KEY</code> on the API (see <code>backend/.env.example</code>) to save a webhook
+          URL or bot token. Both are stored encrypted.
+        </p>
+      )}
+      <div className="settings-discord">
+        <form className="form" onSubmit={submit}>
+          <p className="settings-text">
+            Each client gets one reminder at 09:00 on the due date in the timezone above, then every 2 days
+            while anything is unpaid. A fee counts as overdue 2 days after its due date.
+          </p>
+          <label className="field">
+            Webhook URL
+            <input
+              name="discord_webhook_url"
+              type="url"
+              disabled={noKey}
+              defaultValue={settings.discord_webhook_url ?? ''}
+              placeholder="https://discord.com/api/webhooks/…"
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <small>
+              Channel settings › Integrations › Webhooks › New Webhook › Copy Webhook URL. Stored encrypted; empty
+              turns reminders off.
+            </small>
+          </label>
+          <label className="field">
+            Your Discord user ID
+            <input
+              name="discord_mention_user_id"
+              defaultValue={settings.discord_mention_user_id ?? ''}
+              inputMode="numeric"
+              pattern="\d{17,20}"
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <small>Mentioned in each reminder. Turn on Developer Mode, then right-click your name › Copy User ID.</small>
+          </label>
+          <div className="form-actions">
+            <button className="btn" type="submit" disabled={save.isPending}>
+              Save
+            </button>
+          </div>
+          {save.error && <p className="form-error">{save.error.message}</p>}
+          {save.isSuccess && !save.isPending && <p className="settings-saved">Saved</p>}
+        </form>
+
+        <div className="form">
+          <p className="settings-text">
+            With a bot token, clients' Discord names and avatars, and yours, sync from Discord every hour. It's
+            stored encrypted and never shown again.
+          </p>
+          {noKey ? null : tokenForm ? (
+            <form className="form" onSubmit={submitToken}>
+              <label className="field">
+                Bot token
+                <input name="token" type="password" required spellCheck={false} autoComplete="off" />
+                <small>
+                  discord.com/developers › New Application › Bot › Reset Token. No intents, permissions or server
+                  invite needed.
+                </small>
+              </label>
+              <div className="form-actions">
+                <button className="btn" type="submit" disabled={saveToken.isPending}>
+                  Save token
+                </button>
+                {replacing && (
+                  <button className="btn secondary" type="button" onClick={() => setReplacing(false)}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          ) : (
+            <div className="settings-token">
+              <span className="chip good">Bot token saved</span>
+              <button className="link-btn" type="button" onClick={() => setReplacing(true)}>
+                Replace
+              </button>
+              <button
+                className="link-btn"
+                type="button"
+                disabled={saveToken.isPending}
+                onClick={() => saveToken.mutate(null)}
+              >
+                Remove
+              </button>
+            </div>
+          )}
+          {saveToken.error && <p className="form-error">{saveToken.error.message}</p>}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function SessionTile() {
   const logout = useLogout()
   return (
-    <section className="tile span-12 tint-peach settings-session">
+    <section className="tile span-5 tint-peach settings-session">
       <div>
         <h2 className="tile-label">Session</h2>
         <p className="settings-text">

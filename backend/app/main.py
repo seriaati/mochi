@@ -7,11 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import reminders
+from app import discord, reminders
 from app.auth import require_session
 from app.config import settings as config
 from app.csrf import CSRFMiddleware
-from app.db import SessionDep
+from app.db import SessionDep, SessionLocal
 from app.mcp_server import mcp
 from app.routers import (
     auth,
@@ -27,6 +27,8 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    with SessionLocal() as session:
+        discord.load(session)  # the Discord setup saved in Settings
     # Sends maintenance reminders and refreshes Discord profiles in the background. Tests never
     # enter the lifespan.
     task = asyncio.create_task(reminders.run_forever())

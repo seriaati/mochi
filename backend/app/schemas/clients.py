@@ -30,7 +30,7 @@ class ProfileStatus(enum.StrEnum):
     NOT_FOUND = "not_found"  # Discord has no user with this ID
     ERROR = "error"  # the last lookup failed; profile fields are from the last good one, if any
     PENDING = "pending"  # not looked up yet
-    OFF = "off"  # sync is off: no DISCORD_BOT_TOKEN
+    OFF = "off"  # sync is off: no bot token in Settings
 
 
 class DiscordProfileOut(BaseModel):

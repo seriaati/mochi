@@ -110,11 +110,49 @@
   color: var(--good);
 }
 
+/* Reminders on the left, profile sync on the right. */
+.settings-discord {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px 32px;
+  margin-top: 6px;
+}
+
+.settings-discord .field {
+  color: var(--muted);
+}
+
+.settings-discord .field input {
+  background: var(--chip);
+}
+
+.settings-discord .field input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.settings-discord .settings-saved {
+  margin: 0;
+}
+
+.settings-discord code {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.settings-token {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
 .settings-session {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
+  align-content: flex-start;
   align-items: center;
 }
 

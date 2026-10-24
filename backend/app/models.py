@@ -17,6 +17,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app import crypto
+
 
 class Base(DeclarativeBase):
     pass
@@ -241,8 +243,31 @@ class AppSettings(DiscordProfile, Base):
     # Shown in the top bar. None shows "Studio" and a plain mark.
     studio_name: Mapped[str | None] = mapped_column(String(60))
     studio_logo: Mapped[str | None] = mapped_column(Text)  # a small image as a data: URL
-    # Whose profile is cached here: DISCORD_MENTION_USER_ID when it was last synced.
+    # Where maintenance reminders post, encrypted like the bot token: anyone with the URL can
+    # post to the channel. Read and set it through discord_webhook_url. None turns reminders off.
+    discord_webhook_url_encrypted: Mapped[str | None] = mapped_column(Text)
+    # The user's own Discord ID, @mentioned in each reminder.
+    discord_mention_user_id: Mapped[int | None] = mapped_column(BigInteger)
+    # The bot token for profile sync, encrypted with ENCRYPTION_KEY (see app/crypto.py). None
+    # turns sync off.
+    discord_bot_token_encrypted: Mapped[str | None] = mapped_column(Text)
+    # Whose profile is cached here: discord_mention_user_id when it was last synced.
     discord_user_id: Mapped[int | None] = mapped_column(BigInteger)
+
+    @property
+    def discord_bot_token_set(self) -> bool:
+        return self.discord_bot_token_encrypted is not None
+
+    @property
+    def discord_webhook_url(self) -> str | None:
+        """None when unset, or when it can't be decrypted (no ENCRYPTION_KEY, or a new one)."""
+        encrypted = self.discord_webhook_url_encrypted
+        return crypto.decrypt(encrypted) if encrypted is not None else None
+
+    @discord_webhook_url.setter
+    def discord_webhook_url(self, url: str | None) -> None:
+        """Raises crypto.NoKey for a URL without ENCRYPTION_KEY."""
+        self.discord_webhook_url_encrypted = crypto.encrypt(url) if url is not None else None
 
 
 class AuthSession(Base):

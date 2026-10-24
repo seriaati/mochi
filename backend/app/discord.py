@@ -1,22 +1,64 @@
 """Talking to Discord: posting to the reminder webhook, and looking users up with the bot token.
 Tests replace `post` and `fetch_user` so nothing leaves the machine."""
 
+import logging
 from dataclasses import dataclass
 
 import httpx2 as httpx
+from pydantic import SecretStr
+from sqlalchemy.orm import Session
 
+from app import crypto
 from app.config import settings
+from app.models import AppSettings
+
+log = logging.getLogger(__name__)
 
 CDN = "https://cdn.discordapp.com"
 
 
+@dataclass(frozen=True)
+class Config:
+    """The Discord setup saved in Settings. Held here so everything reads it without a query:
+    loaded at startup and replaced whenever settings are saved, which works because the API
+    runs as one process."""
+
+    webhook_url: str | None = None  # None: reminders are off
+    mention_user_id: str | None = None  # the user's own ID, @mentioned in reminders
+    bot_token: SecretStr | None = None  # None: profile sync is off
+
+
+config = Config()
+
+
+def load(session: Session) -> None:
+    """Reads the saved setup into `config`. A webhook URL or token that can't be decrypted (no
+    ENCRYPTION_KEY, or a different one) counts as unset."""
+    global config
+    row = session.get_one(AppSettings, 1)
+    token = None
+    if row.discord_bot_token_encrypted is not None:
+        token = crypto.decrypt(row.discord_bot_token_encrypted)
+        if token is None:
+            log.warning("Can't decrypt the Discord bot token: check ENCRYPTION_KEY")
+    webhook_url = row.discord_webhook_url
+    if webhook_url is None and row.discord_webhook_url_encrypted is not None:
+        log.warning("Can't decrypt the Discord webhook URL: check ENCRYPTION_KEY")
+    mention = row.discord_mention_user_id
+    config = Config(
+        webhook_url=webhook_url,
+        mention_user_id=str(mention) if mention is not None else None,
+        bot_token=SecretStr(token) if token is not None else None,
+    )
+
+
 def post(content: str) -> None:
     """Post a message to the configured webhook, pinging only the configured user."""
-    if settings.discord_webhook_url is None:
-        raise RuntimeError("DISCORD_WEBHOOK_URL is not set")
-    mention = settings.discord_mention_user_id
+    if config.webhook_url is None:
+        raise RuntimeError("No Discord webhook URL is set")
+    mention = config.mention_user_id
     response = httpx.post(
-        settings.discord_webhook_url,
+        config.webhook_url,
         json={"content": content, "allowed_mentions": {"users": [mention] if mention else []}},
         timeout=10,
     )
@@ -69,11 +111,11 @@ def _retry_after(response: httpx.Response) -> float:
 def fetch_user(user_id: int, timeout: float) -> User | None:
     """Look a user up by ID with the bot token. None when Discord has no such user. Raises
     RateLimited on 429 and httpx.HTTPError when the lookup fails otherwise."""
-    if settings.discord_bot_token is None:
-        raise RuntimeError("DISCORD_BOT_TOKEN is not set")
+    if config.bot_token is None:
+        raise RuntimeError("No Discord bot token is set")
     response = httpx.get(
         f"{settings.discord_api_base}/users/{user_id}",
-        headers={"Authorization": f"Bot {settings.discord_bot_token.get_secret_value()}"},
+        headers={"Authorization": f"Bot {config.bot_token.get_secret_value()}"},
         timeout=timeout,
     )
     if response.status_code == 404:

@@ -9,15 +9,17 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import discord, maintenance, reminders
+from app import crypto, discord, maintenance, reminders
 from app.clock import get_now
 from app.config import settings
 from app.main import app
 from app.maintenance import Month, MonthStatus, due_on
 from app.models import (
+    AppSettings,
     Collection,
     ContactKind,
     ContactMethod,
@@ -30,6 +32,7 @@ TAIPEI = ZoneInfo("Asia/Taipei")
 TOKYO = ZoneInfo("Asia/Tokyo")
 REAL_POST = discord.post  # before conftest swaps it out
 USER_ID = "123456789012345678"
+KEY = "k" * 32  # ENCRYPTION_KEY, for the webhook URL
 TODAY = date(2026, 10, 23)
 
 
@@ -51,11 +54,15 @@ def pin() -> Iterator[Callable[[datetime], None]]:
 
 
 @pytest.fixture
-def webhook(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """Turns reminders on and records each message instead of posting it."""
+def webhook(session: Session, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Turns reminders on in Settings and records each message instead of posting it."""
     sent: list[str] = []
-    monkeypatch.setattr(settings, "discord_webhook_url", "https://discord.test/api/webhooks/1/x")
-    monkeypatch.setattr(settings, "discord_mention_user_id", USER_ID)
+    monkeypatch.setattr(settings, "encryption_key", SecretStr(KEY))
+    row = session.get_one(AppSettings, 1)
+    row.discord_webhook_url = "https://discord.com/api/webhooks/1/x"
+    row.discord_mention_user_id = int(USER_ID)
+    session.flush()
+    discord.load(session)
     monkeypatch.setattr(discord, "post", sent.append)
     return sent
 
@@ -851,7 +858,8 @@ def test_several_clients_share_one_post(
 
 
 def set_timezone(client: TestClient, name: str) -> None:
-    response = client.put("/api/settings", json={"timezone": name})
+    current = client.get("/api/settings").json()
+    response = client.put("/api/settings", json=current | {"timezone": name})
     assert response.status_code == 200, response.text
 
 
@@ -1082,8 +1090,11 @@ def test_webhook_payload_mentions_only_the_user(monkeypatch: pytest.MonkeyPatch)
         calls.append((url, kwargs))
         return type("Ok", (), {"raise_for_status": lambda self: None})()
 
-    monkeypatch.setattr(settings, "discord_webhook_url", "https://discord.test/hook")
-    monkeypatch.setattr(settings, "discord_mention_user_id", USER_ID)
+    monkeypatch.setattr(
+        discord,
+        "config",
+        discord.Config(webhook_url="https://discord.test/hook", mention_user_id=USER_ID),
+    )
     monkeypatch.setattr(discord.httpx, "post", fake_post)
     REAL_POST("hello")
     assert calls == [
@@ -1170,6 +1181,10 @@ DEFAULT_SETTINGS = {
     "user_name": None,
     "studio_name": None,
     "studio_logo": None,
+    "discord_webhook_url": None,
+    "discord_mention_user_id": None,
+    "discord_bot_token_set": False,
+    "encryption_key_set": False,
 }
 LOGO = "data:image/png;base64,iVBORw0KGgo="
 
@@ -1211,6 +1226,74 @@ def test_names_and_logo(client: TestClient) -> None:
     ],
 )
 def test_bad_names_and_logos_are_rejected(client: TestClient, changes: dict) -> None:
+    response = client.put("/api/settings", json={"timezone": "Asia/Taipei"} | changes)
+    assert response.status_code == 422
+    assert client.get("/api/settings").json() == DEFAULT_SETTINGS
+
+
+HOOK = "https://discord.com/api/webhooks/123456789012345678/aBc-_9"
+
+
+def test_discord_settings_turn_reminders_on(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def reminders() -> dict:
+        return client.get("/api/maintenance").json()["reminders"]
+
+    monkeypatch.setattr(settings, "encryption_key", SecretStr(KEY))
+    assert reminders()["enabled"] is False
+    saved = {"timezone": "Asia/Taipei", "discord_webhook_url": HOOK, "discord_mention_user_id": USER_ID}
+    response = client.put("/api/settings", json=saved)
+    assert response.status_code == 200, response.text
+    assert response.json() == DEFAULT_SETTINGS | saved | {"encryption_key_set": True}
+    assert discord.config == discord.Config(webhook_url=HOOK, mention_user_id=USER_ID)
+    # Stored encrypted.
+    stored = session.get_one(AppSettings, 1).discord_webhook_url_encrypted
+    assert stored is not None and HOOK not in stored
+    assert crypto.decrypt(stored) == HOOK
+    assert reminders()["enabled"] is True
+    assert reminders()["mention_user_id"] == USER_ID
+
+    # Blank clears them, turning reminders off.
+    blank = {"timezone": "Asia/Taipei", "discord_webhook_url": " ", "discord_mention_user_id": ""}
+    assert client.put("/api/settings", json=blank).json() == DEFAULT_SETTINGS | {
+        "encryption_key_set": True
+    }
+    assert reminders()["enabled"] is False
+    assert session.get_one(AppSettings, 1).discord_webhook_url_encrypted is None
+
+    # Under a different key it can't be read, so reminders are off until it's entered again.
+    client.put("/api/settings", json=saved)
+    monkeypatch.setattr(settings, "encryption_key", SecretStr("x" * 32))
+    discord.load(session)
+    assert reminders()["enabled"] is False
+    assert client.get("/api/settings").json()["discord_webhook_url"] is None
+
+
+def test_webhook_needs_an_encryption_key(client: TestClient, session: Session) -> None:
+    # conftest leaves ENCRYPTION_KEY unset; settings without a webhook still save.
+    response = client.put(
+        "/api/settings", json={"timezone": "Asia/Taipei", "discord_webhook_url": HOOK}
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Set ENCRYPTION_KEY on the API before saving a webhook URL"
+    assert session.get_one(AppSettings, 1).discord_webhook_url_encrypted is None
+    assert client.put("/api/settings", json={"timezone": "Asia/Tokyo"}).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        # Only Discord's webhooks: the API posts to this URL.
+        {"discord_webhook_url": "https://example.com/api/webhooks/1/x"},
+        {"discord_webhook_url": "http://discord.com/api/webhooks/1/x"},
+        {"discord_webhook_url": "https://discord.com.evil.test/api/webhooks/1/x"},
+        {"discord_webhook_url": HOOK + "/../../users/@me"},
+        {"discord_mention_user_id": "12345"},
+        {"discord_mention_user_id": "<@123456789012345678>"},
+    ],
+)
+def test_bad_discord_settings_are_rejected(client: TestClient, changes: dict) -> None:
     response = client.put("/api/settings", json={"timezone": "Asia/Taipei"} | changes)
     assert response.status_code == 422
     assert client.get("/api/settings").json() == DEFAULT_SETTINGS

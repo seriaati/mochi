@@ -397,7 +397,7 @@ function RemindersTile({ data }: { data: Maintenance }) {
             ) : (
               <b>{mention_user_id ? '@you' : 'No mention'}</b>
             )}
-            {mention_user_id ? 'mentioned in each ping' : 'set DISCORD_MENTION_USER_ID'}
+            {mention_user_id ? 'mentioned in each ping' : <Link to="/settings">set your Discord ID</Link>}
           </li>
         </ul>
         <div className="mt-hook-action">
@@ -414,7 +414,7 @@ function RemindersTile({ data }: { data: Maintenance }) {
       </div>
       {!enabled && (
         <p className="mt-hook-note">
-          Reminders are off. Set <code>DISCORD_WEBHOOK_URL</code> in <code>backend/.env</code> and restart the API.
+          Reminders are off. Add a Discord webhook URL in <Link to="/settings">Settings</Link>.
         </p>
       )}
     </section>

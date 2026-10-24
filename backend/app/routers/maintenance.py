@@ -5,9 +5,8 @@ import httpx2 as httpx
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app import discord_sync, maintenance, reminders
+from app import discord, discord_sync, maintenance, reminders
 from app.clock import Clock, ClockDep
-from app.config import settings
 from app.db import SessionDep
 from app.maintenance import REMINDER_TIME, REPEAT_DAYS, MonthStatus, slot_at
 from app.models import Client, Collection, Retainer
@@ -100,9 +99,9 @@ def _next_reminder(session: Session, clock: Clock) -> NextReminderOut | None:
 
 
 def _check_enabled() -> None:
-    if settings.discord_webhook_url is None:
+    if discord.config.webhook_url is None:
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "Reminders are off: set DISCORD_WEBHOOK_URL first"
+            status.HTTP_409_CONFLICT, "Reminders are off: add a webhook URL in Settings first"
         )
 
 
@@ -148,8 +147,8 @@ def overview(
         ),
         calendar=_calendar(retainers, period, today),
         reminders=ReminderConfigOut(
-            enabled=settings.discord_webhook_url is not None,
-            mention_user_id=settings.discord_mention_user_id,
+            enabled=discord.config.webhook_url is not None,
+            mention_user_id=discord.config.mention_user_id,
             mention=discord_sync.mention_out(session),
             timezone=clock.tz.key,
             time=REMINDER_TIME.strftime("%H:%M"),
