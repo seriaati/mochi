@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -251,3 +252,50 @@ class AuthSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class OAuthClient(Base):
+    """An MCP client that registered itself for OAuth (see app/oauth.py)."""
+
+    __tablename__ = "oauth_clients"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # The registration as the MCP SDK's OAuthClientInformationFull, client secret included.
+    info: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class OAuthCode(Base):
+    """An authorization code, issued when the user approves a client and exchanged once for
+    tokens. Stored as the code's SHA-256, like the tokens."""
+
+    __tablename__ = "oauth_codes"
+
+    code_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    client_id: Mapped[str] = mapped_column(
+        ForeignKey("oauth_clients.client_id", ondelete="CASCADE")
+    )
+    # The SDK's AuthorizationCode without the code itself: PKCE challenge, redirect URI, scopes.
+    params: Mapped[dict] = mapped_column(JSON)
+    # Of the AUTH_PASSWORD_HASH it was approved under, as on AuthSession.
+    password_fingerprint: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class OAuthToken(Base):
+    """An MCP client's access or refresh token, stored as its SHA-256. Each grant (one approval,
+    then each refresh of it) issues one of each; refreshing or revoking ends the pair."""
+
+    __tablename__ = "oauth_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16))  # "access" or "refresh"
+    grant_id: Mapped[str] = mapped_column(String(64), index=True)
+    client_id: Mapped[str] = mapped_column(
+        ForeignKey("oauth_clients.client_id", ondelete="CASCADE")
+    )
+    scopes: Mapped[list[str]] = mapped_column(JSON)
+    resource: Mapped[str | None] = mapped_column(String(255))
+    # Setting a new password ends MCP access too, as it does browser sessions.
+    password_fingerprint: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

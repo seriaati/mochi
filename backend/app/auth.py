@@ -35,7 +35,7 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _password_fingerprint() -> str | None:
+def password_fingerprint() -> str | None:
     encoded = settings.auth_password_hash
     return fingerprint(encoded.get_secret_value()) if encoded else None
 
@@ -43,7 +43,7 @@ def _password_fingerprint() -> str | None:
 def create_session(session: Session, now: datetime) -> str:
     """Starts a session and returns its token for the cookie. Clears out expired sessions."""
     session.execute(delete(AuthSession).where(AuthSession.expires_at <= now))
-    password = _password_fingerprint()
+    password = password_fingerprint()
     assert password is not None, "log in only with a password hash configured"
     token = secrets.token_urlsafe(32)
     session.add(
@@ -92,7 +92,7 @@ def authenticated(
     session: SessionDep, now: NowDep, response: Response, token: CookieToken = None
 ) -> bool:
     """Whether the request carries a live session. Records the use and slides its expiry."""
-    password = _password_fingerprint()
+    password = password_fingerprint()
     if token is None or password is None:
         return False
     row = session.scalars(

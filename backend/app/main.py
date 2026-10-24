@@ -12,7 +12,17 @@ from app.auth import require_session
 from app.config import settings as config
 from app.csrf import CSRFMiddleware
 from app.db import SessionDep
-from app.routers import auth, clients, maintenance, overview, projects, retainers, settings
+from app.mcp_server import mcp
+from app.routers import (
+    auth,
+    clients,
+    maintenance,
+    oauth,
+    overview,
+    projects,
+    retainers,
+    settings,
+)
 
 
 @asynccontextmanager
@@ -20,7 +30,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Sends maintenance reminders and refreshes Discord profiles in the background. Tests never
     # enter the lifespan.
     task = asyncio.create_task(reminders.run_forever())
-    yield
+    async with mcp.session_manager.run():
+        yield
     task.cancel()
 
 
@@ -50,6 +61,7 @@ protected.include_router(retainers.router)
 protected.include_router(maintenance.router)
 protected.include_router(settings.router)
 protected.include_router(overview.router)
+protected.include_router(oauth.router)
 app.include_router(protected)
 
 
@@ -62,3 +74,9 @@ def health(session: SessionDep, response: Response) -> dict[str, str]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "unavailable", "database": "unreachable"}
     return {"status": "ok"}
+
+
+# MCP clients (see app/mcp_server.py): /mcp, and the OAuth endpoints and metadata they sign in
+# with, which the spec puts at the root (/.well-known/..., /authorize, /token, /register,
+# /revoke). Mounted last, so it only gets what no route above matches.
+app.mount("/", mcp.streamable_http_app())

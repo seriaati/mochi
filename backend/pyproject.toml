@@ -7,6 +7,7 @@ dependencies = [
     "alembic>=1.20.1",
     "fastapi>=0.161.1",
     "httpx2>=2.16.0",
+    "mcp>=1.29,<2",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.1",
     "sqlalchemy>=2.1.6",

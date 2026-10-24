@@ -1,10 +1,11 @@
 """Refuses cross-site writes.
 
 The session cookie is SameSite=Lax, so other sites can't send it with a POST from script, but
-sibling subdomains count as the same site. As a second check, a POST, PUT, PATCH or DELETE is
-refused with 403 when its Origin header (or, without one, its Referer) is neither the API's own
-origin nor one of FRONTEND_ORIGIN. Requests with neither header, such as curl's, pass: browsers
-send Origin on every cross-origin write.
+sibling subdomains count as the same site. As a second check, a POST, PUT, PATCH or DELETE to
+/api is refused with 403 when its Origin header (or, without one, its Referer) is neither the
+API's own origin nor one of FRONTEND_ORIGIN. Requests with neither header, such as curl's, pass:
+browsers send Origin on every cross-origin write. Paths outside /api, the MCP and OAuth
+endpoints, ignore the cookie, so any site may call them.
 """
 
 from urllib.parse import urlsplit
@@ -38,7 +39,11 @@ class CSRFMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and scope["method"] in UNSAFE_METHODS:
+        if (
+            scope["type"] == "http"
+            and scope["method"] in UNSAFE_METHODS
+            and scope["path"].startswith("/api/")
+        ):
             request = Request(scope)
             source = _source(request)
             own = f"{request.url.scheme}://{request.url.netloc}"

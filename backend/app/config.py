@@ -50,9 +50,18 @@ class Settings(BaseSettings):
     # "https://dash.example.com". Unset means same origin only (development through the proxy).
     frontend_origin: str = ""
 
+    # The API's public URL, e.g. "https://api.example.com". MCP clients connect to /mcp under it,
+    # and it is the issuer of their OAuth tokens.
+    public_url: str = "http://localhost:8000"
+
     @property
     def frontend_origins(self) -> list[str]:
         return [o.strip().rstrip("/") for o in self.frontend_origin.split(",") if o.strip()]
+
+    @property
+    def app_url(self) -> str:
+        """Where the frontend is: the first FRONTEND_ORIGIN, else the Vite dev server."""
+        return self.frontend_origins[0] if self.frontend_origins else "http://localhost:5173"
 
 
 settings = Settings()
