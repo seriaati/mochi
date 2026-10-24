@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
+import { useLogout } from './auth/queries.ts'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
 import { useFavicon } from './favicon.ts'
@@ -50,6 +51,7 @@ export default function App() {
   const settings = useSettings()
   const studio = settings.data?.studio_name ?? 'Studio'
   const logo = settings.data?.studio_logo
+  const logout = useLogout()
 
   useEffect(() => {
     document.title = studio
@@ -81,6 +83,20 @@ export default function App() {
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
           </NavLink>
+          <button
+            className="nav-icon nav-logout"
+            type="button"
+            aria-label="Log out"
+            title={logout.error ? `Couldn't log out: ${logout.error.message}` : 'Log out'}
+            disabled={logout.isPending}
+            onClick={() => logout.mutate()}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+          </button>
         </nav>
       </header>
       {/* Keyed so each page plays its entrance animation. */}

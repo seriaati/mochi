@@ -146,11 +146,13 @@ a {
 }
 
 .nav a:hover,
-.nav a.active {
+.nav a.active,
+.nav button:hover {
   color: var(--ink);
 }
 
-.nav a:hover:not(.active) {
+.nav a:hover:not(.active),
+.nav button:hover {
   background: color-mix(in srgb, var(--nav-on) 45%, transparent);
 }
 
@@ -169,10 +171,21 @@ a {
 }
 
 /* Icon-only nav item, e.g. Settings. */
-.nav a.nav-icon {
+.nav .nav-icon {
   display: grid;
   place-items: center;
   padding: 8px 10px;
+}
+
+/* Log out, beside the settings cog. */
+.nav-logout {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
 }
 
 .nav-icon svg {
@@ -187,8 +200,8 @@ a {
 }
 
 /* Settings cog turns a little on hover and when opened. */
-.nav-icon:hover svg,
-.nav-icon.active svg {
+a.nav-icon:hover svg,
+a.nav-icon.active svg {
   transform: rotate(60deg);
 }
 

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useLogout } from '../auth/queries.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
 import { useSaveBotToken, useSaveSettings, useSettings, type Settings } from './queries.ts'
 import './SettingsPage.css'
@@ -57,7 +56,6 @@ export function SettingsPage() {
           <StudioTile settings={settings.data} />
           <ThemeTile />
           <TimezoneTile settings={settings.data} />
-          <SessionTile />
           <DiscordTile settings={settings.data} />
         </div>
       )}
@@ -201,7 +199,7 @@ function TimezoneTile({ settings }: { settings: Settings }) {
   }
 
   return (
-    <section className="tile span-7 tint-lavender">
+    <section className="tile span-12 tint-lavender">
       <h2 className="tile-label">Timezone</h2>
       <p className="big-number">
         {time}
@@ -363,25 +361,6 @@ function DiscordTile({ settings }: { settings: Settings }) {
           {saveToken.error && <p className="form-error">{saveToken.error.message}</p>}
         </div>
       </div>
-    </section>
-  )
-}
-
-function SessionTile() {
-  const logout = useLogout()
-  return (
-    <section className="tile span-5 tint-peach settings-session">
-      <div>
-        <h2 className="tile-label">Session</h2>
-        <p className="settings-text">
-          You're logged in on this browser. A session lasts 30 days from your last visit; setting a new
-          password in <code>AUTH_PASSWORD_HASH</code> logs out everywhere.
-        </p>
-      </div>
-      <button className="btn secondary" type="button" disabled={logout.isPending} onClick={() => logout.mutate()}>
-        Log out
-      </button>
-      {logout.error && <p className="form-error settings-feedback">{logout.error.message}</p>}
     </section>
   )
 }
