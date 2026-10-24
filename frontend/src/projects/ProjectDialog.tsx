@@ -4,7 +4,7 @@ import { useClients } from '../clients/queries.ts'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
-import { useDeleteProject, useSaveProject, type Project } from './queries.ts'
+import { useSaveProject, type Project } from './queries.ts'
 
 type Props = {
   /** The project to edit; omit to start a new one. */
@@ -13,18 +13,14 @@ type Props = {
   clientId?: number
   onClose: () => void
   onSaved?: (project: Project) => void
-  onDeleted?: () => void
 }
 
-export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }: Props) {
+export function ProjectDialog({ project, clientId, onClose, onSaved }: Props) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
   const clients = useClients()
   const save = useSaveProject(project?.id)
-  const remove = useDeleteProject()
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [owner, setOwner] = useState(String(project?.client_id ?? clientId ?? ''))
-  const error = save.error ?? remove.error
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -137,7 +133,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
             <small>Clear it if the project isn't delivered after all.</small>
           </label>
         )}
-        {error && <p className="form-error">{error.message}</p>}
+        {save.error && <p className="form-error">{save.error.message}</p>}
         <div className="form-actions">
           <button className="btn" type="submit" disabled={save.isPending}>
             {project ? 'Save' : 'Create project'}
@@ -145,25 +141,6 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
           <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
-          {project && (
-            <button
-              className="btn danger"
-              type="button"
-              disabled={remove.isPending}
-              onClick={() =>
-                confirmDelete
-                  ? remove.mutate(project.id, {
-                      onSuccess: () => {
-                        close()
-                        onDeleted?.()
-                      },
-                    })
-                  : setConfirmDelete(true)
-              }
-            >
-              {confirmDelete ? 'Delete with its payments?' : 'Delete'}
-            </button>
-          )}
         </div>
       </form>
     </Dialog>

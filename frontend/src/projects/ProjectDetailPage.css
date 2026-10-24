@@ -10,6 +10,11 @@
   white-space: pre-line;
 }
 
+/* Why Delete failed, between the header and the tiles. */
+.project-delete-error {
+  margin: -4px 4px 20px;
+}
+
 .project-tags {
   display: flex;
   flex-wrap: wrap;

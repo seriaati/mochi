@@ -12,6 +12,7 @@ import { ProjectDialog } from './ProjectDialog.tsx'
 import {
   additionInput,
   projectInput,
+  useDeleteProject,
   useProject,
   useSaveAddition,
   useSaveProject,
@@ -53,6 +54,8 @@ function ProjectTiles({ project }: { project: Project }) {
   // undefined = closed, otherwise the target to pay.
   const [paying, setPaying] = useState<{ target: Target }>()
   const [payment, setPayment] = useState<Payment>()
+  const remove = useDeleteProject()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const navigate = useNavigate()
   const { client } = project
 
@@ -81,11 +84,24 @@ function ProjectTiles({ project }: { project: Project }) {
           <button className="btn secondary" type="button" onClick={() => setEditing(true)}>
             Edit
           </button>
+          <button
+            className="btn danger"
+            type="button"
+            disabled={remove.isPending}
+            onClick={() =>
+              confirmingDelete
+                ? remove.mutate(project.id, { onSuccess: () => navigate('/projects', { replace: true }) })
+                : setConfirmingDelete(true)
+            }
+          >
+            {confirmingDelete ? 'Delete with its payments?' : 'Delete'}
+          </button>
           <button className="btn" type="button" onClick={() => setAddition(null)}>
             Add addition
           </button>
         </div>
       </div>
+      {remove.error && <p className="form-error project-delete-error">{remove.error.message}</p>}
 
       <div className="bento project-bento">
         <TimelineTile project={project} />
@@ -105,11 +121,7 @@ function ProjectTiles({ project }: { project: Project }) {
       </div>
 
       {editing && (
-        <ProjectDialog
-          project={project}
-          onClose={() => setEditing(false)}
-          onDeleted={() => navigate('/projects', { replace: true })}
-        />
+        <ProjectDialog project={project} onClose={() => setEditing(false)} />
       )}
       {addition !== undefined && (
         <AdditionDialog
