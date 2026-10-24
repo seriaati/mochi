@@ -1,52 +1,52 @@
-/* Bento tokens. Light = original Bento mockup, dark = Bento Night. */
+/* Bento tokens: light-dark(original Bento mockup, Bento Night). */
 :root {
-  --bg: #efeeea;
-  --tile: #ffffff;
-  --ink: #1c1c1a;
-  --dim: #6f6e69;
-  --nav-bg: #e4e3de;
-  --nav-on: #ffffff;
-  --hero: #1c1c1a;
-  --on-hero: #f4f3ef;
-  --peach: #f6e0d3;
-  --sage: #dfe7dc;
-  --lavender: #e5e3f3;
-  --blue: #dde6f2;
-  --yellow: #f3ead0;
-  --teal: #d6ece8;
-  --warn-bg: #f8e3d6;
-  --warn: #8a3a12;
-  --good: #2f5a2a;
-  --muted: #55544f; /* secondary text on tinted tiles */
-  --hero-dim: #b3b2ab; /* secondary text on hero tiles */
-  --chip: rgba(255, 255, 255, 0.65); /* pills and insets on tinted tiles */
-  --solid: #ffffff; /* avatars and secondary buttons on tinted tiles */
-  --row: #f7f6f3; /* list rows inside white tiles */
-  --field: #efeeea;
-  --backdrop: rgba(28, 28, 26, 0.35);
-  --peach-ink: #7a3a1a;
-  --sage-ink: #2f5a2a;
-  --lavender-ink: #4a4380;
-  --blue-ink: #2a4a73;
-  --yellow-ink: #6b5310;
-  --teal-ink: #1f5c52;
+  --bg: light-dark(#efeeea, #0e0e0d);
+  --tile: light-dark(#ffffff, #191917);
+  --ink: light-dark(#1c1c1a, #f2f1ec);
+  --dim: light-dark(#6f6e69, #9d9c95);
+  --nav-bg: light-dark(#e4e3de, #191917);
+  --nav-on: light-dark(#ffffff, #2a2a27);
+  --hero: light-dark(#1c1c1a, #f2f1ec);
+  --on-hero: light-dark(#f4f3ef, #1c1c1a);
+  --peach: light-dark(#f6e0d3, #3a2219);
+  --sage: light-dark(#dfe7dc, #1d271c);
+  --lavender: light-dark(#e5e3f3, #23213a);
+  --blue: light-dark(#dde6f2, #1c2838);
+  --yellow: light-dark(#f3ead0, #3a3219);
+  --teal: light-dark(#d6ece8, #17302c);
+  --warn-bg: light-dark(#f8e3d6, #3a2219);
+  --warn: light-dark(#8a3a12, #f6b99a);
+  --good: light-dark(#2f5a2a, #9cc596);
+  --muted: light-dark(#55544f, #b3b2ab); /* secondary text on tinted tiles */
+  --hero-dim: light-dark(#b3b2ab, #55544f); /* secondary text on hero tiles */
+  --chip: light-dark(rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.07)); /* pills and insets on tinted tiles */
+  --solid: light-dark(#ffffff, rgba(255, 255, 255, 0.1)); /* avatars and secondary buttons on tinted tiles */
+  --row: light-dark(#f7f6f3, #1f1f1d); /* list rows inside white tiles */
+  --field: light-dark(#efeeea, #0e0e0d);
+  --backdrop: light-dark(rgba(28, 28, 26, 0.35), rgba(0, 0, 0, 0.6));
+  --peach-ink: light-dark(#7a3a1a, #f6d5c2);
+  --sage-ink: light-dark(#2f5a2a, #b9d7b2);
+  --lavender-ink: light-dark(#4a4380, #cfc9f2);
+  --blue-ink: light-dark(#2a4a73, #bcd3ee);
+  --yellow-ink: light-dark(#6b5310, #eedcaa);
+  --teal-ink: light-dark(#1f5c52, #a8dcd3);
   --discord: #5865f2;
-  --discord-bg: #e2e4fb;
-  --discord-ink: #3c45a5;
-  --line-bg: #dcf3e3;
-  --line-ink: #1f6b38;
-  --pill: #f2f1ed; /* chips on white tiles */
-  --good-bg: #e3eddf;
-  --good-soft: #dfe7dc; /* unpaid part of a payment split bar */
-  --track: #ebeae5;
-  --dash: #d4d3cd; /* open tracks and "still to come" outlines */
-  --hero-inset: #2a2a27; /* panels inside hero tiles */
-  --hero-good-bg: #2c3a2a;
-  --hero-good: #a9d39f;
-  --hero-warn: #f6b99a;
-  --hero-line: #3a3a37;
-  --lavender-dash: #a7a2c9; /* "next month" outlines on lavender tiles */
-  --ring-track: #ffffff; /* the unfilled part of a ring chart on sage tiles */
+  --discord-bg: light-dark(#e2e4fb, #262a4d);
+  --discord-ink: light-dark(#3c45a5, #b7bdf8);
+  --line-bg: light-dark(#dcf3e3, #17301f);
+  --line-ink: light-dark(#1f6b38, #9fdcb2);
+  --pill: light-dark(#f2f1ed, #24241f); /* chips on white tiles */
+  --good-bg: light-dark(#e3eddf, #1d271c);
+  --good-soft: light-dark(#dfe7dc, #2c3a2a); /* unpaid part of a payment split bar */
+  --track: light-dark(#ebeae5, #2a2a27);
+  --dash: light-dark(#d4d3cd, #3a3a36); /* open tracks and "still to come" outlines */
+  --hero-inset: light-dark(#2a2a27, #e4e3de); /* panels inside hero tiles */
+  --hero-good-bg: light-dark(#2c3a2a, #dfe7dc);
+  --hero-good: light-dark(#a9d39f, #2f5a2a);
+  --hero-warn: light-dark(#f6b99a, #8a3a12);
+  --hero-line: light-dark(#3a3a37, #d4d3cd);
+  --lavender-dash: light-dark(#a7a2c9, #5d5888); /* "next month" outlines on lavender tiles */
+  --ring-track: light-dark(#ffffff, #2c3a2a); /* the unfilled part of a ring chart on sage tiles */
   --radius-tile: 24px;
   --radius-control: 12px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -55,56 +55,9 @@
   color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e0e0d;
-    --tile: #191917;
-    --ink: #f2f1ec;
-    --dim: #9d9c95;
-    --nav-bg: #191917;
-    --nav-on: #2a2a27;
-    --hero: #f2f1ec;
-    --on-hero: #1c1c1a;
-    --peach: #3a2219;
-    --sage: #1d271c;
-    --lavender: #23213a;
-    --blue: #1c2838;
-    --yellow: #3a3219;
-    --teal: #17302c;
-    --warn-bg: #3a2219;
-    --warn: #f6b99a;
-    --good: #9cc596;
-    --muted: #b3b2ab;
-    --hero-dim: #55544f;
-    --chip: rgba(255, 255, 255, 0.07);
-    --solid: rgba(255, 255, 255, 0.1);
-    --row: #1f1f1d;
-    --field: #0e0e0d;
-    --backdrop: rgba(0, 0, 0, 0.6);
-    --peach-ink: #f6d5c2;
-    --sage-ink: #b9d7b2;
-    --lavender-ink: #cfc9f2;
-    --blue-ink: #bcd3ee;
-    --yellow-ink: #eedcaa;
-    --teal-ink: #a8dcd3;
-    --discord-bg: #262a4d;
-    --discord-ink: #b7bdf8;
-    --line-bg: #17301f;
-    --line-ink: #9fdcb2;
-    --pill: #24241f;
-    --good-bg: #1d271c;
-    --good-soft: #2c3a2a;
-    --track: #2a2a27;
-    --dash: #3a3a36;
-    --hero-inset: #e4e3de;
-    --hero-good-bg: #dfe7dc;
-    --hero-good: #2f5a2a;
-    --hero-warn: #8a3a12;
-    --hero-line: #d4d3cd;
-    --lavender-dash: #5d5888;
-    --ring-track: #2c3a2a;
-  }
-}
+/* The theme switch in Settings; without it the theme follows the system. */
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
 
 *,
 *::before,
@@ -728,7 +681,10 @@ button {
   *,
   *::before,
   *::after,
-  ::backdrop {
+  ::backdrop,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
     transition-duration: 0.01ms !important;

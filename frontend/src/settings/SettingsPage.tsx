@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useLogout } from '../auth/queries.ts'
+import { applyTheme, savedTheme, type Theme } from '../theme.ts'
 import { useSaveSettings, useSettings } from './queries.ts'
 import './SettingsPage.css'
 
@@ -31,6 +32,7 @@ export function SettingsPage() {
       {settings.error && <p className="status">Couldn't load settings: {settings.error.message}</p>}
       {settings.data && (
         <div className="bento">
+          <ThemeTile />
           <TimezoneTile timezone={settings.data.timezone} />
           <section className="tile span-5 tint-blue">
             <h2 className="tile-label">Discord</h2>
@@ -52,6 +54,40 @@ export function SettingsPage() {
         </div>
       )}
     </>
+  )
+}
+
+const themes: { value: Theme; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
+function ThemeTile() {
+  const [theme, setTheme] = useState(savedTheme)
+
+  return (
+    <section className="tile span-5 tint-yellow">
+      <h2 className="tile-label">Theme</h2>
+      <p className="settings-text">
+        Light is Bento, dark is Bento Night. System follows this device's setting. Saved in this browser.
+      </p>
+      <div className="segmented settings-theme" role="group" aria-label="Theme">
+        {themes.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={theme === value}
+            onClick={() => {
+              applyTheme(value)
+              setTheme(value)
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 

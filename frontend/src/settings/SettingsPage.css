@@ -42,6 +42,12 @@
   background: var(--chip);
 }
 
+.settings-theme {
+  align-self: flex-start;
+  margin-top: 20px;
+  background: var(--chip);
+}
+
 .settings-device {
   align-self: flex-start;
   margin-top: 10px;

@@ -334,13 +334,11 @@
 }
 
 /* Bento Night: the overdue tile reads in peach, like the mockup. */
-@media (prefers-color-scheme: dark) {
-  .ov-overdue { color: var(--peach-ink); }
+.ov-overdue { color: light-dark(var(--ink), var(--peach-ink)); }
 
-  .ov-overdue .btn {
-    background: var(--peach-ink);
-    color: var(--peach);
-  }
+.ov-overdue .btn {
+  background: light-dark(var(--hero), var(--peach-ink));
+  color: light-dark(var(--on-hero), var(--peach));
 }
 
 @media (max-width: 1000px) {

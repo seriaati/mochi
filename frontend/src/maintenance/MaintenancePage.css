@@ -163,8 +163,9 @@
   border-radius: 3px;
 }
 
-.mt-legend .paid { background: var(--sage); }
-.mt-legend .overdue { background: var(--peach); }
+/* Bento Night lifts the pale-tile swatches off the dark tiles. */
+.mt-legend .paid { background: light-dark(var(--sage), var(--sage-ink)); }
+.mt-legend .overdue { background: light-dark(var(--peach), var(--warn)); }
 .mt-legend .upcoming { background: var(--hero); }
 
 /* Retainers list */
@@ -243,7 +244,7 @@
 
 .mt-contact {
   display: block;
-  background: var(--field);
+  background: light-dark(var(--field), var(--pill)); /* lifted off dark tiles */
   text-align: center;
 }
 
@@ -358,13 +359,6 @@ button.mt-status:hover {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
-}
-
-/* Bento Night: the pale-tile swatches and inset chips need lifting off the dark tiles. */
-@media (prefers-color-scheme: dark) {
-  .mt-legend .paid { background: var(--sage-ink); }
-  .mt-legend .overdue { background: var(--warn); }
-  .mt-contact { background: var(--pill); }
 }
 
 @media (max-width: 1000px) {
