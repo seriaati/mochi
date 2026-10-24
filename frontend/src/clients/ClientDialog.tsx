@@ -1,7 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
-import { useDeleteClient, useSaveClient, type Client } from './queries.ts'
+import { useSaveClient, type Client } from './queries.ts'
 
 type Props = {
   /** The client to edit; omit to add a new one. */
@@ -14,11 +13,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
   const save = useSaveClient(client?.id)
-  const remove = useDeleteClient(client?.id ?? 0)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [discordId, setDiscordId] = useState('')
-  const navigate = useNavigate()
-  const error = save.error ?? remove.error
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -77,7 +72,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
           Notes
           <textarea name="notes" defaultValue={client?.notes ?? ''} />
         </label>
-        {error && <p className="form-error">{error.message}</p>}
+        {save.error && <p className="form-error">{save.error.message}</p>}
         <div className="form-actions">
           <button className="btn" type="submit" disabled={save.isPending}>
             {client ? 'Save' : 'Add client'}
@@ -85,24 +80,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
           <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
-          {client && (
-            <button
-              className="btn danger"
-              type="button"
-              disabled={remove.isPending}
-              onClick={() =>
-                confirmingDelete
-                  ? remove.mutate(undefined, { onSuccess: () => navigate('/clients') })
-                  : setConfirmingDelete(true)
-              }
-            >
-              {confirmingDelete ? 'Confirm delete' : 'Delete'}
-            </button>
-          )}
         </div>
-        {confirmingDelete && !remove.error && (
-          <p className="field">This also removes the client&rsquo;s contact methods.</p>
-        )}
       </form>
     </Dialog>
   )

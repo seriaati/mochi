@@ -115,6 +115,12 @@
   padding-top: 24px;
 }
 
+/* Delete's confirmation hint or error, under the actions. */
+.client-hero-note {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
 .contact-list {
   display: flex;
   flex-direction: column;

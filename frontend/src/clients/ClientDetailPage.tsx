@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar.tsx'
 import { formatMonth, initials, timeAgo } from '../format.ts'
 import { ClientMaintenanceTile } from '../maintenance/ClientMaintenanceTile.tsx'
@@ -9,7 +9,7 @@ import { tintClass } from '../tint.ts'
 import { ClientDialog } from './ClientDialog.tsx'
 import { ContactDialog } from './ContactDialog.tsx'
 import { contactHandle, contactKinds } from './contactKinds.ts'
-import { useClient, useSyncDiscord, type Client, type Contact, type DiscordProfile } from './queries.ts'
+import { useClient, useDeleteClient, useSyncDiscord, type Client, type Contact, type DiscordProfile } from './queries.ts'
 import './ClientDetailPage.css'
 
 export function ClientDetailPage() {
@@ -53,6 +53,9 @@ function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
     client.contacts.find((c) => c.discord_profile?.status === 'ok') ??
     client.contacts.find((c) => c.kind === 'discord')
   const since = `client since ${formatMonth(client.created_at)}`
+  const remove = useDeleteClient(client.id)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <section className={`tile span-8 client-hero ${tintClass(client.id)}`}>
@@ -71,7 +74,23 @@ function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
         <button className="btn" type="button" onClick={onEdit}>
           Edit client
         </button>
+        <button
+          className="btn danger"
+          type="button"
+          disabled={remove.isPending}
+          onClick={() =>
+            confirmingDelete
+              ? remove.mutate(undefined, { onSuccess: () => navigate('/clients') })
+              : setConfirmingDelete(true)
+          }
+        >
+          {confirmingDelete ? 'Confirm delete' : 'Delete'}
+        </button>
       </div>
+      {remove.error && <p className="form-error client-hero-note">{remove.error.message}</p>}
+      {confirmingDelete && !remove.error && (
+        <p className="client-hero-note">This also removes the client&rsquo;s contact methods.</p>
+      )}
     </section>
   )
 }
