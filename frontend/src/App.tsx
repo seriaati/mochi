@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
-import { NavLink, Route, Routes, useLocation } from 'react-router'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
 import { useFavicon } from './favicon.ts'
@@ -60,14 +60,14 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         {/* Empty until settings load, so the default name doesn't flash first. */}
-        <div className="brand">
+        <Link className="brand" to="/" aria-label={`${studio}: Overview`}>
           {!settings.isPending && (
             <>
               {logo ? <img className="brand-logo" src={logo} alt="" /> : <i />}
               <span>{studio}</span>
             </>
           )}
-        </div>
+        </Link>
         <nav ref={nav} className="nav" aria-label="Main">
           {pill && <span className="nav-pill" style={pill} aria-hidden="true" />}
           {pages.map((page) => (
