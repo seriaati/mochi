@@ -37,6 +37,9 @@ export type ClientInput = {
   notes: string | null
 }
 
+/** A new client. A Discord user ID also adds a Discord contact; a blank name then uses theirs. */
+export type NewClientInput = ClientInput & { discord_user_id: string | null }
+
 export type Client = ClientInput & {
   id: number
   created_at: string
@@ -87,7 +90,7 @@ function useClientsMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult
 }
 
 export function useSaveClient(id?: number) {
-  return useClientsMutation((input: ClientInput) =>
+  return useClientsMutation((input: ClientInput | NewClientInput) =>
     id === undefined ? api.post<Client>('/clients', input) : api.put<Client>(`/clients/${id}`, input),
   )
 }

@@ -201,6 +201,57 @@ def test_display_name_falls_back_to_username(client: TestClient, fake: FakeDisco
     assert profile["avatar_url"] == f"{CDN}/embed/avatars/5.png"
 
 
+def test_add_client_by_discord_id(client: TestClient, fake: FakeDiscord) -> None:
+    response = client.post("/api/clients", json={"name": "", "discord_user_id": str(DAN)})
+    assert response.status_code == 201, response.text
+    created = response.json()
+    assert created["name"] == "Daniel"  # their display name
+    assert created["discord_name"] == "Daniel"
+    [contact] = created["contacts"]
+    assert contact["kind"] == "discord"
+    assert contact["value"] == "danpark"
+    assert contact["discord_user_id"] == str(DAN)
+    assert contact["discord_profile"]["status"] == "ok"
+    assert fake.calls == [(DAN, discord_sync.SAVE_TIMEOUT)]
+
+    # Without a display name, the username; a typed name wins.
+    sora = client.post("/api/clients", json={"discord_user_id": str(SORA)}).json()
+    assert sora["name"] == "sora.px"
+    named = client.post("/api/clients", json={"name": "Northwind", "discord_user_id": str(DAN)})
+    assert named.json()["name"] == "Northwind"
+
+
+def test_add_client_by_unknown_discord_id(client: TestClient, fake: FakeDiscord) -> None:
+    body = {"name": "Northwind", "discord_user_id": "99999999999999999"}
+    response = client.post("/api/clients", json=body)
+    assert response.status_code == 422
+    assert response.json()["detail"] == "No Discord user has that ID"
+    assert client.get("/api/clients").json() == []
+
+
+def test_add_client_by_discord_id_without_a_lookup(client: TestClient, fake: FakeDiscord) -> None:
+    fake.users[DAN] = httpx.ConnectError("down")
+    failed = client.post("/api/clients", json={"discord_user_id": str(DAN)})
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "Couldn't look that Discord user up. Try again, or enter a name"
+
+    # With a name it's added anyway; the handle is the ID until a lookup works.
+    named = client.post("/api/clients", json={"name": "Northwind", "discord_user_id": str(DAN)})
+    assert named.status_code == 201
+    assert named.json()["contacts"][0]["value"] == str(DAN)
+    assert named.json()["contacts"][0]["discord_profile"]["status"] == "error"
+
+
+def test_add_client_by_discord_id_with_sync_off(client: TestClient) -> None:
+    response = client.post("/api/clients", json={"discord_user_id": str(DAN)})
+    assert response.status_code == 422
+    assert response.json()["detail"].startswith("Discord sync is off")
+
+
+def test_add_client_needs_a_name_or_discord_id(client: TestClient) -> None:
+    assert client.post("/api/clients", json={"name": " "}).status_code == 422
+
+
 def test_sync_when_the_id_changes(client: TestClient, fake: FakeDiscord) -> None:
     owner = add_client(client)
     contact = add_contact(client, owner, DAN)

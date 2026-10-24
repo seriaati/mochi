@@ -1,5 +1,5 @@
 import math
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import Select, func, select
@@ -9,8 +9,16 @@ from app import discord, discord_sync
 from app.clock import ClockDep, TodayDep
 from app.db import SessionDep
 from app.maintenance import client_maintenance
-from app.models import Addition, Client, ContactMethod, Project, Retainer
-from app.schemas.clients import ClientIn, ClientOut, ContactIn, ContactOut
+from app.models import (
+    Addition,
+    Client,
+    ContactKind,
+    ContactMethod,
+    Project,
+    Retainer,
+    SyncStatus,
+)
+from app.schemas.clients import ClientCreate, ClientIn, ClientOut, ContactIn, ContactOut
 
 router = APIRouter(prefix="/api/clients", tags=["clients"])
 
@@ -95,12 +103,43 @@ def list_clients(session: SessionDep, today: TodayDep) -> list[ClientOut]:
     return [_out(*row, today) for row in rows]
 
 
+def _discord_contact(user_id: int, now: datetime) -> ContactMethod:
+    """A Discord contact for a new client, looked up straight away. Its handle is their username,
+    or the ID until a lookup works. Raises 422 for an ID Discord doesn't know."""
+    contact = ContactMethod(kind=ContactKind.DISCORD, value=str(user_id), discord_user_id=user_id)
+    discord_sync.on_save(contact, user_id, now)
+    if contact.discord_sync_status == SyncStatus.NOT_FOUND:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "No Discord user has that ID")
+    if contact.discord_username is not None:
+        contact.value = contact.discord_username
+    return contact
+
+
+def _discord_name(contact: ContactMethod) -> str:
+    """The contact's Discord display name, for a client added without a name."""
+    if contact.discord_sync_status == SyncStatus.OK:
+        return contact.discord_global_name or contact.discord_username or contact.value
+    reason = (
+        "Discord sync is off: add a bot token in Settings"
+        if not discord_sync.enabled()
+        else "Couldn't look that Discord user up. Try again"
+    )
+    raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{reason}, or enter a name")
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_client(body: ClientIn, session: SessionDep, today: TodayDep) -> ClientOut:
-    client = Client(**body.model_dump())
+def create_client(body: ClientCreate, session: SessionDep, clock: ClockDep) -> ClientOut:
+    """A Discord user ID also adds them as a Discord contact, and names the client after them
+    when no name is given."""
+    client = Client(**body.model_dump(exclude={"discord_user_id"}))
+    if body.discord_user_id is not None:
+        contact = _discord_contact(body.discord_user_id, clock.now)
+        client.contacts.append(contact)
+        if client.name is None:
+            client.name = _discord_name(contact)
     session.add(client)
     session.commit()
-    return _read(session, client.id, today)
+    return _read(session, client.id, clock.today)
 
 
 @router.get("/{client_id}")

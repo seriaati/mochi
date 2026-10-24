@@ -57,6 +57,20 @@ class ClientIn(BaseModel):
     notes: OptionalText = None
 
 
+class ClientCreate(ClientIn):
+    """A new client. A Discord user ID also adds them as a Discord contact; the name may then be
+    left out to use their Discord display name."""
+
+    name: OptionalName = None
+    discord_user_id: Annotated[Snowflake | None, BeforeValidator(blank_to_none)] = None
+
+    @model_validator(mode="after")
+    def _name_or_discord_id(self) -> Self:
+        if self.name is None and self.discord_user_id is None:
+            raise ValueError("Enter a name or a Discord user ID")
+        return self
+
+
 class ClientOut(ClientIn):
     id: int
     created_at: datetime

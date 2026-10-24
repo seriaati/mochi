@@ -20,7 +20,7 @@ from app.clock import Clock, clock_for, utc_now
 from app.config import settings as config
 from app.db import SessionLocal
 from app.routers import clients, maintenance, overview, projects, retainers, settings
-from app.schemas.clients import ClientIn, ClientOut, ContactIn, ContactOut
+from app.schemas.clients import ClientCreate, ClientIn, ClientOut, ContactIn, ContactOut
 from app.schemas.maintenance import (
     MaintenanceOut,
     RetainerIn,
@@ -129,9 +129,11 @@ async def get_client(client_id: int) -> ClientOut:
 
 
 @mcp.tool(annotations=_ann("Create client"))
-async def create_client(client: ClientIn) -> ClientOut:
-    """Adds a client. Add contact methods with add_contact."""
-    return await _run(lambda s, c: clients.create_client(client, session=s, today=c.today))
+async def create_client(client: ClientCreate) -> ClientOut:
+    """Adds a client. A discord_user_id also adds them as a Discord contact, and names the client
+    after their Discord display name when name is left out. Add other contact methods with
+    add_contact."""
+    return await _run(lambda s, c: clients.create_client(client, session=s, clock=c))
 
 
 @mcp.tool(annotations=_ann("Update client", destructive=True))

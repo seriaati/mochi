@@ -16,6 +16,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
   const save = useSaveClient(client?.id)
   const remove = useDeleteClient(client?.id ?? 0)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [discordId, setDiscordId] = useState('')
   const navigate = useNavigate()
   const error = save.error ?? remove.error
 
@@ -23,8 +24,13 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const text = (name: string) => (form.get(name) as string).trim() || null
+    const fields = {
+      name: text('name') ?? '',
+      contact_person: text('contact_person'),
+      notes: text('notes'),
+    }
     save.mutate(
-      { name: text('name') ?? '', contact_person: text('contact_person'), notes: text('notes') },
+      client ? fields : { ...fields, discord_user_id: text('discord_user_id') },
       {
         onSuccess: (saved) => {
           close()
@@ -37,9 +43,31 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
   return (
     <Dialog title={client ? 'Edit client' : 'Add client'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
+        {!client && (
+          <label className="field">
+            Discord user ID (optional)
+            <input
+              name="discord_user_id"
+              inputMode="numeric"
+              pattern="\d{17,19}"
+              title="17 to 19 digits"
+              value={discordId}
+              onChange={(e) => setDiscordId(e.target.value.trim())}
+              autoFocus
+            />
+            <small>Adds them as a Discord contact. In Discord, turn on Developer Mode, then right-click the user and Copy User ID.</small>
+          </label>
+        )}
         <label className="field">
           Name
-          <input name="name" required maxLength={200} defaultValue={client?.name} autoFocus />
+          <input
+            name="name"
+            required={!discordId}
+            maxLength={200}
+            defaultValue={client?.name}
+            placeholder={discordId ? 'Their Discord name' : undefined}
+            autoFocus={!!client}
+          />
         </label>
         <label className="field">
           Contact person
