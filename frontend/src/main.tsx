@@ -1,10 +1,11 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router'
+import { BrowserRouter, Route, Routes } from 'react-router'
 import { isUnauthorized } from './api.ts'
 import { AuthGate } from './auth/AuthGate.tsx'
 import { loggedOut } from './auth/queries.ts'
+import { AuthorizePage } from './oauth/AuthorizePage.tsx'
 import './index.css'
 import App from './App.tsx'
 
@@ -26,7 +27,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthGate>
-          <App />
+          <Routes>
+            {/* Full-screen, outside the app's navigation, like the login screen. */}
+            <Route path="/oauth/authorize" element={<AuthorizePage />} />
+            <Route path="*" element={<App />} />
+          </Routes>
         </AuthGate>
       </BrowserRouter>
     </QueryClientProvider>
