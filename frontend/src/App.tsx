@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
@@ -6,6 +6,7 @@ import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
 import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
 import { OverviewPage } from './overview/OverviewPage.tsx'
 import { ProjectsPage } from './projects/ProjectsPage.tsx'
+import { useSettings } from './settings/queries.ts'
 import { SettingsPage } from './settings/SettingsPage.tsx'
 
 const pages = [
@@ -45,13 +46,25 @@ export default function App() {
   const { pathname } = useLocation()
   const nav = useRef<HTMLElement>(null)
   const pill = useNavPill(nav, pathname)
+  const settings = useSettings()
+  const studio = settings.data?.studio_name ?? 'Studio'
+  const logo = settings.data?.studio_logo
+
+  useEffect(() => {
+    document.title = studio
+  }, [studio])
 
   return (
     <div className="shell">
       <header className="topbar">
+        {/* Empty until settings load, so the default name doesn't flash first. */}
         <div className="brand">
-          <i />
-          Studio
+          {!settings.isPending && (
+            <>
+              {logo ? <img className="brand-logo" src={logo} alt="" /> : <i />}
+              <span>{studio}</span>
+            </>
+          )}
         </div>
         <nav ref={nav} className="nav" aria-label="Main">
           {pill && <span className="nav-pill" style={pill} aria-hidden="true" />}

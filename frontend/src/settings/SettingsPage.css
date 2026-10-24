@@ -42,6 +42,52 @@
   background: var(--chip);
 }
 
+.settings-studio {
+  margin-top: 14px;
+}
+
+.settings-studio .field {
+  color: var(--muted);
+}
+
+.settings-studio .field input {
+  background: var(--chip);
+}
+
+.settings-studio .settings-zone {
+  margin-top: 0;
+}
+
+.settings-logo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+/* The logo as the top bar shows it, at twice the size. */
+.settings-logo-preview {
+  display: grid;
+  place-items: center;
+  min-width: 56px;
+  height: 56px;
+}
+
+.settings-logo-preview img {
+  display: block;
+  height: 100%;
+  max-width: 208px;
+  border-radius: 14px;
+  object-fit: contain;
+}
+
+.settings-logo-preview i {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: var(--hero);
+}
+
 .settings-theme {
   align-self: flex-start;
   margin-top: 20px;

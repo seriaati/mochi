@@ -53,6 +53,7 @@ export function OverviewPage() {
         open={open}
         clients={clients.data}
         timezone={settings.data.timezone}
+        userName={settings.data.user_name}
       />
       <NextTile data={data} next={asks.at(0)} />
       <OverdueTile data={data} />
@@ -131,12 +132,13 @@ type GreetingProps = {
   open: Project[]
   clients: Client[]
   timezone: string
+  userName: string | null
 }
 
-function GreetingTile({ data, asks, open, clients, timezone }: GreetingProps) {
+function GreetingTile({ data, asks, open, clients, timezone, userName }: GreetingProps) {
   const today = parseDate(data.today)
   const date = `${today.toLocaleDateString('en-US', { weekday: 'long' })}, ${today.getDate()} ${today.toLocaleDateString('en-US', { month: 'long' })}`
-  const name = data.reminders.mention?.display_name
+  const name = userName ?? data.reminders.mention?.display_name
   const greeting = `Good ${partOfDay(timezone)}${name ? `, ${name}` : ''}.`
 
   const next = asks.at(0)

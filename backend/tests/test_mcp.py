@@ -435,7 +435,16 @@ def test_contact_and_payment_tools() -> None:
 
 
 def test_settings_tools() -> None:
-    assert call("update_settings", timezone="Asia/Tokyo") == {"timezone": "Asia/Tokyo"}
-    assert call("get_settings") == {"timezone": "Asia/Tokyo"}
+    tokyo = {"timezone": "Asia/Tokyo", "user_name": None, "studio_name": None}
+    assert call("update_settings", timezone="Asia/Tokyo") == tokyo
+    assert call("get_settings") == tokyo
+    named = tokyo | {"user_name": "Seria", "studio_name": "Aurora Works"}
+    assert call("update_settings", user_name="Seria", studio_name="Aurora Works") == named
+    # Only what's given changes, and the logo is never sent.
+    assert call("update_settings", timezone="Asia/Taipei") == named | {"timezone": "Asia/Taipei"}
+    assert call("update_settings", user_name="") == named | {
+        "timezone": "Asia/Taipei",
+        "user_name": None,
+    }
     with pytest.raises(ToolError, match="Unknown timezone"):
         call("update_settings", timezone="Mars/Olympus")

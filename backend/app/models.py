@@ -235,6 +235,12 @@ class AppSettings(DiscordProfile, Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False, default=1)
     # IANA name. Due dates, "today" and the 09:00 reminder time are counted in it.
     timezone: Mapped[str] = mapped_column(String(64), server_default="Asia/Taipei")
+    # What the dashboard calls the user, e.g. in the Overview greeting. None falls back to their
+    # Discord name.
+    user_name: Mapped[str | None] = mapped_column(String(60))
+    # Shown in the top bar. None shows "Studio" and a plain mark.
+    studio_name: Mapped[str | None] = mapped_column(String(60))
+    studio_logo: Mapped[str | None] = mapped_column(Text)  # a small image as a data: URL
     # Whose profile is cached here: DISCORD_MENTION_USER_ID when it was last synced.
     discord_user_id: Mapped[int | None] = mapped_column(BigInteger)
 

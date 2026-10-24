@@ -1165,12 +1165,55 @@ def test_latest_slot() -> None:
 # Settings
 
 
+DEFAULT_SETTINGS = {
+    "timezone": "Asia/Taipei",
+    "user_name": None,
+    "studio_name": None,
+    "studio_logo": None,
+}
+LOGO = "data:image/png;base64,iVBORw0KGgo="
+
+
 def test_settings(client: TestClient) -> None:
-    assert client.get("/api/settings").json() == {"timezone": "Asia/Taipei"}
+    assert client.get("/api/settings").json() == DEFAULT_SETTINGS
     response = client.put("/api/settings", json={"timezone": " Asia/Tokyo "})
     assert response.status_code == 200
-    assert response.json() == {"timezone": "Asia/Tokyo"}
-    assert client.get("/api/settings").json() == {"timezone": "Asia/Tokyo"}
+    assert response.json() == DEFAULT_SETTINGS | {"timezone": "Asia/Tokyo"}
+    assert client.get("/api/settings").json() == DEFAULT_SETTINGS | {"timezone": "Asia/Tokyo"}
+
+
+def test_names_and_logo(client: TestClient) -> None:
+    saved = {
+        "timezone": "Asia/Taipei",
+        "user_name": " Seria ",
+        "studio_name": "Aurora Works",
+        "studio_logo": LOGO,
+    }
+    response = client.put("/api/settings", json=saved)
+    assert response.status_code == 200, response.text
+    assert response.json() == DEFAULT_SETTINGS | saved | {"user_name": "Seria"}
+    # Blank names clear them; a full update without the logo removes it.
+    response = client.put(
+        "/api/settings", json={"timezone": "Asia/Taipei", "user_name": "  ", "studio_name": ""}
+    )
+    assert response.json() == DEFAULT_SETTINGS
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"user_name": "x" * 61},
+        {"studio_name": 9},
+        {"studio_logo": "https://example.com/logo.png"},
+        {"studio_logo": "data:image/svg+xml;base64,PHN2Zz4="},
+        {"studio_logo": "data:image/png;base64,<script>"},
+        {"studio_logo": "data:image/png;base64," + "A" * 200_000},
+    ],
+)
+def test_bad_names_and_logos_are_rejected(client: TestClient, changes: dict) -> None:
+    response = client.put("/api/settings", json={"timezone": "Asia/Taipei"} | changes)
+    assert response.status_code == 422
+    assert client.get("/api/settings").json() == DEFAULT_SETTINGS
 
 
 @pytest.mark.parametrize(
@@ -1179,4 +1222,4 @@ def test_settings(client: TestClient) -> None:
 def test_unknown_timezone_is_rejected(client: TestClient, name: object) -> None:
     response = client.put("/api/settings", json={"timezone": name})
     assert response.status_code == 422
-    assert client.get("/api/settings").json() == {"timezone": "Asia/Taipei"}
+    assert client.get("/api/settings").json() == DEFAULT_SETTINGS

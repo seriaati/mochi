@@ -104,11 +104,24 @@ a {
   font-size: 15px;
 }
 
+.brand > * {
+  animation: page-in 0.25s ease-out;
+}
+
 .brand i {
   width: 26px;
   height: 26px;
   border-radius: 9px;
   background: var(--hero);
+}
+
+/* An uploaded logo, as tall as the plain mark; wide logos keep their shape. */
+.brand-logo {
+  display: block;
+  height: 26px;
+  max-width: 104px;
+  border-radius: 7px;
+  object-fit: contain;
 }
 
 .nav {

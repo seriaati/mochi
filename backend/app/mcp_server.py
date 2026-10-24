@@ -39,7 +39,7 @@ from app.schemas.projects import (
     ProjectIn,
     ProjectOut,
 )
-from app.schemas.settings import SettingsIn, SettingsOut
+from app.schemas.settings import SettingsIn, SettingsText
 
 mcp = FastMCP(
     name="Freelance Dashboard",
@@ -367,16 +367,30 @@ async def get_earnings(year: int | None = None) -> EarningsOut:
 
 
 @mcp.tool(annotations=_ann("Get settings", read_only=True))
-async def get_settings() -> SettingsOut:
-    """The user's settings: the timezone that due dates, 'today' and reminders follow."""
-    return await _run(lambda s, c: settings.get_settings(session=s))
+async def get_settings() -> SettingsText:
+    """The user's settings: the timezone that due dates, 'today' and reminders follow, the name
+    the dashboard calls them (null: their Discord name), and their studio's name."""
+    out = await _run(lambda s, c: settings.get_settings(session=s))
+    return SettingsText(**out.model_dump(exclude={"studio_logo"}))
 
 
 @mcp.tool(annotations=_ann("Update settings", destructive=True))
-async def update_settings(timezone: str) -> SettingsOut:
-    """Sets the user's timezone, an IANA name such as Asia/Taipei or Asia/Tokyo."""
-    body = SettingsIn(timezone=timezone)
-    return await _run(lambda s, c: settings.update_settings(body, session=s))
+async def update_settings(
+    timezone: str | None = None, user_name: str | None = None, studio_name: str | None = None
+) -> SettingsText:
+    """Changes the settings given; the rest stay as they are. timezone is an IANA name such as
+    Asia/Taipei or Asia/Tokyo. An empty user_name or studio_name clears it."""
+    changes = {"timezone": timezone, "user_name": user_name, "studio_name": studio_name}
+
+    def work(s: Session, c: Clock) -> SettingsText:
+        current = settings.get_settings(session=s).model_dump()
+        body = SettingsIn.model_validate(
+            current | {k: v for k, v in changes.items() if v is not None}
+        )
+        out = settings.update_settings(body, session=s)
+        return SettingsText(**out.model_dump(exclude={"studio_logo"}))
+
+    return await _run(work)
 
 
 def _inline_refs(schema: dict[str, Any]) -> dict[str, Any]:
