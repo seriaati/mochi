@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { formatNTD, todayISO } from '../format.ts'
 import { nextAmount, targetOf, type Target } from './payments.ts'
 import { useDeletePayment, useSavePayment, type Payment, type Project } from './queries.ts'
@@ -58,13 +59,14 @@ export function PaymentDialog({ project, payment, target: initial = null, onClos
       <form className="form" onSubmit={submit}>
         <label className="field">
           For
-          <select value={target ?? ''} onChange={(e) => pick(e.target.value)}>
-            {options.map((t) => (
-              <option key={t.id ?? 'project'} value={t.id ?? ''}>
-                {t.id === null ? `Project · ${project.name}` : t.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={String(target ?? '')}
+            onChange={pick}
+            options={options.map((t) => ({
+              value: String(t.id ?? ''),
+              label: t.id === null ? `Project · ${project.name}` : t.name,
+            }))}
+          />
         </label>
         <div className="form-row">
           <label className="field">

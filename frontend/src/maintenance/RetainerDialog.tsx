@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
 import { useClients, type Client } from '../clients/queries.ts'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteRetainer, useSaveRetainer, type Collection, type Retainer } from './queries.ts'
 
@@ -73,16 +74,14 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
       <form className="form" onSubmit={submit}>
         <label className="field">
           Client
-          <select name="client_id" required value={owner ?? ''} onChange={(e) => pickClient(e.target.value)}>
-            <option value="" disabled>
-              Choose a client
-            </option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            name="client_id"
+            required
+            value={String(owner ?? '')}
+            onChange={pickClient}
+            placeholder="Choose a client"
+            options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
+          />
         </label>
         <div className="form-row">
           <label className="field">
@@ -136,17 +135,17 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
         {collection === 'ask' && (
           <label className="field">
             Ask on
-            <select
-              value={contactId ?? ''}
-              onChange={(e) => setAskVia(e.target.value ? Number(e.target.value) : null)}
-            >
-              {client?.contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {contactKinds[c.kind].label} · {contactHandle(c)}
-                </option>
-              ))}
-              <option value="">No contact</option>
-            </select>
+            <Select
+              value={String(contactId ?? '')}
+              onChange={(value) => setAskVia(value ? Number(value) : null)}
+              options={[
+                ...(client?.contacts ?? []).map((c) => ({
+                  value: String(c.id),
+                  label: `${contactKinds[c.kind].label} · ${contactHandle(c)}`,
+                })),
+                { value: '', label: 'No contact' },
+              ]}
+            />
           </label>
         )}
         <div className="form-row">

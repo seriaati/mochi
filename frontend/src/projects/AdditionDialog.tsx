@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteAddition, useSaveAddition, type Addition } from './queries.ts'
 
@@ -70,10 +71,14 @@ export function AdditionDialog({ projectId, addition, onClose }: Props) {
         <div className="form-row">
           <label className="field">
             Payment terms
-            <select value={split ? 'split' : 'single'} onChange={(e) => setSplit(e.target.value === 'split')}>
-              <option value="single">Single payment</option>
-              <option value="split">Deposit, rest on delivery</option>
-            </select>
+            <Select
+              value={split ? 'split' : 'single'}
+              onChange={(value) => setSplit(value === 'split')}
+              options={[
+                { value: 'single', label: 'Single payment' },
+                { value: 'split', label: 'Deposit, rest on delivery' },
+              ]}
+            />
           </label>
           {split && (
             <label className="field">

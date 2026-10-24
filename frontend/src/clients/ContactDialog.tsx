@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { contactKinds } from './contactKinds.ts'
 import { useDeleteContact, useSaveContact, type Contact, type ContactKind } from './queries.ts'
 
@@ -37,13 +38,14 @@ export function ContactDialog({ clientId, contact, onClose }: Props) {
       <form className="form" onSubmit={submit}>
         <label className="field">
           Platform
-          <select value={kind} onChange={(e) => setKind(e.target.value as ContactKind)}>
-            {Object.entries(contactKinds).map(([value, { label }]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={kind}
+            onChange={setKind}
+            options={Object.entries(contactKinds).map(([value, { label }]) => ({
+              value: value as ContactKind,
+              label,
+            }))}
+          />
         </label>
         <label className="field">
           {contactKinds[kind].field}

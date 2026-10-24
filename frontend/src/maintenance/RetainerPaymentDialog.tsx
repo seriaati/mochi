@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { formatDay, formatNTD, todayISO } from '../format.ts'
 import { monthName, openMonths } from './labels.ts'
 import {
@@ -37,14 +38,14 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
       <form className="form" onSubmit={submit}>
         <label className="field">
           For
-          <select value={picked} required onChange={(e) => setPicked(e.target.value)}>
-            {months.map((m) => (
-              <option key={m.period} value={m.period}>
-                {monthLabel(m)}
-                {m.status === 'overdue' ? ' · overdue' : m.status === 'due' ? ' · due' : ''}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={picked}
+            onChange={setPicked}
+            options={months.map((m) => {
+              const flag = m.status === 'overdue' ? ' · overdue' : m.status === 'due' ? ' · due' : ''
+              return { value: m.period, label: monthLabel(m) + flag }
+            })}
+          />
         </label>
         <div className="form-row">
           <label className="field">

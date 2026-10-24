@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { useClients } from '../clients/queries.ts'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
 import { useDeleteProject, useSaveProject, type Project } from './queries.ts'
 
@@ -22,6 +23,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
   const save = useSaveProject(project?.id)
   const remove = useDeleteProject()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [owner, setOwner] = useState(String(project?.client_id ?? clientId ?? ''))
   const error = save.error ?? remove.error
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -68,21 +70,14 @@ export function ProjectDialog({ project, clientId, onClose, onSaved, onDeleted }
       <form className="form" onSubmit={submit}>
         <label className="field">
           Client
-          <select
+          <Select
             name="client_id"
             required
-            defaultValue={project?.client_id ?? clientId ?? ''}
-            key={clients.data ? 'loaded' : 'loading'}
-          >
-            <option value="" disabled>
-              {clients.isPending ? 'Loading clients…' : 'Choose a client'}
-            </option>
-            {clients.data?.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
+            value={owner}
+            onChange={setOwner}
+            placeholder={clients.isPending ? 'Loading clients…' : 'Choose a client'}
+            options={(clients.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+          />
         </label>
         <label className="field">
           Name

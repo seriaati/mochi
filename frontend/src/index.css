@@ -453,7 +453,6 @@ a {
 /* Controls */
 button,
 input,
-select,
 textarea {
   font: inherit;
   color: inherit;
@@ -628,7 +627,6 @@ button {
 }
 
 .field input,
-.field select,
 .field textarea {
   min-height: 44px;
   padding: 10px 14px;
@@ -647,6 +645,120 @@ button {
 
 .field small {
   font-weight: 500;
+}
+
+/* Dropdowns (components/Select.tsx) */
+.select {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.select-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px 10px 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--field);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.select-field > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-field .placeholder { color: var(--dim); }
+
+.select-field svg,
+.select-option svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.select-field svg {
+  color: var(--dim);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.select-field[aria-expanded='true'] svg { transform: rotate(180deg); }
+
+/* Only there for the form: the field shows the value. */
+.select .select-value {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.select-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 16px;
+  background: var(--tile);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--track),
+    0 12px 32px rgba(0, 0, 0, 0.14);
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.25s var(--ease-out);
+}
+
+@starting-style {
+  .select-menu:popover-open {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.select-option.active { background: var(--field); }
+.select-option[aria-selected='true'] { font-weight: 600; }
+
+.select-option[aria-disabled='true'] {
+  color: var(--dim);
+  cursor: default;
 }
 
 .form-error {
