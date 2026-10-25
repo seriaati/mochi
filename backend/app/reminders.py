@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import discord, discord_sync, keni_sync
 from app.clock import Clock, clock_for, utc_now
+from app.config import settings
 from app.db import SessionLocal
 from app.maintenance import (
     REPEAT_DAYS,
@@ -48,6 +49,7 @@ class Reminder:
     months: list[Month]  # unpaid "ask" months it covers, oldest first
     contact: ContactMethod | None  # where to ask: the oldest covered month's retainer contact
     slot_on: date  # the local day it counts for
+    retainer_id: int  # the oldest covered month's, which the message's Record payment opens
 
     @property
     def amount(self) -> int:
@@ -70,7 +72,8 @@ class _Owed:
         """The reminder for a slot, covering every month due by `cover`."""
         covered = [(r, m) for r, m in self.items if m.due_on <= cover]
         contact = next((r.ask_via for r, _ in covered if r.ask_via is not None), None)
-        return Reminder(self.client, [m for _, m in covered], contact, slot_on)
+        months = [m for _, m in covered]
+        return Reminder(self.client, months, contact, slot_on, covered[0][0].id)
 
 
 def _owed(session: Session, today: date) -> list[_Owed]:
@@ -171,8 +174,17 @@ def manual(session: Session, clock: Clock, client_id: int) -> Reminder | None:
     return None if reminder is None else replace(reminder, slot_on=clock.today)
 
 
+def record_url(reminder: Reminder) -> str:
+    """The Retainers page with Record payment open for the reminder's oldest month."""
+    month = f"{reminder.months[0].period:%Y-%m}"
+    return f"{settings.app_url}/maintenance?record={reminder.retainer_id}&month={month}"
+
+
 def content(reminders: list[Reminder], clock: Clock) -> str:
-    lines = [reminder_line(r.client.name, r.months, r.contact, clock.today) for r in reminders]
+    lines = [
+        reminder_line(r.client.name, r.months, r.contact, clock.today, record_url(r))
+        for r in reminders
+    ]
     return message(lines, discord.config.mention_user_id)
 
 

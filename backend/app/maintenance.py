@@ -282,14 +282,26 @@ def month_name(period: date, today: date) -> str:
 
 
 def reminder_line(
-    client_name: str, months: list[Month], contact: ContactMethod | None, today: date
+    client_name: str,
+    months: list[Month],
+    contact: ContactMethod | None,
+    today: date,
+    record_url: str | None = None,
 ) -> str:
     """Everything a client owes in one line, oldest month first, e.g.
-    "Ask Northwind Coffee for NT$750 (August, September, October) on Discord @danpark"."""
+    "Ask Northwind Coffee for NT$750 (August, September, October) on Discord @danpark".
+    A Discord handle with a user ID links to their profile, one click from your DM, and
+    `record_url` adds a link that opens Record payment. Links are in <> so Discord doesn't
+    embed them."""
     names = list(dict.fromkeys(month_name(m.period, today) for m in months))
     line = f"Ask {client_name} for NT${sum(m.amount for m in months):,} ({', '.join(names)})"
     if contact is not None:
-        line += " " + _CONTACT_PHRASES[contact.kind].format(contact.value)
+        handle = contact.value
+        if contact.kind == ContactKind.DISCORD and contact.discord_user_id is not None:
+            handle = f"[{handle}](<https://discord.com/users/{contact.discord_user_id}>)"
+        line += " " + _CONTACT_PHRASES[contact.kind].format(handle)
+    if record_url is not None:
+        line += f" · [Record payment](<{record_url}>)"
     return line
 
 

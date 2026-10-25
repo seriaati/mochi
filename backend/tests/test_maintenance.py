@@ -586,7 +586,10 @@ def test_paying_several_months_ahead(
     for day in ("2027-01-01", "2027-02-01", "2027-03-01", "2027-03-31"):
         assert reminders.send_due(session, at(day, 9)) == 0
     assert reminders.send_due(session, at("2027-04-01", 9)) == 1
-    assert webhook == [f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (April) on Discord @danpark"]
+    assert webhook == [
+        f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (April) on Discord @danpark"
+        + record(retainer, "2027-04")
+    ]
 
     # Removing the payment leaves all three months unpaid.
     url = f"/api/retainers/{retainer['id']}/payments/{payment['id']}"
@@ -863,6 +866,12 @@ def test_client_stats_and_flags(client: TestClient, pin) -> None:
 # Reminder schedule: one combined reminder per client
 
 
+def record(retainer: dict, month: str) -> str:
+    """The link a reminder line ends with, opening Record payment for that month."""
+    url = f"{settings.app_url}/maintenance?record={retainer['id']}&month={month}"
+    return f" · [Record payment](<{url}>)"
+
+
 def ask_retainer(client: TestClient, **fields: object) -> dict:
     owner = make_client(client)
     return make_retainer(client, owner, **fields)
@@ -880,7 +889,7 @@ def send_now(client: TestClient, client_id: int):
 def test_reminder_at_nine_on_the_due_date(
     client: TestClient, session: Session, webhook: list[str]
 ) -> None:
-    ask_retainer(client)  # due 25 Oct
+    retainer = ask_retainer(client)  # due 25 Oct
     assert reminders.send_due(session, at("2026-10-24", 9)) == 0
     assert reminders.send_due(session, at("2026-10-25", 8, 59)) == 0
     assert webhook == []
@@ -888,6 +897,7 @@ def test_reminder_at_nine_on_the_due_date(
     assert reminders.send_due(session, at("2026-10-25", 9)) == 1
     assert webhook == [
         f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (October) on Discord @danpark"
+        + record(retainer, "2026-10")
     ]
     assert logged(session) == ["2026-10-25"]
 
@@ -920,7 +930,7 @@ def test_one_message_covers_every_month_and_retainer(
 ) -> None:
     owner = make_client(client)
     first = make_retainer(client, owner, started_on="2026-08-01")  # 25 Aug, 25 Sep, 25 Oct
-    make_retainer(client, owner, amount=100, due_day=10, started_on="2026-10-01")  # 10 Oct
+    second = make_retainer(client, owner, amount=100, due_day=10, started_on="2026-10-01")  # 10 Oct
 
     # Anchored on the oldest unpaid due date, 25 Aug: slots fall every 2 days from then,
     # on 22, 24, 26 Oct.
@@ -929,7 +939,7 @@ def test_one_message_covers_every_month_and_retainer(
     assert reminders.send_due(session, at("2026-10-24", 9)) == 1
     assert webhook[-1] == (
         f"<@{USER_ID}> Ask Northwind Coffee for NT$600 (August, September, October) "
-        "on Discord @danpark"
+        "on Discord @danpark" + record(first, "2026-08")
     )
     # Once October's main fee is due too, the next ping asks for everything.
     assert reminders.send_due(session, at("2026-10-26", 9)) == 1
@@ -940,15 +950,18 @@ def test_one_message_covers_every_month_and_retainer(
     pay(client, first["id"], "2026-09-01")
     assert reminders.send_due(session, at("2026-10-27", 9)) == 0
     assert reminders.send_due(session, at("2026-10-28", 9)) == 1
-    assert webhook[-1].endswith("for NT$350 (October) on Discord @danpark")
+    # Record payment opens the oldest month left, now the other retainer's.
+    assert webhook[-1].endswith(
+        "for NT$350 (October) on Discord @danpark" + record(second, "2026-10")
+    )
 
 
 def test_several_clients_share_one_post(
     client: TestClient, session: Session, webhook: list[str]
 ) -> None:
-    make_retainer(client, make_client(client), due_day=21, started_on="2026-09-01")
+    northwind = make_retainer(client, make_client(client), due_day=21, started_on="2026-09-01")
     aurora = make_client(client, "Aurora Studio", contacts=(("line", "mei.aurora"),))
-    make_retainer(client, aurora, amount=1200, due_day=21)
+    aurora_fee = make_retainer(client, aurora, amount=1200, due_day=21)
     make_retainer(client, aurora, amount=99, collection="auto_transfer", due_day=21)
 
     # Northwind's rhythm runs from 21 Sep, Aurora's from 21 Oct; both land on the 23rd.
@@ -956,8 +969,10 @@ def test_several_clients_share_one_post(
     assert webhook == [
         (
             f"<@{USER_ID}> Maintenance reminders:\n"
-            "- Ask Aurora Studio for NT$1,200 (October) on LINE mei.aurora\n"
-            "- Ask Northwind Coffee for NT$500 (September, October) on Discord @danpark"
+            "- Ask Aurora Studio for NT$1,200 (October) on LINE mei.aurora"
+            + record(aurora_fee, "2026-10")
+            + "\n- Ask Northwind Coffee for NT$500 (September, October) on Discord @danpark"
+            + record(northwind, "2026-09")
         )
     ]
 
@@ -1025,13 +1040,14 @@ def test_timezone_moves_today(client: TestClient, pin) -> None:
 def test_missed_slot_is_sent_late_once(
     client: TestClient, session: Session, webhook: list[str]
 ) -> None:
-    ask_retainer(client, due_day=20)
+    retainer = ask_retainer(client, due_day=20)
     # Down from before the 20th until the afternoon of the 25th: slots 20, 22 and 24 were
     # missed. Only the latest goes out, once, and counts for its own day.
     assert reminders.send_due(session, at("2026-10-25", 15)) == 1
     assert logged(session) == ["2026-10-24"]
     assert webhook == [
         f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (October) on Discord @danpark"
+        + record(retainer, "2026-10")
     ]
     assert reminders.send_due(session, at("2026-10-25", 16)) == 0
     assert reminders.send_due(session, at("2026-10-26", 9)) == 1
@@ -1105,12 +1121,13 @@ def test_send_now_targets_one_client(
     northwind = make_client(client)
     make_retainer(client, northwind, due_day=20)
     pixel = make_client(client, "Pixelforge", contacts=(("discord", "@sora.px"),))
-    make_retainer(client, pixel, amount=120)  # nothing due yet: due 25 Oct
+    pixel_fee = make_retainer(client, pixel, amount=120)  # nothing due yet: due 25 Oct
 
     response = send_now(client, pixel["id"])
     assert response.status_code == 200
     assert response.json() == {
         "content": f"<@{USER_ID}> Ask Pixelforge for NT$120 (October) on Discord @sora.px"
+        + record(pixel_fee, "2026-10")
     }
     assert webhook == [response.json()["content"]]
     assert send_now(client, 999999).status_code == 404
@@ -1252,6 +1269,17 @@ def test_reminder_line(
     contact = ContactMethod(kind=ContactKind(kind), value=value) if kind else None
     line = maintenance.reminder_line("Northwind Coffee", months, contact, TODAY)
     assert line == f"Ask Northwind Coffee for {expected}"
+
+
+def test_reminder_line_links() -> None:
+    contact = ContactMethod(kind=ContactKind.DISCORD, value="@danpark", discord_user_id=123)
+    url = "https://dash.example.com/maintenance?record=7&month=2026-10"
+    line = maintenance.reminder_line("Northwind Coffee", owed("2026-10-01"), contact, TODAY, url)
+    assert line == (
+        "Ask Northwind Coffee for NT$250 (October) on Discord "
+        "[@danpark](<https://discord.com/users/123>) · "
+        "[Record payment](<https://dash.example.com/maintenance?record=7&month=2026-10>)"
+    )
 
 
 def test_message_mention() -> None:
