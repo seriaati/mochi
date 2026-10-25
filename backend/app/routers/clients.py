@@ -18,7 +18,7 @@ from app.models import (
     Retainer,
     SyncStatus,
 )
-from app.schemas.clients import ClientCreate, ClientIn, ClientOut, ContactIn, ContactOut
+from app.schemas.clients import ClientCreate, ClientOut, ClientUpdate, ContactIn, ContactOut
 
 router = APIRouter(prefix="/api/clients", tags=["clients"])
 
@@ -103,16 +103,37 @@ def list_clients(session: SessionDep, today: TodayDep) -> list[ClientOut]:
     return [_out(*row, today) for row in rows]
 
 
-def _discord_contact(user_id: int, now: datetime) -> ContactMethod:
-    """A Discord contact for a new client, looked up straight away. Its handle is their username,
-    or the ID until a lookup works. Raises 422 for an ID Discord doesn't know."""
-    contact = ContactMethod(kind=ContactKind.DISCORD, value=str(user_id), discord_user_id=user_id)
+def _link_discord(contact: ContactMethod, user_id: int | None, now: datetime) -> None:
+    """Sets a Discord contact's user ID and looks it up straight away. Its handle becomes their
+    username, or stays as it was until a lookup works. Raises 422 for an ID Discord doesn't know."""
+    if user_id is not None and contact.value == str(contact.discord_user_id):
+        contact.value = str(user_id)  # a handle that was the old ID until a lookup worked
+    contact.discord_user_id = user_id
     discord_sync.on_save(contact, user_id, now)
     if contact.discord_sync_status == SyncStatus.NOT_FOUND:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "No Discord user has that ID")
     if contact.discord_username is not None:
         contact.value = contact.discord_username
+
+
+def _discord_contact(user_id: int, now: datetime) -> ContactMethod:
+    """A Discord contact for a new client. Its handle is the ID until a lookup works."""
+    contact = ContactMethod(kind=ContactKind.DISCORD, value=str(user_id))
+    _link_discord(contact, user_id, now)
     return contact
+
+
+def _set_discord_id(client: Client, user_id: int | None, now: datetime) -> None:
+    """Puts the ID on the client's first Discord contact, the one with an ID first as on the
+    client page, or adds a Discord contact when they have none."""
+    discord = sorted(
+        (c for c in client.contacts if c.kind == ContactKind.DISCORD),
+        key=lambda c: (c.discord_user_id is None, c.id),
+    )
+    if discord and discord[0].discord_user_id != user_id:
+        _link_discord(discord[0], user_id, now)
+    elif not discord and user_id is not None:
+        client.contacts.append(_discord_contact(user_id, now))
 
 
 def _discord_name(contact: ContactMethod) -> str:
@@ -149,13 +170,15 @@ def get_client(client_id: int, session: SessionDep, today: TodayDep) -> ClientOu
 
 @router.put("/{client_id}")
 def update_client(
-    client_id: int, body: ClientIn, session: SessionDep, today: TodayDep
+    client_id: int, body: ClientUpdate, session: SessionDep, clock: ClockDep
 ) -> ClientOut:
     client = _get_client(session, client_id)
-    for field, value in body.model_dump().items():
+    if "discord_user_id" in body.model_fields_set:
+        _set_discord_id(client, body.discord_user_id, clock.now)
+    for field, value in body.model_dump(exclude={"discord_user_id"}).items():
         setattr(client, field, value)
     session.commit()
-    return _read(session, client_id, today)
+    return _read(session, client_id, clock.today)
 
 
 @router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)

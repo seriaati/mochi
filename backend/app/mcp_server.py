@@ -20,7 +20,14 @@ from app.clock import Clock, clock_for, utc_now
 from app.config import settings as config
 from app.db import SessionLocal
 from app.routers import clients, maintenance, overview, projects, retainers, settings
-from app.schemas.clients import ClientCreate, ClientIn, ClientOut, ContactIn, ContactOut
+from app.schemas.clients import (
+    ClientCreate,
+    ClientIn,
+    ClientOut,
+    ClientUpdate,
+    ContactIn,
+    ContactOut,
+)
 from app.schemas.maintenance import (
     MaintenanceOut,
     RetainerIn,
@@ -142,7 +149,9 @@ async def update_client(client_id: int, changes: ClientChanges) -> ClientOut:
 
     def work(s: Session, c: Clock) -> ClientOut:
         body = _merge(ClientIn, clients._get_client(s, client_id), changes)
-        return clients.update_client(client_id, body, session=s, today=c.today)
+        # Without discord_user_id, so the client's contacts stay as they are.
+        update = ClientUpdate.model_validate(body.model_dump())
+        return clients.update_client(client_id, update, session=s, clock=c)
 
     return await _run(work)
 

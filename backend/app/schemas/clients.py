@@ -71,6 +71,13 @@ class ClientCreate(ClientIn):
         return self
 
 
+class ClientUpdate(ClientIn):
+    """Edits a client. A Discord user ID, when sent, goes on their first Discord contact (one is
+    added if they have none); null takes it off. Left out, their contacts stay as they are."""
+
+    discord_user_id: Annotated[Snowflake | None, BeforeValidator(blank_to_none)] = None
+
+
 class ClientOut(ClientIn):
     id: int
     created_at: datetime

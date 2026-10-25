@@ -254,6 +254,60 @@ def test_add_client_needs_a_name_or_discord_id(client: TestClient) -> None:
     assert client.post("/api/clients", json={"name": " "}).status_code == 422
 
 
+def test_edit_client_discord_id(client: TestClient, fake: FakeDiscord) -> None:
+    owner = add_client(client)
+    url = f"/api/clients/{owner['id']}"
+    body = {"name": "Northwind"}
+
+    # Left out, contacts stay as they are; sent, it adds a Discord contact.
+    assert client.put(url, json=body).json()["contacts"] == []
+    added = client.put(url, json=body | {"discord_user_id": str(DAN)}).json()
+    [contact] = added["contacts"]
+    assert (contact["value"], contact["discord_user_id"]) == ("danpark", str(DAN))
+
+    # A new ID goes on that contact and is looked up; an unchanged one isn't.
+    moved = client.put(url, json=body | {"discord_user_id": str(SORA)}).json()
+    [contact] = moved["contacts"]
+    assert (contact["value"], contact["discord_user_id"]) == ("sora.px", str(SORA))
+    client.put(url, json=body | {"discord_user_id": str(SORA)})
+    assert fake.ids == [DAN, SORA]
+
+    # Null takes the ID off and keeps the handle.
+    cleared = client.put(url, json=body | {"discord_user_id": None}).json()
+    [contact] = cleared["contacts"]
+    assert (contact["value"], contact["discord_user_id"]) == ("sora.px", None)
+
+
+def test_edit_client_discord_id_prefers_the_linked_contact(
+    client: TestClient, fake: FakeDiscord
+) -> None:
+    owner = add_client(client)
+    add_contact(client, owner, None, value="@old")
+    linked = add_contact(client, owner, DAN)
+    body = {"name": "Northwind", "discord_user_id": str(SORA)}
+    response = client.put(f"/api/clients/{owner['id']}", json=body)
+    contacts = {c["id"]: c for c in response.json()["contacts"]}
+    assert len(contacts) == 2
+    assert contacts[linked["id"]]["discord_user_id"] == str(SORA)
+
+
+def test_edit_client_discord_id_without_a_lookup(client: TestClient) -> None:
+    owner = client.post("/api/clients", json={"name": "N", "discord_user_id": str(DAN)}).json()
+    assert owner["contacts"][0]["value"] == str(DAN)  # sync is off, so the handle is the ID
+    body = {"name": "N", "discord_user_id": str(SORA)}
+    edited = client.put(f"/api/clients/{owner['id']}", json=body).json()
+    assert edited["contacts"][0]["value"] == str(SORA)  # and follows it
+
+
+def test_edit_client_unknown_discord_id(client: TestClient, fake: FakeDiscord) -> None:
+    owner = add_client(client)
+    body = {"name": "Renamed", "discord_user_id": "99999999999999999"}
+    response = client.put(f"/api/clients/{owner['id']}", json=body)
+    assert response.status_code == 422
+    assert response.json()["detail"] == "No Discord user has that ID"
+    assert get_client(client, owner)["name"] == "Northwind Coffee"  # nothing saved
+
+
 def test_sync_when_the_id_changes(client: TestClient, fake: FakeDiscord) -> None:
     owner = add_client(client)
     contact = add_contact(client, owner, DAN)

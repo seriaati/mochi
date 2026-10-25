@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { discordContact } from './contactKinds.ts'
 import { useSaveClient, type Client } from './queries.ts'
 
 type Props = {
@@ -13,7 +14,8 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
   const save = useSaveClient(client?.id)
-  const [discordId, setDiscordId] = useState('')
+  const discord = client && discordContact(client.contacts)
+  const [discordId, setDiscordId] = useState(discord?.discord_user_id ?? '')
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -25,7 +27,7 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
       notes: text('notes'),
     }
     save.mutate(
-      client ? fields : { ...fields, discord_user_id: text('discord_user_id') },
+      { ...fields, discord_user_id: text('discord_user_id') },
       {
         onSuccess: (saved) => {
           close()
@@ -35,35 +37,42 @@ export function ClientDialog({ client, onClose, onSaved }: Props) {
     )
   }
 
+  // First when adding, where it can fill in the name; after the name when editing.
+  const discordField = (
+    <label className="field">
+      Discord user ID (optional)
+      <input
+        name="discord_user_id"
+        inputMode="numeric"
+        pattern="\d{17,19}"
+        title="17 to 19 digits"
+        value={discordId}
+        onChange={(e) => setDiscordId(e.target.value.trim())}
+        autoFocus={!client}
+      />
+      <small>
+        {discord ? 'Changes their Discord contact. ' : 'Adds them as a Discord contact. '}
+        In Discord, turn on Developer Mode, then right-click the user and Copy User ID.
+      </small>
+    </label>
+  )
+
   return (
     <Dialog title={client ? 'Edit client' : 'Add client'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        {!client && (
-          <label className="field">
-            Discord user ID (optional)
-            <input
-              name="discord_user_id"
-              inputMode="numeric"
-              pattern="\d{17,19}"
-              title="17 to 19 digits"
-              value={discordId}
-              onChange={(e) => setDiscordId(e.target.value.trim())}
-              autoFocus
-            />
-            <small>Adds them as a Discord contact. In Discord, turn on Developer Mode, then right-click the user and Copy User ID.</small>
-          </label>
-        )}
+        {!client && discordField}
         <label className="field">
           Name
           <input
             name="name"
-            required={!discordId}
+            required={!!client || !discordId}
             maxLength={200}
             defaultValue={client?.name}
-            placeholder={discordId ? 'Their Discord name' : undefined}
+            placeholder={!client && discordId ? 'Their Discord name' : undefined}
             autoFocus={!!client}
           />
         </label>
+        {client && discordField}
         <label className="field">
           Contact person
           <input name="contact_person" maxLength={200} defaultValue={client?.contact_person ?? ''} />

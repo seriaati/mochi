@@ -37,7 +37,10 @@ export type ClientInput = {
   notes: string | null
 }
 
-/** A new client. A Discord user ID also adds a Discord contact; a blank name then uses theirs. */
+/**
+ * A client with a Discord user ID. A new one gets a Discord contact, and a blank name uses
+ * theirs. An edit puts the ID on their Discord contact (see discordContact), adding one if needed.
+ */
 export type NewClientInput = ClientInput & { discord_user_id: string | null }
 
 export type Client = ClientInput & {
