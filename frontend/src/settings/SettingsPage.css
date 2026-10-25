@@ -13,7 +13,8 @@
   margin-top: 12px;
 }
 
-.settings-zone b {
+.settings-zone b,
+.settings-text b {
   font-weight: 600;
   color: var(--ink);
 }
@@ -110,7 +111,7 @@
   color: var(--good);
 }
 
-/* Reminders on the left, profile sync on the right. */
+/* Reminders on the left, profile sync on the right. Keni: what syncs, then the connection. */
 .settings-discord {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -122,7 +123,8 @@
   color: var(--muted);
 }
 
-.settings-discord .field input {
+.settings-discord .field input,
+.settings-discord .select-field {
   background: var(--chip);
 }
 

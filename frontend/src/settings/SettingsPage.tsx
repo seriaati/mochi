@@ -1,6 +1,21 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Select } from '../components/Select.tsx'
+import { formatDay, plural } from '../format.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
-import { useSaveBotToken, useSaveSettings, useSettings, type Settings } from './queries.ts'
+import {
+  useChooseKeniDestination,
+  useConnectKeni,
+  useFindKeniOptions,
+  useKeni,
+  useKeniOptions,
+  useSaveBotToken,
+  useSaveSettings,
+  useSettings,
+  type Keni,
+  type KeniDestination,
+  type KeniOptions,
+  type Settings,
+} from './queries.ts'
 import './SettingsPage.css'
 
 const zones = Intl.supportedValuesOf('timeZone')
@@ -57,6 +72,7 @@ export function SettingsPage() {
           <ThemeTile />
           <TimezoneTile settings={settings.data} />
           <DiscordTile settings={settings.data} />
+          <KeniTile settings={settings.data} />
         </div>
       )}
     </>
@@ -362,5 +378,241 @@ function DiscordTile({ settings }: { settings: Settings }) {
         </div>
       </div>
     </section>
+  )
+}
+
+/** The hosted Keni, filled in for a first connection. */
+const KENI_URL = 'https://app.keni.seria.moe'
+
+function KeniTile({ settings }: { settings: Settings }) {
+  const keni = useKeni()
+  const noKey = !settings.encryption_key_set
+
+  return (
+    <section className="tile span-12 tint-blue">
+      <h2 className="tile-label">Keni</h2>
+      {noKey && !keni.data?.url && (
+        <p className="form-error settings-feedback">
+          Set <code>ENCRYPTION_KEY</code> on the API (see <code>backend/.env.example</code>) to connect Keni. The API
+          key is stored encrypted.
+        </p>
+      )}
+      <div className="settings-discord">
+        <div>
+          <p className="settings-text">
+            Records the money you receive as income in the Keni wallet and category you choose: project and addition
+            payments, recorded maintenance payments, and auto transfers once they&rsquo;re due. Edits and deletes here
+            follow it there.
+          </p>
+          <p className="settings-text">
+            Money received before you connect stays out of Keni. Amounts are sent as NT$, whatever the
+            wallet&rsquo;s currency.
+          </p>
+        </div>
+        {keni.isPending && <p className="settings-text">Loading…</p>}
+        {keni.error && (
+          <p className="form-error">Couldn&rsquo;t load the Keni connection: {keni.error.message}</p>
+        )}
+        {keni.data && (keni.data.url ? <KeniStatus keni={keni.data} /> : <KeniConnect disabled={noKey} />)}
+      </div>
+    </section>
+  )
+}
+
+/** Wallet and category pickers, filled from the Keni account. */
+function KeniDestinationFields({
+  options,
+  value,
+  onChange,
+}: {
+  options: KeniOptions
+  value: KeniDestination
+  onChange: (value: KeniDestination) => void
+}) {
+  return (
+    <>
+      <label className="field">
+        Wallet
+        <Select
+          value={value.wallet_id}
+          onChange={(wallet_id) => onChange({ ...value, wallet_id })}
+          placeholder="Choose a wallet"
+          options={options.wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+        />
+      </label>
+      <label className="field">
+        Category
+        <Select
+          value={value.category_id}
+          onChange={(category_id) => onChange({ ...value, category_id })}
+          placeholder="Choose a category"
+          options={options.categories.map((c) => ({ value: c.id, label: c.name }))}
+        />
+      </label>
+    </>
+  )
+}
+
+function KeniConnect({ disabled }: { disabled: boolean }) {
+  const find = useFindKeniOptions()
+  const connect = useConnectKeni()
+  const [destination, setDestination] = useState<KeniDestination>({ wallet_id: '', category_id: '' })
+  const options = find.data
+  const login = find.variables
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    find.mutate(
+      { url: form.get('url') as string, token: form.get('token') as string },
+      {
+        onSuccess: (found) =>
+          setDestination({
+            wallet_id: found.wallets[0]?.id ?? '',
+            // A category named Freelance is the likely pick; otherwise the user chooses.
+            category_id: found.categories.find((c) => c.name.toLowerCase() === 'freelance')?.id ?? '',
+          }),
+      },
+    )
+  }
+
+  /** A changed URL or key needs its wallets and categories found again. */
+  function edited() {
+    find.reset()
+    connect.reset()
+  }
+
+  return (
+    <form className="form" onSubmit={submit}>
+      <label className="field">
+        Keni URL
+        <input
+          name="url"
+          type="url"
+          required
+          disabled={disabled}
+          defaultValue={KENI_URL}
+          onChange={edited}
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <small>The hosted app, or your own Keni.</small>
+      </label>
+      <label className="field">
+        API key
+        <input
+          name="token"
+          type="password"
+          required
+          disabled={disabled}
+          onChange={edited}
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <small>In Keni: Settings › API tokens. Stored encrypted and never shown again.</small>
+      </label>
+      {options?.wallets.length && login ? (
+        <>
+          <KeniDestinationFields options={options} value={destination} onChange={setDestination} />
+          <div className="form-actions">
+            <button
+              className="btn"
+              type="button"
+              disabled={connect.isPending || !destination.wallet_id || !destination.category_id}
+              onClick={() => connect.mutate({ ...login, ...destination })}
+            >
+              Connect
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {options && <p className="settings-text">No wallets in this Keni account yet. Add one in Keni first.</p>}
+          <div className="form-actions">
+            <button className="btn" type="submit" disabled={disabled || find.isPending}>
+              Load from Keni
+            </button>
+          </div>
+        </>
+      )}
+      {find.error && <p className="form-error">{find.error.message}</p>}
+      {connect.error && <p className="form-error">{connect.error.message}</p>}
+    </form>
+  )
+}
+
+function KeniStatus({ keni }: { keni: Keni }) {
+  const disconnect = useConnectKeni()
+  const [confirming, setConfirming] = useState(false)
+
+  return (
+    <div className="form">
+      <div className="settings-token">
+        {keni.error ? <span className="chip warn">Sync stopped</span> : <span className="chip good">Connected</span>}
+      </div>
+      <p className="settings-text">
+        Recording in <b>{keni.wallet_name}</b> ({keni.wallet_currency}) as <b>{keni.category_name}</b> on{' '}
+        {new URL(keni.url!).host} since {formatDay(keni.connected_on!, { year: true })}.
+      </p>
+      {keni.error ? (
+        <p className="form-error">
+          {keni.error}. It retries every minute
+          {keni.pending > 0 && `, with ${plural(keni.pending, 'change')} waiting`}.
+        </p>
+      ) : keni.pending > 0 ? (
+        <p className="settings-text">{plural(keni.pending, 'change')} waiting to send. Keni syncs every minute.</p>
+      ) : (
+        <p className="settings-saved">Everything is in Keni</p>
+      )}
+      <KeniChangeDestination keni={keni} />
+      <div className="form-actions">
+        <button
+          className="btn danger"
+          type="button"
+          disabled={disconnect.isPending}
+          onClick={() => (confirming ? disconnect.mutate(null) : setConfirming(true))}
+        >
+          {confirming ? 'Confirm disconnect' : 'Disconnect'}
+        </button>
+      </div>
+      {confirming && !disconnect.error && (
+        <p className="settings-text">
+          What&rsquo;s in Keni stays there, but changes here stop following it. Connecting again starts afresh.
+        </p>
+      )}
+      {disconnect.error && <p className="form-error">{disconnect.error.message}</p>}
+    </div>
+  )
+}
+
+function KeniChangeDestination({ keni }: { keni: Keni }) {
+  const options = useKeniOptions()
+  const choose = useChooseKeniDestination()
+  const saved = { wallet_id: keni.wallet_id!, category_id: keni.category_id! }
+  const [destination, setDestination] = useState<KeniDestination>(saved)
+  const changed = destination.wallet_id !== saved.wallet_id || destination.category_id !== saved.category_id
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    choose.mutate(destination)
+  }
+
+  if (options.isPending) return <p className="settings-text">Loading wallets and categories…</p>
+  if (options.error)
+    return <p className="form-error">Couldn&rsquo;t load wallets and categories: {options.error.message}</p>
+  return (
+    <form className="form" onSubmit={submit}>
+      <KeniDestinationFields options={options.data} value={destination} onChange={setDestination} />
+      <p className="settings-text">
+        A new wallet or category applies to income sent from then on. What&rsquo;s already in Keni stays where it is.
+      </p>
+      <div className="form-actions">
+        <button className="btn" type="submit" disabled={!changed || choose.isPending}>
+          Save
+        </button>
+      </div>
+      {choose.error && <p className="form-error">{choose.error.message}</p>}
+      {choose.isSuccess && !choose.isPending && !changed && <p className="settings-saved">Saved</p>}
+    </form>
   )
 }
