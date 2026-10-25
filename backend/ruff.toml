@@ -1,0 +1,75 @@
+# Lint and format settings for the API. Run from backend/:
+#   uv run ruff check --fix .
+#   uv run ruff format .
+
+target-version = "py314"
+# The code is written to 100 columns; 88 would rewrap most of it.
+line-length = 100
+# Alembic writes these; they stay as generated.
+extend-exclude = ["alembic/versions"]
+
+[format]
+# The defaults match the code as written: double quotes, spaces, magic trailing commas.
+docstring-code-format = true
+
+[lint]
+select = [
+    "F",     # Pyflakes
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "FAST",  # FastAPI
+    "ASYNC", # flake8-async: the MCP server and reminder loop
+    "S",     # flake8-bandit: auth, sessions, OAuth and encrypted secrets live here
+    "BLE",   # flake8-blind-except
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez: due dates follow a saved timezone
+    "ISC",   # flake8-implicit-str-concat
+    "LOG",   # flake8-logging
+    "G",     # flake8-logging-format
+    "T20",   # flake8-print
+    "PIE",   # flake8-pie
+    "PT",    # flake8-pytest-style
+    "RSE",   # flake8-raise
+    "RET",   # flake8-return
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "PTH",   # flake8-use-pathlib
+    "FLY",   # flynt
+    "PERF",  # Perflint
+    "PGH",   # pygrep-hooks
+    "PLE",   # Pylint errors
+    "PLW",   # Pylint warnings
+    "FURB",  # refurb
+    "RUF",   # Ruff-specific
+]
+ignore = [
+    "E501",    # the formatter wraps code; a long string or comment can stay
+    "N818",    # exceptions are named for what happened, e.g. RateLimited, NoKey
+    "PT018",   # `assert a and b` reads fine
+    "PLW0603", # module state such as the Discord sync pause is set with `global` on purpose
+    "RUF001",  # en dashes in copy and ranges, e.g. "Jan–Mar", are intended
+    "RUF002",
+    "RUF003",
+    # Asserts state invariants the callers already checked, mostly to narrow types; the real
+    # checks (sessions, OAuth, CSRF) raise.
+    "S101",
+    "SIM300", # `PUBLIC <= routes` reads as "is a subset of", not as a Yoda condition
+]
+
+[lint.per-file-ignores]
+"tests/**" = [
+    "S105",   # test passwords and tokens
+    "S106",
+    "DTZ011", # date.today() builds fixtures; the app itself uses the saved timezone
+]
+"app/passwords.py" = ["T201"] # its CLI prints the new hash
+
+[lint.isort]
+known-first-party = ["app"]
+# The library, not the migrations folder of the same name.
+known-third-party = ["alembic"]

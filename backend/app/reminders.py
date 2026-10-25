@@ -119,7 +119,8 @@ def last_reminded(session: Session) -> dict[int, datetime]:
     """When each client was last reminded, scheduled or manual."""
     query = select(ReminderLog.client_id, func.max(ReminderLog.sent_at))
     rows = session.execute(query.group_by(ReminderLog.client_id))
-    return {client_id: sent_at for client_id, sent_at in rows}
+    # Not dict(rows): a Result has keys(), so dict() would read it as a mapping.
+    return {client_id: sent_at for client_id, sent_at in rows}  # noqa: C416
 
 
 def due_now(session: Session, clock: Clock) -> list[Reminder]:

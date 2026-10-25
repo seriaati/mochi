@@ -586,9 +586,7 @@ def test_paying_several_months_ahead(
     for day in ("2027-01-01", "2027-02-01", "2027-03-01", "2027-03-31"):
         assert reminders.send_due(session, at(day, 9)) == 0
     assert reminders.send_due(session, at("2027-04-01", 9)) == 1
-    assert webhook == [
-        f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (April) on Discord @danpark"
-    ]
+    assert webhook == [f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (April) on Discord @danpark"]
 
     # Removing the payment leaves all three months unpaid.
     url = f"/api/retainers/{retainer['id']}/payments/{payment['id']}"
@@ -1349,7 +1347,11 @@ def test_discord_settings_turn_reminders_on(
 
     monkeypatch.setattr(settings, "encryption_key", SecretStr(KEY))
     assert reminders()["enabled"] is False
-    saved = {"timezone": "Asia/Taipei", "discord_webhook_url": HOOK, "discord_mention_user_id": USER_ID}
+    saved = {
+        "timezone": "Asia/Taipei",
+        "discord_webhook_url": HOOK,
+        "discord_mention_user_id": USER_ID,
+    }
     response = client.put("/api/settings", json=saved)
     assert response.status_code == 200, response.text
     assert response.json() == DEFAULT_SETTINGS | saved | {"encryption_key_set": True}

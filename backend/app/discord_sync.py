@@ -11,6 +11,7 @@ Without a bot token nothing is looked up and the API shows no synced data, so th
 to the typed handle and initials. Times come from the caller, so tests pin them.
 """
 
+import contextlib
 import logging
 import time
 from collections.abc import Iterable
@@ -88,10 +89,8 @@ def on_save(contact: ContactMethod, user_id: int | None, now: datetime) -> None:
     new one up straight away. While rate limited, the loop picks it up later."""
     clear(contact)
     if enabled() and user_id is not None:
-        try:
+        with contextlib.suppress(discord.RateLimited):
             _lookup(contact, user_id, now, SAVE_TIMEOUT)
-        except discord.RateLimited:
-            pass
 
 
 def sync_now(contacts: Iterable[ContactMethod], now: datetime) -> None:

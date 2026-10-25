@@ -233,7 +233,9 @@ def test_add_client_by_discord_id_without_a_lookup(client: TestClient, fake: Fak
     fake.users[DAN] = httpx.ConnectError("down")
     failed = client.post("/api/clients", json={"discord_user_id": str(DAN)})
     assert failed.status_code == 422
-    assert failed.json()["detail"] == "Couldn't look that Discord user up. Try again, or enter a name"
+    assert (
+        failed.json()["detail"] == "Couldn't look that Discord user up. Try again, or enter a name"
+    )
 
     # With a name it's added anyway; the handle is the ID until a lookup works.
     named = client.post("/api/clients", json={"name": "Northwind", "discord_user_id": str(DAN)})

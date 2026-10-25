@@ -32,7 +32,7 @@ from app.models import Addition, AppSettings, Collection, KeniLink, Project, Ret
 
 log = logging.getLogger(__name__)
 
-UNREADABLE_TOKEN = "Can't decrypt the API key: check ENCRYPTION_KEY, or connect again"
+UNREADABLE_TOKEN = "Can't decrypt the API key: check ENCRYPTION_KEY, or connect again"  # noqa: S105
 
 
 @dataclass(frozen=True)
@@ -208,9 +208,7 @@ def sync(session: Session, now: datetime) -> int:
         for source, entry in todo.create:
             when = _at(entry.paid_on, clock.tz)
             wallet, category = row.keni_wallet_id, row.keni_category_id
-            keni_id = keni.create(
-                account, wallet, category, entry.amount, when, entry.description
-            )
+            keni_id = keni.create(account, wallet, category, entry.amount, when, entry.description)
             session.add(KeniLink(source=source, keni_id=keni_id, wallet_id=wallet, **asdict(entry)))
             session.commit()
     except keni.Error as error:

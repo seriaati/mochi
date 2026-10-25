@@ -48,7 +48,7 @@ class SettingsText(BaseModel):
     """The settings without the logo, which is too big to be worth sending to MCP clients."""
 
     timezone: TimeZoneName  # due dates, "today" and the 09:00 reminders follow it
-    user_name: OptionalName = None  # what the dashboard calls the user; None uses their Discord name
+    user_name: OptionalName = None  # what the dashboard calls the user; None: their Discord name
     studio_name: OptionalName = None  # shown in the top bar; None shows "Studio"
 
 

@@ -191,10 +191,10 @@ def test_sign_in_and_use_the_tools(
             "Accept": "application/json, text/event-stream",
         }
 
-        def rpc(method: str, params: dict, id: int | None = 1) -> dict | None:
+        def rpc(method: str, params: dict, request_id: int | None = 1) -> dict | None:
             message = {"jsonrpc": "2.0", "method": method, "params": params}
-            if id is not None:
-                message["id"] = id
+            if request_id is not None:
+                message["id"] = request_id
             response = http.post("/mcp", json=message, headers=headers)
             assert response.status_code in (200, 202), response.text
             if "mcp-session-id" in response.headers:
@@ -211,7 +211,7 @@ def test_sign_in_and_use_the_tools(
             },
         )
         assert init["result"]["serverInfo"]["name"] == "Freelance Dashboard"
-        rpc("notifications/initialized", {}, id=None)
+        rpc("notifications/initialized", {}, request_id=None)
 
         tools = rpc("tools/list", {})["result"]["tools"]
         assert {"list_clients", "create_project", "get_maintenance"} <= {t["name"] for t in tools}

@@ -72,9 +72,7 @@ def _choose(row: AppSettings, account: keni.Account, body: KeniDestinationIn) ->
     except keni.Error as error:
         raise _keni_error(error) from None
     if category is None:
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, "That category isn't in your Keni account"
-        )
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "That category isn't in your Keni account")
     row.keni_wallet_id, row.keni_wallet_name = wallet.id, wallet.name
     row.keni_wallet_currency = wallet.currency
     row.keni_category_id, row.keni_category_name = category.id, category.name

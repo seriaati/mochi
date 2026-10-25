@@ -324,9 +324,7 @@ def test_changing_wallet_and_category_applies_to_new_income(
     assert [t["wallet_id"] for t in fake.transactions.values()] == ["other"]
 
 
-def test_changing_needs_a_connection_and_real_choices(
-    client: TestClient, fake: FakeKeni
-) -> None:
+def test_changing_needs_a_connection_and_real_choices(client: TestClient, fake: FakeKeni) -> None:
     assert choose(client, WALLET, CATEGORY).status_code == 409
     connect(client)
     response = choose(client, WALLET, "missing")
@@ -505,9 +503,7 @@ def test_ask_retainer_payments_are_mirrored(
     )
     assert response.status_code == 201, response.text
     sync(session)
-    assert fake.recorded == [
-        (2500, "2026-10-06T00:00:00+08:00", "Lumen Yoga · Maintenance")
-    ]
+    assert fake.recorded == [(2500, "2026-10-06T00:00:00+08:00", "Lumen Yoga · Maintenance")]
 
     payment_id = response.json()["id"]
     client.delete(f"/api/retainers/{retainer['id']}/payments/{payment_id}").raise_for_status()
@@ -539,9 +535,7 @@ def test_auto_transfers_count_once_due_after_connecting(
     assert sync(session) == 0
 
     assert sync(session, datetime(2026, 11, 4, 16, 0, tzinfo=UTC)) == 1  # 5 Nov 00:00 local
-    assert fake.recorded == [
-        (2500, "2026-11-05T00:00:00+08:00", "Lumen Yoga · Maintenance")
-    ]
+    assert fake.recorded == [(2500, "2026-11-05T00:00:00+08:00", "Lumen Yoga · Maintenance")]
 
     # A new amount applies to every month the dashboard counts, so Keni follows.
     client.put(
@@ -568,9 +562,7 @@ def test_auto_transfers_count_once_due_after_connecting(
 # Failures
 
 
-def test_failure_is_shown_and_retried(
-    client: TestClient, session: Session, fake: FakeKeni
-) -> None:
+def test_failure_is_shown_and_retried(client: TestClient, session: Session, fake: FakeKeni) -> None:
     connect(client)
     project = make_project(client)
     pay(client, project["id"], 24000)

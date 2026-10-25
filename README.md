@@ -23,7 +23,7 @@ bun install
 bun run dev                          # app on localhost:5173, proxies /api to the backend
 ```
 
-Tests: `cd backend && uv run pytest`. Lint and type-check the frontend with `bun run lint` and `bun run build`.
+Tests: `cd backend && uv run pytest`. Lint and format the backend with `uv run ruff check .` and `uv run ruff format .` (settings in `backend/ruff.toml`). Lint and type-check the frontend with `bun run lint` and `bun run build`.
 
 ## Login
 

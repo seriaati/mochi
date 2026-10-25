@@ -4,12 +4,12 @@ import enum
 from datetime import date, datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
-    JSON,
     String,
     Text,
     UniqueConstraint,
