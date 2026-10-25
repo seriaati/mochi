@@ -15,6 +15,21 @@ Rejected on purpose. Don't drift back towards these:
 - **All-white, monotone tiles** ("too monotone"). Colour carries meaning here; don't desaturate it away.
 - Also out: gradients, glassmorphism, heavy shadows and borders on tiles, emoji, icon fonts.
 
+## Product principles
+
+How the dashboard should behave, distilled from the owner's feedback. They matter as much as the look.
+
+- **Every button is the next real step.** Offer what the user would actually do next, e.g. Record payment or Message on Discord. Don't offer what automation already does: reminders send themselves, so a "remind me" button on a tile the user is already reading adds nothing.
+- **Act where you see it.** If a tile shows a thing that needs doing, it opens the same dialog its own page uses, e.g. Next to collect opens Record payment for that month. Don't send the user to another page to find it again.
+- **Anything that names a record links to it.** Client avatars and names open the client, projects open the project, and a pointer to Settings lands on the right tile (`/settings#discord`). Count the clicks.
+- **Say it once.** Don't repeat facts on a page: if the Contact tile shows the Discord handle, the hero doesn't. Let a control carry its meaning: a Discord button already says "contact them on Discord", so no "ask on Discord" text beside it.
+- **No label that needs explaining.** If the user would have to ask what a pill means, reword it or remove it.
+- **One click to the outside tool.** Where the next step happens in Discord, LINE or email, link straight to it, e.g. the client's Discord profile, one click from the DM.
+- **Words to clients stay handwritten.** The dashboard gets the user to the conversation; it never drafts, templates or prefills the message. The user writes warm, personal messages, and generated text would read as robotic. Reminders to the user themselves can be generated.
+- **Anything settable is editable.** A field offered when adding a record is offered when editing it too, e.g. a client's Discord user ID.
+- **It's the user's studio, everywhere.** Their name and logo show on the login screen, in the tab and in the top bar from the first paint, never a default that changes once data loads (see `src/studio.ts`).
+- **Use the user's words.** Name pages and features the way the user talks about them, e.g. Retainers, not Maintenance.
+
 ## Tokens
 
 All colours are CSS custom properties on `:root` in `src/index.css`, each written as `light-dark(<light>, <dark>)`. The theme follows the system unless the user picks one in Settings, which sets `data-theme` on `<html>` (see `src/theme.ts`).
@@ -115,7 +130,7 @@ Subtle and quick, built from what's in `index.css`:
 ## CSS organisation
 
 - Tokens and anything used by two or more pages go in `src/index.css`.
-- Page-specific styles go in a CSS file next to the page, imported by it, with a class prefix for that page, e.g. `ov-` (Overview), `mt-` (Maintenance), `client-`, `project-`, `settings-`.
+- Page-specific styles go in a CSS file next to the page, imported by it, with a class prefix for that page, e.g. `ov-` (Overview), `mt-` (Retainers, under `src/maintenance/`), `client-`, `project-`, `settings-`.
 - No CSS frameworks or UI libraries.
 
 ## Accessibility
@@ -131,5 +146,6 @@ Subtle and quick, built from what's in `index.css`:
 3. It looks right in light, in dark, and at 390px wide.
 4. Empty and loading states are handled.
 5. There are no native-styled controls, emoji, new fonts or raw colours.
+6. It follows the product principles: every action is a real next step, records link to themselves, and nothing is said twice.
 
 The original static mockups (Overview, Projects, Clients, Maintenance and the dark theme) are on the design canvas: https://claude.ai/artifact/1xbwAPqoHHcxMj3bpYKgLP
