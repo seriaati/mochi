@@ -10,6 +10,7 @@ import { OverviewPage } from './overview/OverviewPage.tsx'
 import { ProjectsPage } from './projects/ProjectsPage.tsx'
 import { useSettings } from './settings/queries.ts'
 import { SettingsPage } from './settings/SettingsPage.tsx'
+import { rememberStudio, savedStudio } from './studio.ts'
 
 const pages = [
   { path: '/', label: 'Overview' },
@@ -49,21 +50,28 @@ export default function App() {
   const nav = useRef<HTMLElement>(null)
   const pill = useNavPill(nav, pathname)
   const settings = useSettings()
-  const studio = settings.data?.studio_name ?? 'Studio'
-  const logo = settings.data?.studio_logo
+  // The last saved studio shows straight away, until settings load.
+  const [saved] = useState(savedStudio)
+  const brand = settings.data ?? saved
+  const studio = brand?.studio_name ?? 'Studio'
+  const logo = brand?.studio_logo
   const logout = useLogout()
 
   useEffect(() => {
     document.title = studio
   }, [studio])
-  useFavicon(logo)
+  useEffect(() => {
+    if (settings.data) rememberStudio(settings.data)
+  }, [settings.data])
+  useFavicon(settings.data?.studio_logo)
 
   return (
     <div className="shell">
       <header className="topbar">
-        {/* Empty until settings load, so the default name doesn't flash first. */}
+        {/* Empty until settings load in a browser that hasn't saved them, so the default name
+            doesn't flash first. */}
         <Link className="brand" to="/" aria-label={`${studio}: Overview`}>
-          {!settings.isPending && (
+          {(brand || !settings.isPending) && (
             <>
               {logo ? <img className="brand-logo" src={logo} alt="" /> : <i />}
               <span>{studio}</span>
