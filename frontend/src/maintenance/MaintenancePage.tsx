@@ -339,7 +339,10 @@ function RetainerRow({ retainer, today, onEdit, onMonth }: RowProps) {
       />
       <button className="mt-name" type="button" onClick={onEdit} aria-label={`Edit ${retainer.client.name} retainer`}>
         <b>{retainer.client.name}</b>
-        <small>{scheduleText(retainer)}</small>
+        <small>
+          {retainer.project && `${retainer.project.name} · `}
+          {scheduleText(retainer)}
+        </small>
       </button>
       <span className="mt-amount">{formatNTD(retainer.amount)}</span>
       {retainer.collection === 'auto_transfer' ? (

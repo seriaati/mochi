@@ -119,7 +119,10 @@ export function useSaveProject(id?: number) {
   )
 }
 
-/** Drops the deleted project's own query rather than refetching it into a 404. */
+/**
+ * Drops the deleted project's own query rather than refetching it into a 404. Retainers for it
+ * lose their link, so maintenance refetches too.
+ */
 export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -129,6 +132,7 @@ export function useDeleteProject() {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.all }),
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['maintenance'] }),
       ])
     },
   })

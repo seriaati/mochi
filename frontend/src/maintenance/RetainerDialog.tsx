@@ -4,6 +4,7 @@ import { useClients, type Client } from '../clients/queries.ts'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
+import { useProjects } from '../projects/queries.ts'
 import { useDeleteRetainer, useSaveRetainer, type Collection, type Retainer } from './queries.ts'
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
   retainer?: Retainer
   /** Preselects the client when adding from a client page. */
   clientId?: number
+  /** Preselects the project when adding from a project page. */
+  projectId?: number
   onClose: () => void
 }
 
@@ -24,14 +27,16 @@ function defaultContact(client: Client | undefined): number | null {
   return pick?.id ?? null
 }
 
-export function RetainerDialog({ retainer, clientId, onClose }: Props) {
+export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
   const clients = useClients().data ?? []
+  const projects = useProjects().data ?? []
   const save = useSaveRetainer(retainer?.id)
   const remove = useDeleteRetainer()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [owner, setOwner] = useState<number | undefined>(retainer?.client_id ?? clientId)
+  const [project, setProject] = useState(retainer ? retainer.project_id : (projectId ?? null))
   const [collection, setCollection] = useState<Collection>(retainer?.collection ?? 'ask')
   // undefined until picked: falls back to the client's default contact.
   const [askVia, setAskVia] = useState<number | null | undefined>(retainer?.ask_via_id)
@@ -57,6 +62,7 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
     save.mutate(
       {
         client_id: Number(form.get('client_id')),
+        project_id: project,
         amount: Number(form.get('amount')),
         due_day: Number(form.get('due_day')),
         collection,
@@ -82,6 +88,18 @@ export function RetainerDialog({ retainer, clientId, onClose }: Props) {
             placeholder="Choose a client"
             options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
           />
+        </label>
+        <label className="field">
+          Project
+          <Select
+            value={String(project ?? '')}
+            onChange={(value) => setProject(value ? Number(value) : null)}
+            options={[
+              { value: '', label: 'No project' },
+              ...projects.map((p) => ({ value: String(p.id), label: p.name })),
+            ]}
+          />
+          <small>What the fee is for. Several clients can pay for the same project.</small>
         </label>
         <div className="form-row">
           <label className="field">

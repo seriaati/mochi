@@ -4,6 +4,10 @@ import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
 import { useClient } from '../clients/queries.ts'
 import { Avatar } from '../components/Avatar.tsx'
 import { formatDay, formatNTD, formatNumber, initials, plural, todayISO } from '../format.ts'
+import { monthChip, scheduleText } from '../maintenance/labels.ts'
+import { useProjectRetainers, type Month, type Retainer } from '../maintenance/queries.ts'
+import { RetainerDialog } from '../maintenance/RetainerDialog.tsx'
+import { MonthDialog } from '../maintenance/RetainerPaymentDialog.tsx'
 import { tintClass } from '../tint.ts'
 import { AdditionDialog } from './AdditionDialog.tsx'
 import { paymentLabel, type Target } from './payments.ts'
@@ -118,6 +122,7 @@ function ProjectTiles({ project }: { project: Project }) {
           onRecord={(target) => setPaying({ target })}
           onOpen={setPayment}
         />
+        <MaintenanceTile project={project} />
       </div>
 
       {editing && (
@@ -511,5 +516,102 @@ function PaymentsTile({ project, onRecord, onOpen }: PaymentsProps) {
         </span>
       </p>
     </section>
+  )
+}
+
+/** Span-12 lavender tile: every client paying a monthly fee for this project, whoever's it is. */
+function MaintenanceTile({ project }: { project: Project }) {
+  const retainers = useProjectRetainers(project.id)
+  // undefined = closed, null = adding, a retainer = editing it.
+  const [dialog, setDialog] = useState<Retainer | null>()
+  const [opened, setOpened] = useState<{ retainer: Retainer; month: Month }>()
+  const active = retainers.data?.filter((r) => r.active) ?? []
+  const clients = new Set(active.map((r) => r.client.id)).size
+  const monthly = active.reduce((sum, r) => sum + r.amount, 0)
+
+  return (
+    <section className="tile span-12 tint-lavender project-retainers">
+      <div className="tile-head">
+        <h2 className="tile-label">Maintenance</h2>
+        <button className="link-btn" type="button" onClick={() => setDialog(null)}>
+          Add retainer
+        </button>
+      </div>
+      {retainers.error && <p className="empty-note">Couldn't load maintenance: {retainers.error.message}</p>}
+      {retainers.data?.length === 0 && (
+        <p className="empty-note">
+          No monthly fees for this project. Add a retainer for each client who pays monthly to use it.
+        </p>
+      )}
+      {active.length > 0 && (
+        <p className="project-retainer-sum">
+          {plural(clients, 'client')} paying · <b>{formatNTD(monthly)}</b> per month
+        </p>
+      )}
+      {retainers.data && retainers.data.length > 0 && (
+        <ul className="project-retainer-list">
+          {retainers.data.map((retainer) => (
+            <RetainerRow
+              key={retainer.id}
+              retainer={retainer}
+              onEdit={() => setDialog(retainer)}
+              onMonth={(month) => setOpened({ retainer, month })}
+            />
+          ))}
+        </ul>
+      )}
+      {dialog !== undefined && (
+        <RetainerDialog
+          retainer={dialog ?? undefined}
+          projectId={project.id}
+          onClose={() => setDialog(undefined)}
+        />
+      )}
+      {opened && <MonthDialog {...opened} onClose={() => setOpened(undefined)} />}
+    </section>
+  )
+}
+
+type RetainerRowProps = { retainer: Retainer; onEdit: () => void; onMonth: (month: Month) => void }
+
+function RetainerRow({ retainer, onEdit, onMonth }: RetainerRowProps) {
+  const { client } = retainer
+  const chip = monthChip(retainer, todayISO())
+  const month = retainer.this_month
+
+  return (
+    <li className={`project-retainer${retainer.active ? '' : ' ended'}`}>
+      <Avatar
+        className={`project-retainer-avatar ${tintClass(client.id)}`}
+        aria-hidden="true"
+        src={client.avatar_url}
+        fallback={initials(client.name)}
+      />
+      <div className="project-retainer-name">
+        <Link to={`/clients/${client.id}`}>{client.name}</Link>
+        <small>
+          {scheduleText(retainer)} ·{' '}
+          <button className="link-btn" type="button" onClick={onEdit}>
+            Edit
+          </button>
+        </small>
+      </div>
+      <span className="project-retainer-amount">
+        {formatNTD(retainer.amount)}
+        <small>/mo</small>
+      </span>
+      {retainer.collection === 'ask' && month ? (
+        <button
+          className={`chip project-retainer-status ${chip.tone}`}
+          type="button"
+          title={month.status === 'paid' ? 'View payment' : 'Record payment'}
+          onClick={() => onMonth(month)}
+        >
+          {chip.label}
+        </button>
+      ) : (
+        <span className={`chip project-retainer-status ${chip.tone}`}>{chip.label}</span>
+      )}
+    </li>
   )
 }

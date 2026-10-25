@@ -372,13 +372,128 @@
   color: var(--ink);
 }
 
+/* Maintenance */
+.project-retainer-sum {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.project-retainer-sum b {
+  color: var(--ink);
+}
+
+.project-retainer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  list-style: none;
+}
+
+.project-retainer {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto 120px;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--chip);
+}
+
+.project-retainer.ended {
+  opacity: 0.6;
+}
+
+.project-retainer-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: var(--tint-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.project-retainer-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-retainer-name a {
+  display: block;
+  font-weight: 600;
+}
+
+.project-retainer-name a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-retainer-name small {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.project-retainer-name .link-btn {
+  font-size: 12.5px;
+  color: var(--tint-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-retainer-amount {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.project-retainer-amount small {
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.project-retainer-status {
+  justify-content: center;
+  border: 0;
+}
+
+button.project-retainer-status {
+  cursor: pointer;
+}
+
+button.project-retainer-status:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-retainer-status.ok {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.project-retainer-status.late {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.project-retainer-status.due {
+  background: var(--hero);
+  color: var(--on-hero);
+}
+
 /* Two tiles per row between phone and desktop widths. */
 @media (min-width: 701px) and (max-width: 1000px) {
   .project-bento > .tile {
     grid-column: span 6;
   }
 
-  .project-bento > .tile:last-child:nth-child(odd) {
+  /* Maintenance spans the row, and so does a tile left alone before it. */
+  .project-bento > .project-retainers,
+  .project-bento > .tile:nth-last-child(2):nth-child(odd) {
     grid-column: 1 / -1;
   }
 }
@@ -396,5 +511,15 @@
   .addition-amount {
     grid-column: 2;
     text-align: left;
+  }
+
+  .project-retainer {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  .project-retainer-status {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 }

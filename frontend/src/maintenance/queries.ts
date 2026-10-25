@@ -13,6 +13,8 @@ export type MonthStatus = 'paid' | 'upcoming' | 'due' | 'overdue'
 
 export type RetainerInput = {
   client_id: number
+  /** The project it's for; may be another client's, e.g. a bot several clients pay for. */
+  project_id: number | null
   /** NTD per month. */
   amount: number
   /** 1–31; shorter months fall due on their last day. */
@@ -49,6 +51,7 @@ export type RetainerClient = { id: number; name: string; avatar_url: string | nu
 export type Retainer = RetainerInput & {
   id: number
   client: RetainerClient
+  project: { id: number; name: string } | null
   ask_via: Contact | null
   /** Started and not ended, as of today. */
   active: boolean
@@ -132,6 +135,7 @@ const keys = {
   all: ['maintenance'] as const,
   overview: (month: string | null) => ['maintenance', 'overview', month] as const,
   ofClient: (clientId: number) => ['maintenance', 'retainers', { clientId }] as const,
+  ofProject: (projectId: number) => ['maintenance', 'retainers', { projectId }] as const,
 }
 
 /** The Maintenance page. month is YYYY-MM for the calendar, or null for this month. */
@@ -147,6 +151,13 @@ export function useClientRetainers(clientId: number) {
   return useQuery({
     queryKey: keys.ofClient(clientId),
     queryFn: () => api.get<Retainer[]>(`/retainers?client_id=${clientId}`),
+  })
+}
+
+export function useProjectRetainers(projectId: number) {
+  return useQuery({
+    queryKey: keys.ofProject(projectId),
+    queryFn: () => api.get<Retainer[]>(`/retainers?project_id=${projectId}`),
   })
 }
 

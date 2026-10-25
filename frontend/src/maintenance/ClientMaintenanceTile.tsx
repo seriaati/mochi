@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { contactKinds } from '../clients/contactKinds.ts'
 import type { Client } from '../clients/queries.ts'
 import { formatDay, formatNumber, parseDate, todayISO } from '../format.ts'
@@ -69,6 +70,11 @@ function RetainerSummary({ retainer, onEdit, onMonth }: SummaryProps) {
           <small>/mo</small>
         </p>
         <p className="client-retainer-text">
+          {retainer.project && (
+            <>
+              For <Link to={`/projects/${retainer.project.id}`}>{retainer.project.name}</Link> ·{' '}
+            </>
+          )}
           {describe(retainer)}{' '}
           <button className="link-btn" type="button" onClick={onEdit}>
             Edit

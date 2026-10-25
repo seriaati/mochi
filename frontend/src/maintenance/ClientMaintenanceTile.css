@@ -23,6 +23,13 @@
   color: var(--muted);
 }
 
+.client-retainer-text a {
+  font-weight: 600;
+  color: var(--tint-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .client-retainer-text .link-btn {
   margin-left: 4px;
   color: var(--tint-ink);
