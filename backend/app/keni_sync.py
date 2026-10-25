@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session, selectinload
 from app import crypto, keni
 from app.clock import clock_for, utc_now
 from app.db import SessionLocal
-from app.maintenance import billed_periods, due_on, month_start
+from app.maintenance import billed_periods, due_on, month_range, month_start
 from app.models import Addition, AppSettings, Collection, KeniLink, Project, Retainer
 
 log = logging.getLogger(__name__)
@@ -82,7 +82,8 @@ def _recorded(session: Session) -> dict[str, Entry]:
                 )
     for retainer in _retainers(session, Collection.ASK):
         for payment in retainer.payments:
-            description = _describe(retainer.client.name, "Maintenance")
+            note = month_range(payment) if payment.months > 1 else None
+            description = _describe(retainer.client.name, "Maintenance", note=note)
             entries[f"retainer_payment:{payment.id}"] = Entry(
                 payment.amount, payment.paid_on, description
             )

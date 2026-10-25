@@ -209,17 +209,17 @@ def test_auto_vs_ask_status_and_grace(
 @pytest.mark.parametrize(("paid_on", "days", "late"), [("27", 2, False), ("28", 3, True)])
 def test_payment_is_late_only_after_the_grace_days(paid_on: str, days: int, late: bool) -> None:
     payment = RetainerPayment(
-        id=7, period=date(2026, 10, 1), amount=200, paid_on=date(2026, 10, int(paid_on))
+        id=7, period=date(2026, 10, 1), months=1, amount=200, paid_on=date(2026, 10, int(paid_on))
     )
     october = maintenance.month(transient(payments=[payment]), date(2026, 10, 1), TODAY)
     assert october.status == MonthStatus.PAID
-    assert (october.amount, october.payment_id) == (200, 7)
+    assert (october.amount, october.payment) == (200, payment)
     assert (october.days_late, october.late) == (days, late)
 
 
 def test_ask_is_paid_only_with_a_recorded_payment() -> None:
     payment = RetainerPayment(
-        id=7, period=date(2026, 10, 1), amount=200, paid_on=date(2026, 10, 20)
+        id=7, period=date(2026, 10, 1), months=1, amount=200, paid_on=date(2026, 10, 20)
     )
     retainer = transient(payments=[payment])
     # Paying ahead counts too.
@@ -241,7 +241,7 @@ def test_status_through_the_api(client: TestClient, owner: dict, pin) -> None:
         "amount": 180,
         "status": "paid",
         "paid_on": "2026-10-01",
-        "payment_id": None,
+        "payment": None,
         "days_late": 0,
         "late": False,
     }
@@ -260,7 +260,7 @@ def test_status_through_the_api(client: TestClient, owner: dict, pin) -> None:
     ask = get(client, ask["id"])
     assert ask["this_month"]["status"] == "paid"
     assert (ask["this_month"]["days_late"], ask["this_month"]["late"]) == (2, False)
-    assert ask["this_month"]["payment_id"] == payment["id"]
+    assert ask["this_month"]["payment"] == payment
     assert ask["overdue"] == []
     assert ask["received"] == 250
 
@@ -553,6 +553,91 @@ def test_edits_must_keep_recorded_payments_valid(client: TestClient, owner: dict
     assert get(client, retainer["id"])["started_on"] == "2026-09-01"  # unchanged
 
     assert put_retainer(client, retainer, amount=300, ended_on="2026-12-31").status_code == 200
+
+
+# Paying several months ahead
+
+
+def test_paying_several_months_ahead(
+    client: TestClient, owner: dict, session: Session, webhook: list[str], pin
+) -> None:
+    retainer = make_retainer(client, owner, due_day=1, started_on="2027-01-01")
+    pin(at("2027-01-01"))
+    response = pay(client, retainer["id"], "2027-01-01", months=3, amount=750, paid_on="2027-01-01")
+    assert response.status_code == 201, response.text
+    payment = response.json()
+    assert (payment["months"], payment["amount"]) == (3, 750)
+
+    retainer = get(client, retainer["id"])
+    assert {m["period"]: (m["status"], m["amount"]) for m in retainer["months"]} == {
+        "2027-01-01": ("paid", 250),
+        "2027-02-01": ("paid", 250),
+        "2027-03-01": ("paid", 250),
+        "2027-04-01": ("upcoming", 250),
+    }
+    assert retainer["this_month"]["payment"] == payment
+    assert (retainer["next_due_on"], retainer["received"]) == ("2027-04-01", 750)
+    data = overview(client)
+    assert data["collected"]["received"] == 250  # January's share
+    assert data["next_reminder"]["periods"] == ["2027-04-01"]
+    assert data["next_reminder"]["at"] == "2027-04-01T09:00:00+08:00"
+
+    # No reminders until April.
+    for day in ("2027-01-01", "2027-02-01", "2027-03-01", "2027-03-31"):
+        assert reminders.send_due(session, at(day, 9)) == 0
+    assert reminders.send_due(session, at("2027-04-01", 9)) == 1
+    assert webhook == [
+        f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (April) on Discord @danpark"
+    ]
+
+    # Removing the payment leaves all three months unpaid.
+    url = f"/api/retainers/{retainer['id']}/payments/{payment['id']}"
+    assert client.delete(url).status_code == 204
+    retainer = get(client, retainer["id"])
+    assert (retainer["this_month"]["status"], retainer["next_due_on"]) == ("due", "2027-01-01")
+
+
+def test_paying_ahead_rules(client: TestClient, owner: dict) -> None:
+    retainer = make_retainer(client, owner, started_on="2026-10-01", ended_on="2027-01-31")
+    assert pay(client, retainer["id"], "2026-11-01").status_code == 201
+
+    response = pay(client, retainer["id"], "2026-10-01", months=3, amount=750)
+    assert response.status_code == 409
+    assert response.json()["detail"] == "November 2026 is already recorded as paid"
+    response = pay(client, retainer["id"], "2026-12-01", months=3, amount=750)
+    assert response.status_code == 409
+    assert response.json()["detail"] == "This retainer doesn't bill February 2027"
+    for months in (0, 13):
+        assert pay(client, retainer["id"], "2026-12-01", months=months).status_code == 422
+    assert pay(client, retainer["id"], "2026-12-01", months=2, amount=500).status_code == 201
+
+    # Edits must keep every covered month billed, not just the first.
+    response = put_retainer(client, retainer, ended_on="2026-12-31")
+    assert response.status_code == 409
+    assert "January 2027" in response.json()["detail"]
+
+
+def test_a_payment_splits_evenly_over_its_months() -> None:
+    payment = RetainerPayment(
+        period=date(2026, 12, 1), months=3, amount=1000, paid_on=date(2026, 12, 1)
+    )
+    retainer = transient(started_on=date(2026, 12, 1), payments=[payment])
+    months = [maintenance.month(retainer, p, TODAY) for p in maintenance.covered(payment)]
+    assert [m.amount for m in months] == [334, 333, 333]  # the remainder goes first
+    assert {m.status for m in months} == {MonthStatus.PAID}
+
+
+@pytest.mark.parametrize(
+    ("period", "months", "expected"),
+    [
+        ("2027-01-01", 1, "Jan 2027"),
+        ("2027-01-01", 3, "Jan–Mar 2027"),
+        ("2026-12-01", 3, "Dec 2026–Feb 2027"),
+    ],
+)
+def test_month_range(period: str, months: int, expected: str) -> None:
+    payment = RetainerPayment(period=date.fromisoformat(period), months=months)
+    assert maintenance.month_range(payment) == expected
 
 
 # Track from

@@ -334,13 +334,15 @@ async def delete_retainer(retainer_id: int) -> str:
 async def record_retainer_payment(
     retainer_id: int, payment: RetainerPaymentIn
 ) -> RetainerPaymentOut:
-    """Marks one month of an "ask" retainer as paid. period is any date in that month."""
+    """Marks one month of an "ask" retainer as paid. period is any date in that month. When the
+    client pays several months ahead in one go, period is the first of them, months how many,
+    and amount the total."""
     return await _run(lambda s, c: retainers.record_payment(retainer_id, payment, session=s))
 
 
 @mcp.tool(annotations=_ann("Delete retainer payment", destructive=True))
 async def delete_retainer_payment(retainer_id: int, payment_id: int) -> str:
-    """Deletes a recorded retainer payment, so that month is unpaid again."""
+    """Deletes a recorded retainer payment, so the months it covered are unpaid again."""
     await _run(lambda s, c: retainers.delete_payment(retainer_id, payment_id, session=s))
     return f"Deleted payment {payment_id}"
 

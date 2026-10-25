@@ -40,13 +40,25 @@ class RetainerIn(BaseModel):
         return self
 
 
+class RetainerPaymentIn(BaseModel):
+    period: Period  # the first month paid for
+    months: Annotated[int, Field(ge=1, le=12)] = 1  # in a row from period, when paid ahead
+    amount: PositiveNTD  # for all the months together
+    paid_on: date
+
+
+class RetainerPaymentOut(RetainerPaymentIn):
+    id: int
+    retainer_id: int
+
+
 class MonthOut(BaseModel):
     period: date  # first day of the month
     due_on: date
-    amount: int  # the fee, or what was recorded for a paid "ask" month
+    amount: int  # the fee, or this month's share of the payment for a paid "ask" month
     status: MonthStatus
     paid_on: date | None  # auto transfers count as paid on the due date
-    payment_id: int | None  # the recorded payment, "ask" retainers only
+    payment: RetainerPaymentOut | None  # the recorded payment covering it, "ask" retainers only
     # Due or overdue: days since the due date. Paid "ask" month: days paid after it, or 0.
     days_late: int
     late: bool  # overdue, or paid more than the grace days after the due date
@@ -70,21 +82,11 @@ class RetainerOut(RetainerIn):
     ask_via: ContactOut | None
     active: bool  # started and not ended, as of today
     this_month: MonthOut | None  # None when this month isn't billed
-    next_due_on: date | None  # the next month due today or later; None once ended
+    # The next month due today or later, past any "ask" months paid ahead; None once ended.
+    next_due_on: date | None
     months: list[MonthOut]  # the last few billed months up to the next one due, oldest first
     overdue: list[MonthOut]  # oldest first
     received: int  # all time, NTD
-
-
-class RetainerPaymentIn(BaseModel):
-    period: Period
-    amount: PositiveNTD
-    paid_on: date
-
-
-class RetainerPaymentOut(RetainerPaymentIn):
-    id: int
-    retainer_id: int
 
 
 class OverdueOut(BaseModel):

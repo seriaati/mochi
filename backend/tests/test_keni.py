@@ -515,6 +515,22 @@ def test_ask_retainer_payments_are_mirrored(
     assert fake.transactions == {}
 
 
+def test_months_paid_ahead_are_one_transaction(
+    client: TestClient, session: Session, fake: FakeKeni
+) -> None:
+    connect(client)
+    retainer = make_retainer(client, collection="ask", started_on="2026-10-01")
+    response = client.post(
+        f"/api/retainers/{retainer['id']}/payments",
+        json={"period": "2026-11-01", "months": 3, "amount": 7500, "paid_on": "2026-10-20"},
+    )
+    assert response.status_code == 201, response.text
+    sync(session)
+    assert fake.recorded == [
+        (7500, "2026-10-20T00:00:00+08:00", "Lumen Yoga · Maintenance (Nov 2026–Jan 2027)")
+    ]
+
+
 def test_auto_transfers_count_once_due_after_connecting(
     client: TestClient, session: Session, fake: FakeKeni
 ) -> None:

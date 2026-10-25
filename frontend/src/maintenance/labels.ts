@@ -7,6 +7,15 @@ export function monthName(period: string, long = false): string {
   return parseDate(period).toLocaleDateString('en-US', { month: long ? 'long' : 'short' })
 }
 
+/** The months a payment covers from `period`: "Jan–Mar 2027", or "Dec 2026–Feb 2027" across years. */
+export function monthRange(period: string, months: number): string {
+  const first = parseDate(period)
+  const last = new Date(first.getFullYear(), first.getMonth() + months - 1, 1)
+  const name = (date: Date) => date.toLocaleDateString('en-US', { month: 'short' })
+  if (first.getFullYear() === last.getFullYear()) return `${name(first)}–${name(last)} ${last.getFullYear()}`
+  return `${name(first)} ${first.getFullYear()}–${name(last)} ${last.getFullYear()}`
+}
+
 /** 1st, 2nd, 3rd, 4th, …, 21st, 22nd, 23rd, 31st */
 export function ordinal(day: number): string {
   const teen = day >= 11 && day <= 13

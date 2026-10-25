@@ -33,12 +33,13 @@ export type Month = {
   /** First day of the month. */
   period: string
   due_on: string
-  /** The fee, or what was recorded for a paid "ask" month. */
+  /** The fee, or this month's share of the payment for a paid "ask" month. */
   amount: number
   status: MonthStatus
   /** Auto transfers count as paid on the due date. */
   paid_on: string | null
-  payment_id: number | null
+  /** The recorded payment covering it, "ask" retainers only. */
+  payment: RetainerPayment | null
   /** Due or overdue: days since the due date. Paid "ask" month: days paid after it. */
   days_late: number
   /** Overdue, or paid more than the 2 grace days after the due date. */
@@ -57,7 +58,7 @@ export type Retainer = RetainerInput & {
   active: boolean
   /** Null when this month isn't billed. */
   this_month: Month | null
-  /** The next month due today or later; null once ended. */
+  /** The next month due today or later, past any "ask" months paid ahead; null once ended. */
   next_due_on: string | null
   /** The last few billed months up to the next one due, oldest first. */
   months: Month[]
@@ -67,7 +68,8 @@ export type Retainer = RetainerInput & {
   received: number
 }
 
-export type RetainerPaymentInput = { period: string; amount: number; paid_on: string }
+/** period: the first month paid for. months: how many in a row, when paid ahead. amount: for all of them. */
+export type RetainerPaymentInput = { period: string; months: number; amount: number; paid_on: string }
 
 export type RetainerPayment = RetainerPaymentInput & { id: number; retainer_id: number }
 

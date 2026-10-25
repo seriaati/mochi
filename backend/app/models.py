@@ -201,15 +201,20 @@ class Retainer(Base):
 
 
 class RetainerPayment(Base):
-    """A recorded monthly payment. Only needed for ASK retainers."""
+    """A recorded payment for one month, or several in a row paid ahead. Only needed for ASK
+    retainers."""
 
     __tablename__ = "retainer_payments"
-    __table_args__ = (UniqueConstraint("retainer_id", "period"),)
+    __table_args__ = (
+        UniqueConstraint("retainer_id", "period"),
+        CheckConstraint("months >= 1", name="months_positive"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     retainer_id: Mapped[int] = mapped_column(ForeignKey("retainers.id", ondelete="CASCADE"))
-    period: Mapped[date]  # first day of the month being paid for
-    amount: Mapped[int]
+    period: Mapped[date]  # first day of the first month paid for
+    months: Mapped[int] = mapped_column(default=1, server_default="1")  # months covered from period
+    amount: Mapped[int]  # for all the months together
     paid_on: Mapped[date]
 
     retainer: Mapped[Retainer] = relationship(back_populates="payments")

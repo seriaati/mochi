@@ -7,9 +7,11 @@ not before `tracked_from`. Earlier months count as settled and appear nowhere.
 
 Status of a billed month, as of `today` (a date in the saved timezone):
 - auto transfer: paid once the due date is reached, upcoming before that;
-- ask: paid once a payment is recorded for it. Unpaid, it is upcoming before the due date,
-  due from the due date through GRACE_DAYS after it, and overdue after that. A payment is
-  late only when made more than GRACE_DAYS after the due date.
+- ask: paid once a recorded payment covers it. A payment covers one month, or several in a
+  row when the client pays ahead, each counting for an even share of it. Unpaid, a month is
+  upcoming before the due date, due from the due date through GRACE_DAYS after it, and
+  overdue after that. A payment is late for a month only when made more than GRACE_DAYS
+  after that month's due date.
 
 Reminders (see app/reminders.py) go out per client at 09:00, every REPEAT_DAYS days. Each of
 those times is a "slot", named by its local date.
@@ -22,7 +24,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from app.models import Collection, ContactKind, ContactMethod, Retainer
+from app.models import Collection, ContactKind, ContactMethod, Retainer, RetainerPayment
 
 REMINDER_TIME = time(9)
 REPEAT_DAYS = 2
@@ -41,10 +43,10 @@ class MonthStatus(enum.StrEnum):
 class Month:
     period: date
     due_on: date
-    amount: int  # the fee, or the amount recorded for a paid "ask" month
+    amount: int  # the fee, or this month's share of the payment for a paid "ask" month
     status: MonthStatus
     paid_on: date | None = None
-    payment_id: int | None = None
+    payment: RetainerPayment | None = None  # the recorded payment covering it
     # Due or overdue: days since the due date. Paid "ask" month: days paid after it, or 0.
     days_late: int = 0
     late: bool = False  # overdue, or paid more than GRACE_DAYS after the due date
@@ -57,6 +59,36 @@ def month_start(day: date) -> date:
 def add_months(period: date, count: int) -> date:
     years, month = divmod(period.month - 1 + count, 12)
     return date(period.year + years, month + 1, 1)
+
+
+def months_between(first: date, period: date) -> int:
+    return (period.year - first.year) * 12 + period.month - first.month
+
+
+def covered(payment: RetainerPayment) -> list[date]:
+    """The months a payment is for, oldest first."""
+    return [add_months(payment.period, i) for i in range(payment.months)]
+
+
+def share(payment: RetainerPayment, period: date) -> int:
+    """A covered month's part of the payment: an even split, the earliest months taking any
+    remainder (NT$1,000 over three months is 334, 333, 333)."""
+    base, extra = divmod(payment.amount, payment.months)
+    return base + (1 if months_between(payment.period, period) < extra else 0)
+
+
+def month_range(payment: RetainerPayment) -> str:
+    """The months a payment covers, e.g. "Jan 2027", "Jan–Mar 2027" or "Dec 2026–Feb 2027"."""
+    first, last = payment.period, add_months(payment.period, payment.months - 1)
+    if first == last:
+        return f"{first:%b %Y}"
+    if first.year == last.year:
+        return f"{first:%b}–{last:%b %Y}"
+    return f"{first:%b %Y}–{last:%b %Y}"
+
+
+def payment_for(retainer: Retainer, period: date) -> RetainerPayment | None:
+    return next((p for p in retainer.payments if period in covered(p)), None)
 
 
 def due_on(period: date, due_day: int) -> date:
@@ -90,10 +122,18 @@ def billed_periods(retainer: Retainer, through: date) -> Iterator[date]:
 
 
 def next_period(retainer: Retainer, today: date) -> date | None:
-    """The first billed month due today or later, or None once the retainer has ended."""
+    """The first billed month due today or later, skipping "ask" months already paid ahead,
+    or None once the retainer has ended."""
     period = max(month_start(today), month_start(retainer.started_on), retainer.tracked_from)
-    for _ in range(3):  # this month's due date may have passed or precede the start
-        if is_billed(retainer, period) and due_on(period, retainer.due_day) >= today:
+    # This month's due date may have passed or precede the start, and months may be paid.
+    paid_until = max((add_months(p.period, p.months) for p in retainer.payments), default=period)
+    last = max(add_months(period, 2), paid_until)
+    while period <= last:
+        if (
+            is_billed(retainer, period)
+            and due_on(period, retainer.due_day) >= today
+            and payment_for(retainer, period) is None
+        ):
             return period
         period = add_months(period, 1)
     return None
@@ -105,16 +145,16 @@ def month(retainer: Retainer, period: date, today: date) -> Month:
         if due <= today:
             return Month(period, due, retainer.amount, MonthStatus.PAID, paid_on=due)
         return Month(period, due, retainer.amount, MonthStatus.UPCOMING)
-    payment = next((p for p in retainer.payments if p.period == period), None)
+    payment = payment_for(retainer, period)
     if payment is not None:
         days = max((payment.paid_on - due).days, 0)
         return Month(
             period,
             due,
-            payment.amount,
+            share(payment, period),
             MonthStatus.PAID,
             paid_on=payment.paid_on,
-            payment_id=payment.id,
+            payment=payment,
             days_late=days,
             late=days > GRACE_DAYS,
         )

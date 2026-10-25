@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import discord_sync, maintenance
@@ -29,7 +29,11 @@ def month_out(month: maintenance.Month) -> MonthOut:
         amount=month.amount,
         status=month.status,
         paid_on=month.paid_on,
-        payment_id=month.payment_id,
+        payment=(
+            RetainerPaymentOut.model_validate(month.payment, from_attributes=True)
+            if month.payment
+            else None
+        ),
         days_late=month.days_late,
         late=month.late,
     )
@@ -121,7 +125,7 @@ def _check_refs(session: Session, body: RetainerIn) -> None:
 
 
 def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
-    """After an edit, recorded payments must still be for "ask" months the retainer bills."""
+    """After an edit, recorded payments must still cover only "ask" months the retainer bills."""
     if not retainer.payments:
         return
     if body.collection != Collection.ASK:
@@ -130,9 +134,14 @@ def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
             "This retainer has recorded payments; remove them before switching to auto transfer",
         )
     edited = Retainer(**body.model_dump())  # transient, never added to the session
-    outside = [p for p in retainer.payments if not maintenance.is_billed(edited, p.period)]
+    outside = [
+        period
+        for p in retainer.payments
+        for period in maintenance.covered(p)
+        if not maintenance.is_billed(edited, period)
+    ]
     if outside:
-        month = outside[0].period.strftime("%B %Y")
+        month = min(outside).strftime("%B %Y")
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             f"A payment is recorded for {month}, which these dates no longer cover",
@@ -192,27 +201,23 @@ def delete_retainer(retainer_id: int, session: SessionDep) -> None:
 def record_payment(
     retainer_id: int, body: RetainerPaymentIn, session: SessionDep
 ) -> RetainerPaymentOut:
-    """Marks one month of an "ask" retainer as paid."""
+    """Marks one month of an "ask" retainer as paid, or several in a row paid ahead."""
     retainer = _get_retainer_or_404(session, retainer_id)
-    month = body.period.strftime("%B %Y")
     if retainer.collection != Collection.ASK:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Auto transfers count as paid on the due date by themselves"
         )
-    if not maintenance.is_billed(retainer, body.period):
-        if maintenance.month_start(retainer.started_on) <= body.period < retainer.tracked_from:
-            detail = f"{month} is before tracking starts, so it counts as settled"
-        else:
-            detail = f"This retainer doesn't bill {month}"
-        raise HTTPException(status.HTTP_409_CONFLICT, detail)
-    taken = session.scalar(
-        select(func.count(RetainerPayment.id)).where(
-            RetainerPayment.retainer_id == retainer_id, RetainerPayment.period == body.period
-        )
-    )
-    if taken:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already recorded as paid")
     payment = RetainerPayment(retainer_id=retainer_id, **body.model_dump())
+    for period in maintenance.covered(payment):
+        month = period.strftime("%B %Y")
+        if not maintenance.is_billed(retainer, period):
+            if maintenance.month_start(retainer.started_on) <= period < retainer.tracked_from:
+                detail = f"{month} is before tracking starts, so it counts as settled"
+            else:
+                detail = f"This retainer doesn't bill {month}"
+            raise HTTPException(status.HTTP_409_CONFLICT, detail)
+        if maintenance.payment_for(retainer, period) is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already recorded as paid")
     session.add(payment)
     session.commit()
     return RetainerPaymentOut.model_validate(payment, from_attributes=True)
