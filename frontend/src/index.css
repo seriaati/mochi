@@ -774,6 +774,161 @@ button {
   cursor: default;
 }
 
+/* Date fields (components/DatePicker.tsx): the Select field with a calendar popover. */
+.date-field[aria-expanded='true'] svg { transform: none; }
+
+.date-menu {
+  width: 304px;
+  padding: 12px;
+}
+
+.date-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.date-title,
+.date-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.date-title {
+  gap: 4px;
+  margin-right: auto;
+  padding: 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.date-title:disabled { cursor: default; }
+.date-step { width: 36px; }
+
+.date-title:hover:not(:disabled),
+.date-step:hover { background: var(--field); }
+
+.date-head svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.date-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--dim);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.date-title[aria-pressed='true'] svg { transform: rotate(180deg); }
+
+.date-grid,
+.date-months {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.date-months .date-row { grid-template-columns: repeat(3, 1fr); }
+
+.date-weekday {
+  padding: 4px 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dim);
+  text-align: center;
+}
+
+.date-day,
+.date-month {
+  position: relative;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.date-day { height: 38px; }
+
+.date-month {
+  height: 52px;
+  font-size: 14px;
+}
+
+.date-day.outside { color: var(--dim); }
+.date-day.active,
+.date-month.active { background: var(--field); }
+.date-day.today,
+.date-month.today { font-weight: 700; }
+
+/* A dot under today. */
+.date-day.today::after,
+.date-month.today::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.date-month.today::after { bottom: 9px; }
+
+.date-day[aria-selected='true'],
+.date-month[aria-selected='true'] {
+  background: var(--hero);
+  color: var(--on-hero);
+  font-weight: 600;
+}
+
+.date-day:disabled,
+.date-month:disabled {
+  background: none;
+  color: var(--dim);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.date-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 4px 6px 0;
+}
+
+.date-foot .link-btn { height: 32px; }
+
+.date-foot .link-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .form-error {
   padding: 10px 14px;
   border-radius: var(--radius-control);

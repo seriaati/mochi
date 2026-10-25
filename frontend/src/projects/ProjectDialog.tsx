@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { useClients } from '../clients/queries.ts'
+import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
@@ -114,22 +115,17 @@ export function ProjectDialog({ project, clientId, onClose, onSaved }: Props) {
         <div className="form-row">
           <label className="field">
             Started on
-            <input
-              name="started_on"
-              type="date"
-              required
-              defaultValue={project?.started_on ?? todayISO()}
-            />
+            <DatePicker name="started_on" required defaultValue={project?.started_on ?? todayISO()} />
           </label>
           <label className="field">
             Due on (optional)
-            <input name="due_on" type="date" defaultValue={project?.due_on ?? ''} />
+            <DatePicker name="due_on" defaultValue={project?.due_on ?? ''} />
           </label>
         </div>
         {project && (
           <label className="field">
             Delivered on
-            <input name="delivered_on" type="date" defaultValue={project.delivered_on ?? ''} />
+            <DatePicker name="delivered_on" defaultValue={project.delivered_on ?? ''} />
             <small>Clear it if the project isn't delivered after all.</small>
           </label>
         )}

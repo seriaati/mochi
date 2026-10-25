@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
@@ -99,16 +100,11 @@ export function AdditionDialog({ projectId, addition, onClose }: Props) {
         <div className="form-row">
           <label className="field">
             Agreed on
-            <input
-              name="agreed_on"
-              type="date"
-              required
-              defaultValue={addition?.agreed_on ?? todayISO()}
-            />
+            <DatePicker name="agreed_on" required defaultValue={addition?.agreed_on ?? todayISO()} />
           </label>
           <label className="field">
             Delivered on
-            <input name="delivered_on" type="date" defaultValue={addition?.delivered_on ?? ''} />
+            <DatePicker name="delivered_on" defaultValue={addition?.delivered_on ?? ''} />
           </label>
         </div>
         {error && <p className="form-error">{error.message}</p>}

@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatNTD, todayISO } from '../format.ts'
@@ -86,12 +87,7 @@ export function PaymentDialog({ project, payment, target: initial = null, onClos
           </label>
           <label className="field">
             Paid on
-            <input
-              name="paid_on"
-              type="date"
-              required
-              defaultValue={payment?.paid_on ?? todayISO()}
-            />
+            <DatePicker name="paid_on" required defaultValue={payment?.paid_on ?? todayISO()} />
           </label>
         </div>
         <label className="field">

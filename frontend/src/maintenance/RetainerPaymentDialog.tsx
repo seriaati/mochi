@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, formatNTD, todayISO } from '../format.ts'
@@ -87,7 +88,7 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
         </div>
         <label className="field">
           Paid on
-          <input name="paid_on" type="date" required defaultValue={todayISO()} autoFocus />
+          <DatePicker name="paid_on" required defaultValue={todayISO()} autoFocus />
         </label>
         {record.error && <p className="form-error">{record.error.message}</p>}
         <div className="form-actions">

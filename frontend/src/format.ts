@@ -35,11 +35,15 @@ export function parseDate(iso: string): Date {
   return new Date(year, month - 1, day)
 }
 
+/** A local Date as an ISO date like 2026-10-23. */
+export function isoDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 /** Today as an ISO date, in local time. */
 export function todayISO(): string {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  return isoDate(new Date())
 }
 
 /** Whole days from one ISO date to another; negative when `to` is earlier. */

@@ -80,6 +80,7 @@ Reuse these instead of writing new ones:
 
 - **`Dialog`** (`src/components/Dialog.tsx`): every modal. Render it to open it; close it through its ref so it animates out. Forms inside use `.form`, `.field`, `.form-row` (side-by-side fields), `.form-error` and `.form-actions` (`.push` pushes a button to the far side).
 - **`Select`** (`src/components/Select.tsx`): every dropdown. **Never use a native `<select>`** or any other control with native browser styling; style it in Bento.
+- **`DatePicker`** (`src/components/DatePicker.tsx`): every date or month field (`month` for YYYY-MM). Never use a native `type="date"` or `type="month"` input.
 - **`Avatar`** (`src/components/Avatar.tsx`): any person or client picture. The image comes first, then initials if the image is missing or fails to load.
 - **Buttons:** `.btn` (primary, ink), `.btn.secondary`, `.btn.danger`, `.link-btn` (text-only, e.g. "See all"). A `.btn` on a hero tile inverts automatically.
 - **Status and progress:**

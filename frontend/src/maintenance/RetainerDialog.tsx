@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
 import { useClients, type Client } from '../clients/queries.ts'
+import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
 import { todayISO } from '../format.ts'
@@ -169,24 +170,16 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
         <div className="form-row">
           <label className="field">
             Started on
-            <input type="date" required value={startedOn} onChange={(e) => setStartedOn(e.target.value)} />
+            <DatePicker required value={startedOn} onChange={setStartedOn} />
           </label>
           <label className="field">
             Ended on (optional)
-            <input name="ended_on" type="date" defaultValue={retainer?.ended_on ?? ''} />
+            <DatePicker name="ended_on" defaultValue={retainer?.ended_on ?? ''} />
           </label>
         </div>
         <label className="field">
           Track from
-          <input
-            type="month"
-            required
-            min={startMonth}
-            pattern="\d{4}-\d{2}"
-            placeholder="YYYY-MM"
-            value={tracked}
-            onChange={(e) => setTrackedFrom(e.target.value)}
-          />
+          <DatePicker month required min={startMonth} value={tracked} onChange={setTrackedFrom} />
           <small>
             Earlier months count as settled: never overdue or reminded, and left out of totals. The start
             date stays as a record of when the work began.
