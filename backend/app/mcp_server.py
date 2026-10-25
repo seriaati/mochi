@@ -284,11 +284,15 @@ async def delete_project_payment(project_id: int, payment_id: int) -> str:
 
 
 @mcp.tool(annotations=_ann("List retainers", read_only=True))
-async def list_retainers(client_id: int | None = None) -> list[RetainerOut]:
-    """All monthly maintenance fees (retainers), or one client's, with recent months and what
-    is overdue. Active first."""
+async def list_retainers(
+    client_id: int | None = None, project_id: int | None = None
+) -> list[RetainerOut]:
+    """All monthly maintenance fees (retainers), or one client's or project's, with recent
+    months and what is overdue. Active first."""
     return await _run(
-        lambda s, c: retainers.list_retainers(session=s, today=c.today, client_id=client_id)
+        lambda s, c: retainers.list_retainers(
+            session=s, today=c.today, client_id=client_id, project_id=project_id
+        )
     )
 
 

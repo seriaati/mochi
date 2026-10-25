@@ -98,8 +98,8 @@ def make_retainer(client: TestClient, owner: dict, **fields: object) -> dict:
 
 
 def put_retainer(client: TestClient, retainer: dict, **changes: object):
-    fields = ("client_id", "amount", "due_day", "collection", "ask_via_id", "started_on")
-    body = {k: retainer[k] for k in (*fields, "ended_on", "tracked_from")} | changes
+    fields = ("client_id", "project_id", "amount", "due_day", "collection", "ask_via_id")
+    body = {k: retainer[k] for k in (*fields, "started_on", "ended_on", "tracked_from")} | changes
     return client.put(f"/api/retainers/{retainer['id']}", json=body)
 
 
@@ -410,6 +410,28 @@ def test_list_filter_and_order(client: TestClient) -> None:
     listed = client.get(f"/api/retainers?client_id={pixel['id']}").json()
     assert [r["id"] for r in listed] == [first["id"]]
     assert client.get("/api/retainers?client_id=999999").json() == []
+
+
+def test_retainers_for_a_shared_project(client: TestClient, owner: dict) -> None:
+    """One project, e.g. a bot, can be paid for monthly by several clients."""
+    body = {"client_id": owner["id"], "name": "Giveaway bot", "price": 6000}
+    project = client.post("/api/projects", json=body | {"started_on": "2026-09-01"}).json()
+    other = make_client(client, "Pixelforge")
+    mine = make_retainer(client, owner, project_id=project["id"])
+    theirs = make_retainer(client, other, project_id=project["id"])
+    make_retainer(client, other)  # another fee of theirs, for no project
+    assert theirs["project"] == {"id": project["id"], "name": "Giveaway bot"}
+
+    listed = client.get(f"/api/retainers?project_id={project['id']}").json()
+    assert {r["id"] for r in listed} == {mine["id"], theirs["id"]}
+    assert put_retainer(client, theirs, project_id=None).json()["project"] is None
+    assert put_retainer(client, theirs, project_id=999999).status_code == 404
+    assert client.post("/api/retainers", json={**mine, "project_id": 999999}).status_code == 404
+
+    # Deleting the project keeps its retainers, just without the link.
+    assert client.delete(f"/api/projects/{project['id']}").status_code == 204
+    mine = get(client, mine["id"])
+    assert (mine["project_id"], mine["project"]) == (None, None)
 
 
 def test_ask_via_must_belong_to_the_client(client: TestClient, owner: dict) -> None:

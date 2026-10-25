@@ -14,6 +14,7 @@ Period = Annotated[date, AfterValidator(lambda d: d.replace(day=1))]
 
 class RetainerIn(BaseModel):
     client_id: int
+    project_id: int | None = None  # the project it's for; may be another client's
     amount: PositiveNTD  # per month
     due_day: Annotated[int, Field(ge=1, le=31)]  # shorter months fall due on their last day
     collection: Collection
@@ -57,9 +58,15 @@ class RetainerClient(BaseModel):
     avatar_url: str | None  # the client's primary Discord contact, if synced
 
 
+class RetainerProject(BaseModel):
+    id: int
+    name: str
+
+
 class RetainerOut(RetainerIn):
     id: int
     client: RetainerClient
+    project: RetainerProject | None
     ask_via: ContactOut | None
     active: bool  # started and not ended, as of today
     this_month: MonthOut | None  # None when this month isn't billed

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app import discord_sync, maintenance
 from app.clock import TodayDep
 from app.db import SessionDep
-from app.models import Client, Collection, ContactMethod, Retainer, RetainerPayment
+from app.models import Client, Collection, ContactMethod, Project, Retainer, RetainerPayment
 from app.routers.clients import contact_out
 from app.schemas.maintenance import (
     MonthOut,
@@ -16,6 +16,7 @@ from app.schemas.maintenance import (
     RetainerOut,
     RetainerPaymentIn,
     RetainerPaymentOut,
+    RetainerProject,
 )
 
 router = APIRouter(prefix="/api/retainers", tags=["maintenance"])
@@ -49,6 +50,11 @@ def retainer_out(retainer: Retainer, today: date) -> RetainerOut:
         id=retainer.id,
         **RetainerIn.model_validate(retainer, from_attributes=True).model_dump(),
         client=retainer_client(retainer),
+        project=(
+            RetainerProject(id=retainer.project.id, name=retainer.project.name)
+            if retainer.project
+            else None
+        ),
         ask_via=contact_out(retainer.ask_via) if retainer.ask_via else None,
         active=maintenance.is_active(retainer, today),
         this_month=month_out(this_month) if this_month else None,
@@ -72,6 +78,7 @@ def with_children() -> Select[tuple[Retainer]]:
         select(Retainer)
         .options(
             selectinload(Retainer.client).selectinload(Client.contacts),
+            selectinload(Retainer.project),
             selectinload(Retainer.ask_via),
             selectinload(Retainer.payments),
         )
@@ -103,6 +110,8 @@ def _get_payment_or_404(session: Session, retainer_id: int, payment_id: int) -> 
 def _check_refs(session: Session, body: RetainerIn) -> None:
     if session.get(Client, body.client_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+    if body.project_id is not None and session.get(Project, body.project_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     if body.ask_via_id is not None:
         contact = session.get(ContactMethod, body.ask_via_id)
         if contact is None or contact.client_id != body.client_id:
@@ -132,11 +141,16 @@ def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
 
 @router.get("")
 def list_retainers(
-    session: SessionDep, today: TodayDep, client_id: int | None = None
+    session: SessionDep,
+    today: TodayDep,
+    client_id: int | None = None,
+    project_id: int | None = None,
 ) -> list[RetainerOut]:
     query = with_children()
     if client_id is not None:
         query = query.where(Retainer.client_id == client_id)
+    if project_id is not None:
+        query = query.where(Retainer.project_id == project_id)
     return sorted((retainer_out(r, today) for r in session.scalars(query)), key=sort_key)
 
 

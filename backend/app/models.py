@@ -176,6 +176,8 @@ class Retainer(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"))
+    # The project the fee is for. It may belong to another client, e.g. a bot several pay for.
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
     amount: Mapped[int]
     due_day: Mapped[int]
     collection: Mapped[Collection] = mapped_column(_enum(Collection))
@@ -191,6 +193,7 @@ class Retainer(Base):
     )
 
     client: Mapped[Client] = relationship(back_populates="retainers")
+    project: Mapped[Project | None] = relationship()
     ask_via: Mapped[ContactMethod | None] = relationship()
     payments: Mapped[list[RetainerPayment]] = relationship(
         back_populates="retainer", cascade="all, delete-orphan"
