@@ -882,10 +882,6 @@ def logged(session: Session) -> list[str]:
     return [r.slot_on.isoformat() for r in rows]
 
 
-def send_now(client: TestClient, client_id: int):
-    return client.post("/api/maintenance/reminders/send", json={"client_id": client_id})
-
-
 def test_reminder_at_nine_on_the_due_date(
     client: TestClient, session: Session, webhook: list[str]
 ) -> None:
@@ -1061,19 +1057,15 @@ def test_auto_transfers_get_no_reminders(
     make_retainer(client, owner, collection="auto_transfer", started_on="2026-01-01")
     assert reminders.send_due(session, at("2026-10-25", 9)) == 0
     assert overview(client)["next_reminder"] is None
-    response = send_now(client, owner["id"])
-    assert response.status_code == 409
-    assert response.json()["detail"] == "This client has nothing to ask for"
     assert webhook == []
 
 
 def test_no_sends_without_a_webhook(client: TestClient, session: Session) -> None:
-    retainer = ask_retainer(client, due_day=20)
+    ask_retainer(client, due_day=20)
     # conftest leaves the webhook unset and makes discord.post fail if called.
     assert reminders.send_due(session, at("2026-10-25", 9)) == 0
     assert logged(session) == []
     assert client.post("/api/maintenance/reminders/test").status_code == 409
-    assert send_now(client, retainer["client_id"]).status_code == 409
     # The page still shows what would go out next.
     assert overview(client)["next_reminder"]["pending"] is True
 
@@ -1115,67 +1107,13 @@ def test_next_reminder(client: TestClient, session: Session, webhook: list[str],
     assert (nxt["at"], nxt["amount"], nxt["pending"]) == ("2026-10-25T09:00:00+08:00", 350, True)
 
 
-def test_send_now_targets_one_client(
-    client: TestClient, session: Session, webhook: list[str], pin
-) -> None:
-    northwind = make_client(client)
-    make_retainer(client, northwind, due_day=20)
-    pixel = make_client(client, "Pixelforge", contacts=(("discord", "@sora.px"),))
-    pixel_fee = make_retainer(client, pixel, amount=120)  # nothing due yet: due 25 Oct
-
-    response = send_now(client, pixel["id"])
-    assert response.status_code == 200
-    assert response.json() == {
-        "content": f"<@{USER_ID}> Ask Pixelforge for NT$120 (October) on Discord @sora.px"
-        + record(pixel_fee, "2026-10")
-    }
-    assert webhook == [response.json()["content"]]
-    assert send_now(client, 999999).status_code == 404
-    nxt = overview(client)["next_reminder"]
-    assert nxt["client"]["name"] == "Northwind Coffee"  # Pixelforge's ping doesn't touch theirs
-
-    # With something due, a manual send asks for what is due today, not fees still to come.
-    make_retainer(client, northwind, amount=100)  # due 25 Oct
-    assert "for NT$250 (October)" in send_now(client, northwind["id"]).json()["content"]
-
-
-def test_send_now_marks_the_day(
-    client: TestClient, session: Session, webhook: list[str], pin
-) -> None:
-    retainer = ask_retainer(client)  # slots on 25, 27, 29 Oct
-    # Sent by hand early on the due date: the 09:00 slot that day doesn't repeat it.
-    pin(at("2026-10-25", 8))
-    assert send_now(client, retainer["client_id"]).status_code == 200
-    assert logged(session) == ["2026-10-25"]
-    assert overview(client)["next_reminder"]["at"] == "2026-10-27T09:00:00+08:00"
-    assert overview(client)["next_reminder"]["last_reminded_on"] == "2026-10-25"
-    assert reminders.send_due(session, at("2026-10-25", 9)) == 0
-
-    # A manual ping on an off day keeps the rhythm: the 27th still goes out.
-    pin(at("2026-10-26", 12))
-    assert send_now(client, retainer["client_id"]).status_code == 200
-    assert reminders.send_due(session, at("2026-10-27", 9)) == 1
-
-    # After a missed slot, a manual send the next day stands in for it.
-    pin(at("2026-10-30", 8))
-    assert send_now(client, retainer["client_id"]).status_code == 200
-    assert reminders.send_due(session, at("2026-10-30", 9)) == 0  # 29th missed, 30th reminded
-    assert reminders.send_due(session, at("2026-10-31", 9)) == 1
-    assert len(webhook) == 5
-
-    # Once October is paid, a manual send is about the next fee coming up.
-    pay(client, retainer["id"], "2026-10-01")
-    response = send_now(client, retainer["client_id"])
-    assert "for NT$250 (November)" in response.json()["content"]
-
-
 def test_overdue_shows_when_the_client_was_last_reminded(
     client: TestClient, session: Session, webhook: list[str], pin
 ) -> None:
-    retainer = ask_retainer(client, due_day=20)
+    ask_retainer(client, due_day=20)
     assert overview(client)["overdue"][0]["last_reminded_on"] is None
-    send_now(client, retainer["client_id"])
-    assert overview(client)["overdue"][0]["last_reminded_on"] == "2026-10-23"
+    assert reminders.send_due(session, at("2026-10-22", 9)) == 1  # slots on 20 and 22 Oct
+    assert overview(client)["overdue"][0]["last_reminded_on"] == "2026-10-22"
 
 
 def test_send_test(client: TestClient, webhook: list[str]) -> None:

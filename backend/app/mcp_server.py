@@ -34,8 +34,6 @@ from app.schemas.maintenance import (
     RetainerOut,
     RetainerPaymentIn,
     RetainerPaymentOut,
-    SendIn,
-    SentOut,
 )
 from app.schemas.overview import EarningsOut
 from app.schemas.projects import (
@@ -363,14 +361,6 @@ async def get_maintenance(
     """Everything on the Maintenance page: retainers, overdue months, the next reminder, this
     month's collection and a calendar of `month` (YYYY-MM, default this month)."""
     return await _run(lambda s, c: maintenance.overview(session=s, clock=c, month=month))
-
-
-@mcp.tool(annotations=_ann("Send reminder", open_world=True))
-async def send_reminder(client_id: int) -> SentOut:
-    """Posts a client's combined maintenance reminder to the user's Discord now: everything
-    they owe, or the next fee coming up. It counts as today's reminder."""
-    body = SendIn(client_id=client_id)
-    return await _run(lambda s, c: maintenance.send_now(body, session=s, clock=c))
 
 
 # Overview and settings

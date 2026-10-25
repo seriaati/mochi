@@ -9,7 +9,7 @@ from app import discord, discord_sync, maintenance, reminders
 from app.clock import Clock, ClockDep
 from app.db import SessionDep
 from app.maintenance import REMINDER_TIME, REPEAT_DAYS, MonthStatus, slot_at
-from app.models import Client, Collection, Retainer
+from app.models import Collection, Retainer
 from app.routers.retainers import (
     client_out,
     retainer_client,
@@ -26,7 +26,6 @@ from app.schemas.maintenance import (
     NextReminderOut,
     OverdueOut,
     ReminderConfigOut,
-    SendIn,
     SentOut,
 )
 
@@ -163,22 +162,5 @@ def send_test() -> SentOut:
     _check_enabled()
     try:
         return SentOut(content=reminders.send_test())
-    except httpx.HTTPError as error:
-        raise _discord_error(error) from error
-
-
-@router.post("/reminders/send")
-def send_now(body: SendIn, session: SessionDep, clock: ClockDep) -> SentOut:
-    """Sends a client's combined reminder now: everything they owe, or the next fee coming up
-    if nothing is due yet. It counts as today's reminder, so today's 09:00 slot won't repeat it.
-    """
-    _check_enabled()
-    if session.get(Client, body.client_id) is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
-    reminder = reminders.manual(session, clock, body.client_id)
-    if reminder is None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This client has nothing to ask for")
-    try:
-        return SentOut(content=reminders.send(session, [reminder], clock))
     except httpx.HTTPError as error:
         raise _discord_error(error) from error

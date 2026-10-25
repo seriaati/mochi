@@ -224,7 +224,7 @@ class ReminderLog(Base):
     """A maintenance reminder posted to Discord for a client, so none is sent twice.
 
     `slot_on` is the local day the reminder counts for: the scheduled 09:00 slot it stands for
-    (even when sent late), or the day of a manual send. The scheduler skips a slot that is
+    (even when sent late). The scheduler skips a slot that is
     already logged, and any day the client was already reminded on.
     """
 

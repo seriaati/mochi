@@ -111,10 +111,6 @@ class NextReminderOut(BaseModel):
     last_reminded_on: date | None
 
 
-class SendIn(BaseModel):
-    client_id: int  # whose combined reminder to send now
-
-
 class CollectedOut(BaseModel):
     """This month's fees by the month they're for, not the date they arrived."""
 

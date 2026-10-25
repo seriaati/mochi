@@ -8,14 +8,13 @@ next ping. Paying the oldest month moves the anchor to the next oldest.
 Every send is written to reminder_log under the local day it counts for. The scheduler sends
 the latest slot that has come, once: never a slot that is already logged, and never on a day
 the client was already reminded (by date of sending, in the saved timezone). So restarts and
-timezone changes don't repeat a day, a missed slot goes out late once, and a manual send keeps
-that day's 09:00 slot from repeating it.
+timezone changes don't repeat a day, and a missed slot goes out late once.
 """
 
 import asyncio
 import logging
 from collections import defaultdict
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, select
@@ -99,7 +98,7 @@ def _owed(session: Session, today: date) -> list[_Owed]:
 
 @dataclass(frozen=True)
 class _History:
-    slots: set[date]  # days already reminded for, scheduled or manual
+    slots: set[date]  # days already reminded for
     sent_today: bool  # reminded today, by local date of sending
 
 
@@ -119,7 +118,7 @@ def _history(session: Session, clock: Clock) -> dict[int, _History]:
 
 
 def last_reminded(session: Session) -> dict[int, datetime]:
-    """When each client was last reminded, scheduled or manual."""
+    """When each client was last reminded."""
     query = select(ReminderLog.client_id, func.max(ReminderLog.sent_at))
     rows = session.execute(query.group_by(ReminderLog.client_id))
     # Not dict(rows): a Result has keys(), so dict() would read it as a mapping.
@@ -148,30 +147,15 @@ def _next_for(owed: _Owed, seen: _History, clock: Clock) -> Reminder:
     return owed.reminder(day, max(day, clock.today))
 
 
-def next_reminder(session: Session, clock: Clock, client_id: int | None = None) -> Reminder | None:
-    """The next reminder to go out, overall or for one client."""
+def next_reminder(session: Session, clock: Clock) -> Reminder | None:
+    """The next reminder to go out."""
     history = _history(session, clock)
     candidates = [
-        _next_for(owed, history[owed.client.id], clock)
-        for owed in _owed(session, clock.today)
-        if client_id is None or owed.client.id == client_id
+        _next_for(owed, history[owed.client.id], clock) for owed in _owed(session, clock.today)
     ]
     return min(
         candidates, key=lambda r: (r.slot_on, r.client.name.lower(), r.client.id), default=None
     )
-
-
-def manual(session: Session, clock: Clock, client_id: int) -> Reminder | None:
-    """A client's reminder to send right now, counted for today so the 09:00 tick doesn't
-    repeat it: everything due by today, or the next fee coming up if nothing is due yet.
-    None when they have nothing to ask for."""
-    owed = next((o for o in _owed(session, clock.today) if o.client.id == client_id), None)
-    if owed is None:
-        return None
-    if owed.anchor <= clock.today:
-        return owed.reminder(clock.today, clock.today)
-    reminder = next_reminder(session, clock, client_id)
-    return None if reminder is None else replace(reminder, slot_on=clock.today)
 
 
 def record_url(reminder: Reminder) -> str:
