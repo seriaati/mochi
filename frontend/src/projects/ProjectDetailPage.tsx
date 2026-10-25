@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
+import { contactHandle } from '../clients/contactKinds.ts'
+import { KindLabel } from '../clients/KindLabel.tsx'
 import { useClient } from '../clients/queries.ts'
 import { Avatar } from '../components/Avatar.tsx'
 import { formatDay, formatNTD, formatNumber, initials, plural, todayISO } from '../format.ts'
@@ -298,7 +299,9 @@ function ClientTile({ project }: { project: Project }) {
         <ul className="project-client-contacts">
           {client.data.contacts.map((contact) => (
             <li key={contact.id}>
-              {contactKinds[contact.kind].label}
+              <span>
+                <KindLabel kind={contact.kind} />
+              </span>
               <b>{contactHandle(contact)}</b>
             </li>
           ))}

@@ -1,10 +1,13 @@
 import type { Contact, ContactKind } from './queries.ts'
 
-/** message: the button that opens a conversation with them there, for contactUrl. */
-export const contactKinds: Record<ContactKind, { label: string; icon: string; field: string; message: string }> = {
-  discord: { label: 'Discord', icon: 'DC', field: 'Username', message: 'Message on Discord' },
-  line: { label: 'LINE', icon: 'LN', field: 'LINE ID', message: 'Message on LINE' },
-  email: { label: 'Email', icon: '@', field: 'Email address', message: 'Send an email' },
+/**
+ * icon: the stand-in for a picture; null for platforms that show their logo (KindLabel). message:
+ * the button that opens a conversation with them there, for contactUrl.
+ */
+export const contactKinds: Record<ContactKind, { label: string; icon: string | null; field: string; message: string }> = {
+  discord: { label: 'Discord', icon: null, field: 'Username', message: 'Message on Discord' },
+  line: { label: 'LINE', icon: null, field: 'LINE ID', message: 'Message on LINE' },
+  email: { label: 'Email', icon: null, field: 'Email address', message: 'Send an email' },
   other: { label: 'Other', icon: '•••', field: 'Contact', message: '' },
 }
 

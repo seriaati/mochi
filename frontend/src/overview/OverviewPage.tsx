@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
-import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
+import { contactHandle, contactUrl } from '../clients/contactKinds.ts'
+import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
 import { useClients, type Client, type ContactKind } from '../clients/queries.ts'
 import { Avatar } from '../components/Avatar.tsx'
@@ -200,7 +201,11 @@ function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
 
   const { retainer, month } = next
   const contact = retainer.ask_via
-  const handle = contact && `${contactKinds[contact.kind].label} ${contactHandle(contact)}`
+  const handle = contact && (
+    <>
+      <KindLabel kind={contact.kind} /> {contactHandle(contact)}
+    </>
+  )
   const url = contact && contactUrl(contact)
 
   return (
@@ -509,7 +514,7 @@ function ClientsTile({ clients }: { clients: Client[] }) {
           <ul className="ov-channels">
             {CHANNELS.filter((kind) => kind !== 'other' || reach(kind) > 0).map((kind) => (
               <li key={kind}>
-                {contactKinds[kind].label}
+                <KindLabel kind={kind} />
                 <b>
                   {reach(kind)}
                   {kind === 'discord' && syncing && lastSync && ` · synced ${timeAgo(lastSync)}`}

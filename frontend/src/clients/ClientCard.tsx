@@ -1,9 +1,11 @@
 import { Link } from 'react-router'
 import { Avatar } from '../components/Avatar.tsx'
+import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { formatNTD, initials } from '../format.ts'
 import { dueLabel } from '../maintenance/labels.ts'
 import { tintClass } from '../tint.ts'
-import { contactHandle, contactKinds } from './contactKinds.ts'
+import { contactHandle } from './contactKinds.ts'
+import { KindLabel } from './KindLabel.tsx'
 import type { Client } from './queries.ts'
 
 export function ClientCard({ client }: { client: Client }) {
@@ -14,7 +16,11 @@ export function ClientCard({ client }: { client: Client }) {
     <Link className={`client-card ${tintClass(client.id)}`} to={`/clients/${client.id}`}>
       <div className="client-card-head">
         <Avatar className="client-avatar" src={client.avatar_url} fallback={initials(client.name)}>
-          {hasDiscord && <span className="discord-badge" title="On Discord" />}
+          {hasDiscord && (
+            <span className="discord-badge" title="On Discord">
+              <DiscordLogo aria-label="On Discord" />
+            </span>
+          )}
         </Avatar>
         <div>
           <h2 className="client-name">{client.name}</h2>
@@ -27,7 +33,9 @@ export function ClientCard({ client }: { client: Client }) {
         <ul className="contact-pills">
           {client.contacts.map((contact) => (
             <li key={contact.id}>
-              <b>{contactKinds[contact.kind].label}</b>
+              <b>
+                <KindLabel kind={contact.kind} />
+              </b>
               {contactHandle(contact)}
             </li>
           ))}

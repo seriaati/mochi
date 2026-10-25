@@ -31,6 +31,7 @@
   --yellow-ink: light-dark(#6b5310, #eedcaa);
   --teal-ink: light-dark(#1f5c52, #a8dcd3);
   --discord: #5865f2;
+  --on-discord: #ffffff; /* the logo on --discord, in both themes */
   --discord-bg: light-dark(#e2e4fb, #262a4d);
   --discord-ink: light-dark(#3c45a5, #b7bdf8);
   --line-bg: light-dark(#dcf3e3, #17301f);
@@ -338,6 +339,25 @@ a.nav-icon.active svg {
   height: 100%;
   border-radius: inherit;
   object-fit: cover;
+}
+
+/* A platform's logo where its name would be (see PlatformLogo.tsx), sized to the text around it. */
+svg.platform-logo {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.3em;
+  height: 1.3em;
+  vertical-align: -0.3em;
+  fill: currentColor;
+  stroke: none;
+}
+
+svg.email-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Status pills. */

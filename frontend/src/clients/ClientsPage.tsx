@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { ClientCard } from './ClientCard.tsx'
 import { ClientDialog } from './ClientDialog.tsx'
 import { contactHandle } from './contactKinds.ts'
@@ -33,8 +34,7 @@ export function ClientsPage() {
           <h1 className="page-title">Clients</h1>
           {clients.data && (
             <p className="page-sub">
-              <i className="discord-dot" />
-              {all.length} {all.length === 1 ? 'client' : 'clients'} · {onDiscord} on Discord
+              {all.length} {all.length === 1 ? 'client' : 'clients'} · {onDiscord} on <DiscordLogo />
             </p>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
+import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, plural } from '../format.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
@@ -290,7 +291,9 @@ function DiscordTile({ settings }: { settings: Settings }) {
 
   return (
     <section id="discord" className="tile span-12 tint-blue">
-      <h2 className="tile-label">Discord</h2>
+      <h2 className="tile-label">
+        <DiscordLogo aria-hidden="true" /> Discord
+      </h2>
       {noKey && (
         <p className="form-error settings-feedback">
           Set <code>ENCRYPTION_KEY</code> on the API (see <code>backend/.env.example</code>) to save a webhook

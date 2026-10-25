@@ -7,6 +7,7 @@ import { ClientMoneyTile, ClientProjectsTile } from '../projects/ClientProjectTi
 import { tintClass } from '../tint.ts'
 import { ClientDialog } from './ClientDialog.tsx'
 import { ContactDialog } from './ContactDialog.tsx'
+import { KindLabel } from './KindLabel.tsx'
 import { contactHandle, contactKinds, discordContact, messageContact } from './contactKinds.ts'
 import { MessageLink } from './MessageLink.tsx'
 import { useClient, useDeleteClient, useSyncDiscord, type Client, type Contact, type DiscordProfile } from './queries.ts'
@@ -154,7 +155,7 @@ function ContactTile({ client }: { client: Client }) {
               <Avatar
                 className={`contact-icon kind-${contact.kind}`}
                 src={contact.discord_profile?.avatar_url}
-                fallback={contactKinds[contact.kind].icon}
+                fallback={contactKinds[contact.kind].icon ?? <KindLabel kind={contact.kind} />}
               />
               <span>
                 <b>{contactKinds[contact.kind].label}</b>

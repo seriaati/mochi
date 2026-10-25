@@ -117,6 +117,7 @@ Inline SVG only:
 - stroked, `stroke="currentColor"`, width about 1.8–2, round caps and joins
 - `aria-hidden="true"`; an icon-only button gets an `aria-label`
 - no icon libraries, icon fonts or emoji
+- platforms are shown by logo wherever they're named in a label, chip or button (`KindLabel`, `src/components/PlatformLogo.tsx`); Discord's and LINE's logos are the one exception to the stroked rule, filled as the platforms draw them, while email gets a stroked envelope
 
 ## Motion
 

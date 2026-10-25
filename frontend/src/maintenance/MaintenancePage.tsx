@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
+import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
 import { Avatar } from '../components/Avatar.tsx'
+import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { daysBetween, formatDay, formatNTD, formatNumber, initials, parseDate, plural } from '../format.ts'
 import { tintClass } from '../tint.ts'
@@ -466,15 +468,15 @@ function RetainerRow({ retainer, today, onEdit, onMonth }: RowProps) {
           rel="noreferrer"
           title={`${contactKinds[contact.kind].message}: ${contactHandle(contact)}`}
         >
-          {contactKinds[contact.kind].label}
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <KindLabel kind={contact.kind} />
+          <svg className="mt-link-arrow" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 17 17 7" />
             <path d="M8 7h9v9" />
           </svg>
         </a>
       ) : contact ? (
         <span className="chip mt-contact" title={contactHandle(contact)}>
-          {contactKinds[contact.kind].label} {contactHandle(contact)}
+          <KindLabel kind={contact.kind} /> {contactHandle(contact)}
         </span>
       ) : (
         <span className="chip mt-contact">No contact</span>
@@ -505,7 +507,9 @@ function RemindersTile({ data }: { data: Maintenance }) {
       <div className="mt-hook">
         <div>
           <h2 className="tile-label">Reminders</h2>
-          <p className="mt-hook-title">{enabled ? 'Discord webhook' : 'Discord webhook · not set up'}</p>
+          <p className="mt-hook-title">
+            <DiscordLogo aria-hidden="true" /> {enabled ? 'Discord webhook' : 'Discord webhook · not set up'}
+          </p>
         </div>
         <ul className="mt-facts">
           <li>
