@@ -3,12 +3,12 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar.tsx'
 import { formatMonth, initials, timeAgo } from '../format.ts'
 import { ClientMaintenanceTile } from '../maintenance/ClientMaintenanceTile.tsx'
-import { useClientRetainers } from '../maintenance/queries.ts'
 import { ClientMoneyTile, ClientProjectsTile } from '../projects/ClientProjectTiles.tsx'
 import { tintClass } from '../tint.ts'
 import { ClientDialog } from './ClientDialog.tsx'
 import { ContactDialog } from './ContactDialog.tsx'
-import { contactHandle, contactKinds } from './contactKinds.ts'
+import { contactHandle, contactKinds, discordContact, messageContact } from './contactKinds.ts'
+import { MessageLink } from './MessageLink.tsx'
 import { useClient, useDeleteClient, useSyncDiscord, type Client, type Contact, type DiscordProfile } from './queries.ts'
 import './ClientDetailPage.css'
 
@@ -48,10 +48,9 @@ function ClientTiles({ client }: { client: Client }) {
 }
 
 function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
-  // The synced Discord contact the avatar comes from, else the first one.
-  const discord =
-    client.contacts.find((c) => c.discord_profile?.status === 'ok') ??
-    client.contacts.find((c) => c.kind === 'discord')
+  // The Contact tile shows their handle; here, only where the name and avatar come from.
+  const profile = discordContact(client.contacts)?.discord_profile
+  const reach = messageContact(client.contacts)
   const since = `client since ${formatMonth(client.created_at)}`
   const remove = useDeleteClient(client.id)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -69,9 +68,10 @@ function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
         </div>
       </div>
       {client.notes && <p className="client-hero-notes">{client.notes}</p>}
-      {discord && <DiscordCard clientId={client.id} contact={discord} />}
+      {profile && <DiscordSync clientId={client.id} profile={profile} />}
       <div className="client-hero-actions">
-        <button className="btn" type="button" onClick={onEdit}>
+        <MessageLink contact={reach} className="btn" />
+        <button className={reach ? 'btn secondary' : 'btn'} type="button" onClick={onEdit}>
           Edit client
         </button>
         <button
@@ -95,65 +95,43 @@ function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
   )
 }
 
-/** The client's Discord profile: synced name and @username, or the typed handle and ID. */
-function DiscordCard({ clientId, contact }: { clientId: number; contact: Contact }) {
+/** Where the client's name and avatar come from, when they last synced, and Sync now. */
+function DiscordSync({ clientId, profile }: { clientId: number; profile: DiscordProfile }) {
   const sync = useSyncDiscord(clientId)
-  const profile = contact.discord_profile
-  const name = profile?.display_name
 
   return (
-    <div className="discord-card">
-      <Avatar className="discord-avatar" src={profile?.avatar_url} fallback={initials(name ?? contact.value)} />
-      <div>
-        <b>{name ?? contact.value}</b>
-        <small>
-          {name
-            ? `${contactHandle(contact)} on Discord`
-            : contact.discord_user_id
-              ? `Discord · ID ${contact.discord_user_id}`
-              : 'Discord'}
-        </small>
-      </div>
-      {profile && (
-        <div className="discord-sync">
-          <span title={profile.status === 'off' ? 'Add a Discord bot token in Settings to sync names and avatars' : undefined}>
-            {syncLabel(profile)}
-          </span>
-          {profile.status !== 'off' && (
-            <button className="link-btn" type="button" disabled={sync.isPending} onClick={() => sync.mutate()}>
-              {sync.isPending ? 'Syncing…' : 'Sync now'}
-            </button>
-          )}
-          {sync.error && <small className="discord-sync-error">{sync.error.message}</small>}
-        </div>
+    <p className="client-hero-sync">
+      <span>{syncLabel(profile)}</span>
+      {profile.status === 'off' ? (
+        <Link to="/settings#discord">Add a bot token</Link>
+      ) : (
+        <button className="link-btn" type="button" disabled={sync.isPending} onClick={() => sync.mutate()}>
+          {sync.isPending ? 'Syncing…' : 'Sync now'}
+        </button>
       )}
-    </div>
+      {sync.error && <small className="client-hero-sync-error">{sync.error.message}</small>}
+    </p>
   )
 }
 
 function syncLabel(profile: DiscordProfile): string {
   switch (profile.status) {
     case 'ok':
-      return `Synced ${timeAgo(profile.synced_at!)}`
+      return `Name and avatar synced from Discord ${timeAgo(profile.synced_at!)}`
     case 'not_found':
-      return 'User not found'
+      return 'Discord has no user with this ID'
     case 'error':
-      return 'Sync failed'
+      return "Couldn't sync from Discord"
     case 'pending':
-      return 'Not synced yet'
+      return 'Not synced from Discord yet'
     case 'off':
-      return 'Sync off'
+      return 'Discord sync is off'
   }
 }
 
 function ContactTile({ client }: { client: Client }) {
   // undefined = closed, null = adding, a contact = editing it.
   const [dialog, setDialog] = useState<Contact | null>()
-  // Contacts that "ask" retainers, not yet ended, send their reminders to.
-  const retainers = useClientRetainers(client.id).data ?? []
-  const reminderContacts = new Set(
-    retainers.filter((r) => r.collection === 'ask' && r.next_due_on).map((r) => r.ask_via_id),
-  )
 
   return (
     <section className="tile span-4">
@@ -182,7 +160,6 @@ function ContactTile({ client }: { client: Client }) {
                 <b>{contactKinds[contact.kind].label}</b>
                 <small>{contactHandle(contact)}</small>
               </span>
-              {reminderContacts.has(contact.id) && <span className="contact-tag">Reminders</span>}
             </button>
           </li>
         ))}

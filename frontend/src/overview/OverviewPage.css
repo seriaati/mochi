@@ -20,6 +20,11 @@
   font-size: 12.5px;
 }
 
+.ov-chips a.chip:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .ov-chips .btn,
 .ov-action .btn {
   display: inline-flex;
@@ -46,6 +51,15 @@
 [class*='tint-'] .ov-sub { color: var(--muted); }
 .tile.ink .ov-meta { color: var(--hero-dim); }
 
+/* The contact in "Due Sun 1 Nov · Discord @handle", which opens a conversation with them. */
+.ov-meta a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ov-meta a:hover { color: inherit; }
+
 .ov-action {
   display: flex;
   flex-wrap: wrap;
@@ -55,17 +69,13 @@
   padding-top: 18px;
 }
 
-.ov-hint {
-  font-size: 12.5px;
-  color: var(--dim);
-}
-
-[class*='tint-'] .ov-hint { color: var(--muted); }
-.tile.ink .ov-hint { color: var(--hero-dim); }
-
-.ov-hint a,
 .ov-empty a {
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ov-who a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -290,6 +300,19 @@
   margin-left: -10px;
 }
 
+/* Each avatar opens its client; the hovered one lifts above its neighbours. */
+.ov-stack a {
+  position: relative;
+  display: block;
+  border-radius: 50%;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.ov-stack a:hover {
+  z-index: 1;
+  transform: translateY(-3px);
+}
+
 .ov-stack-avatar {
   display: grid;
   place-items: center;
@@ -336,7 +359,7 @@
 /* Bento Night: the overdue tile reads in peach, like the mockup. */
 .ov-overdue { color: light-dark(var(--ink), var(--peach-ink)); }
 
-.ov-overdue .btn {
+.ov-overdue .btn:not(.secondary) {
   background: light-dark(var(--hero), var(--peach-ink));
   color: light-dark(var(--on-hero), var(--peach));
 }

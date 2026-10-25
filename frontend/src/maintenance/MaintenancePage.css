@@ -26,6 +26,8 @@
 }
 
 .mt-action .btn {
+  display: inline-flex;
+  align-items: center;
   height: 40px;
 }
 
@@ -104,6 +106,17 @@
   font-weight: 500;
   color: var(--muted);
 }
+
+/* A day with "ask" months opens their payment. */
+button.mt-day {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button.mt-day:hover { opacity: 0.86; }
+button.mt-day:active { transform: scale(0.94); }
 
 .mt-day.paid {
   background: var(--sage);
@@ -205,6 +218,17 @@
   font-weight: 700;
 }
 
+/* The avatar opens the client; the name beside it edits the retainer. */
+.mt-avatar-link {
+  display: block;
+  border-radius: 13px;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.mt-avatar-link:hover {
+  transform: translateY(-2px);
+}
+
 .mt-name {
   min-width: 0;
   border: 0;
@@ -248,6 +272,38 @@
   text-align: center;
 }
 
+/* Opens a conversation with them: their Discord profile, LINE or a new email. */
+.mt-link {
+  font-weight: 600;
+}
+
+.mt-link.kind-discord {
+  background: var(--discord-bg);
+  color: var(--discord-ink);
+}
+
+.mt-link.kind-line {
+  background: var(--line-bg);
+  color: var(--line-ink);
+}
+
+.mt-link svg {
+  width: 12px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: -1px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mt-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .mt-contact.good {
   background: var(--good-bg);
 }
@@ -278,6 +334,36 @@ button.mt-status {
 button.mt-status:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Picking one of several months due on a calendar day */
+.mt-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.mt-day-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--row);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mt-day-row:hover { background: var(--field); }
+
+.mt-day-row b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* Reminders */
@@ -347,6 +433,17 @@ button.mt-status:hover {
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
+}
+
+.mt-hook-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mt-hook-buttons .btn {
+  display: inline-flex;
+  align-items: center;
 }
 
 .mt-hook-note {

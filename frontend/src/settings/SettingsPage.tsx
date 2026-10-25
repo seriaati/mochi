@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useLocation } from 'react-router'
 import { Select } from '../components/Select.tsx'
 import { formatDay, plural } from '../format.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
@@ -55,6 +56,13 @@ function useNow(): Date {
 
 export function SettingsPage() {
   const settings = useSettings()
+  const { hash } = useLocation()
+  const loaded = settings.data !== undefined
+
+  // Links such as /settings#discord land on their tile once it renders.
+  useEffect(() => {
+    if (loaded && hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [loaded, hash])
 
   return (
     <>
@@ -281,7 +289,7 @@ function DiscordTile({ settings }: { settings: Settings }) {
   const noKey = !settings.encryption_key_set
 
   return (
-    <section className="tile span-12 tint-blue">
+    <section id="discord" className="tile span-12 tint-blue">
       <h2 className="tile-label">Discord</h2>
       {noKey && (
         <p className="form-error settings-feedback">

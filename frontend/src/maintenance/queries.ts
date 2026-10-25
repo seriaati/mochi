@@ -208,13 +208,3 @@ export function useSendTest() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.all }),
   })
 }
-
-/** Sends one client's combined reminder now; it counts as that client's reminder for today. */
-export function useRemindClient() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (clientId: number) =>
-      api.post<{ content: string }>('/maintenance/reminders/send', { client_id: clientId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.all }),
-  })
-}

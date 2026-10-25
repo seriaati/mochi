@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
-import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
+import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
+import { MessageLink } from '../clients/MessageLink.tsx'
 import { useClients, type Client, type ContactKind } from '../clients/queries.ts'
 import { Avatar } from '../components/Avatar.tsx'
 import {
@@ -12,14 +13,8 @@ import {
   plural,
   timeAgo,
 } from '../format.ts'
-import { SendResult } from '../maintenance/MaintenancePage.tsx'
-import {
-  useMaintenance,
-  useRemindClient,
-  type Maintenance,
-  type Month,
-  type Retainer,
-} from '../maintenance/queries.ts'
+import { useRecordPayment } from '../maintenance/useRecordPayment.tsx'
+import { useMaintenance, type Maintenance, type Month, type Retainer } from '../maintenance/queries.ts'
 import { useProjects, type Project } from '../projects/queries.ts'
 import { daysIn } from '../projects/schedule.ts'
 import { Track } from '../projects/Track.tsx'
@@ -158,13 +153,21 @@ function GreetingTile({ data, asks, open, clients, timezone, userName }: Greetin
           </Link>
         ) : (
           <>
-            {overdue > 0 && <span className="chip warn">{overdue} overdue</span>}
-            {next && (
-              <span className="chip">
-                {dueTogether} due {dayWord(next.month.due_on, data.today)}
-              </span>
+            {overdue > 0 && (
+              <Link className="chip warn" to="/maintenance">
+                {overdue} overdue
+              </Link>
             )}
-            {open.length > 0 && <span className="chip">{plural(open.length, 'active project')}</span>}
+            {next && (
+              <Link className="chip" to="/maintenance">
+                {dueTogether} due {dayWord(next.month.due_on, data.today)}
+              </Link>
+            )}
+            {open.length > 0 && (
+              <Link className="chip" to="/projects">
+                {plural(open.length, 'active project')}
+              </Link>
+            )}
             {!overdue && !next && !open.length && <span className="chip good">All caught up</span>}
           </>
         )}
@@ -173,17 +176,8 @@ function GreetingTile({ data, asks, open, clients, timezone, userName }: Greetin
   )
 }
 
-/** A disabled reminder button's reason, if any. */
-function RemindersOff() {
-  return (
-    <p className="ov-hint">
-      Reminders are off. <Link to="/maintenance">Set them up</Link>
-    </p>
-  )
-}
-
 function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
-  const remind = useRemindClient()
+  const [dialog, record] = useRecordPayment()
 
   if (!next) {
     const hasAsks = data.retainers.some((r) => r.collection === 'ask' && r.active)
@@ -196,66 +190,75 @@ function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
         </p>
         <div className="ov-action">
           <Link className="btn" to="/maintenance">
-            {hasAsks ? 'Open maintenance' : 'Add a retainer'}
+            {hasAsks ? 'Open retainers' : 'Add a retainer'}
           </Link>
         </div>
+        {dialog}
       </section>
     )
   }
 
   const { retainer, month } = next
   const contact = retainer.ask_via
+  const handle = contact && `${contactKinds[contact.kind].label} ${contactHandle(contact)}`
+  const url = contact && contactUrl(contact)
 
   return (
     <section className="tile span-4 ink ov-summary">
       <h2 className="tile-label">Next to collect</h2>
-      <p className="ov-who">{retainer.client.name}</p>
+      <p className="ov-who">
+        <Link to={`/clients/${retainer.client.id}`}>{retainer.client.name}</Link>
+      </p>
       <p className="big-number">
         <small>NT$</small>
         {formatNumber(month.amount)}
       </p>
       <p className="ov-meta">
         Due {formatDay(month.due_on, { weekday: true })} ·{' '}
-        {contact ? `${contactKinds[contact.kind].label} ${contactHandle(contact)}` : 'no contact set'}
+        {url ? (
+          <a href={url} target={url.startsWith('https:') ? '_blank' : undefined} rel="noreferrer">
+            {handle}
+          </a>
+        ) : (
+          (handle ?? 'no contact set')
+        )}
       </p>
       <div className="ov-action">
-        <button
-          className="btn"
-          type="button"
-          disabled={!data.reminders.enabled || remind.isPending}
-          onClick={() => remind.mutate(retainer.client.id)}
-        >
-          Remind on Discord
+        <button className="btn" type="button" onClick={() => record(retainer, month.period)}>
+          Record payment
         </button>
-        {!data.reminders.enabled && <RemindersOff />}
-        <SendResult mutation={remind} />
       </div>
+      {dialog}
     </section>
   )
 }
 
 function OverdueTile({ data }: { data: Maintenance }) {
-  const remind = useRemindClient()
+  const [dialog, record] = useRecordPayment()
   const [worst] = data.overdue
+  const retainer = data.retainers.find((r) => r.id === worst?.retainer_id)
 
-  if (!worst) {
+  if (!worst || !retainer) {
     return (
       <section className="tile span-3 tint-sage ov-summary">
         <h2 className="tile-label">Overdue</h2>
         <p className="ov-who">All paid up</p>
         <p className="ov-meta">Nothing is overdue.</p>
+        {dialog}
       </section>
     )
   }
 
-  // The client overdue the longest, with all they owe past the grace days: what a ping asks for.
+  // The client overdue the longest, with all they owe past the grace days.
   const theirs = data.overdue.filter((o) => o.client.id === worst.client.id)
   const others = new Set(data.overdue.map((o) => o.client.id)).size - 1
   const reminded = worst.last_reminded_on
   return (
     <section className="tile span-3 tint-peach ov-summary ov-overdue">
       <h2 className="tile-label">Overdue · {plural(worst.days, 'day')}</h2>
-      <p className="ov-who">{worst.client.name}</p>
+      <p className="ov-who">
+        <Link to={`/clients/${worst.client.id}`}>{worst.client.name}</Link>
+      </p>
       <p className="big-number">
         <small>NT$</small>
         {formatNumber(theirs.reduce((sum, o) => sum + o.amount, 0))}
@@ -265,17 +268,12 @@ function OverdueTile({ data }: { data: Maintenance }) {
         {others > 0 && ` · ${plural(others, 'more client')} overdue`}
       </p>
       <div className="ov-action">
-        <button
-          className="btn"
-          type="button"
-          disabled={!data.reminders.enabled || remind.isPending}
-          onClick={() => remind.mutate(worst.client.id)}
-        >
-          {reminded ? 'Ping again' : 'Ping now'}
+        <button className="btn" type="button" onClick={() => record(retainer, worst.period)}>
+          Record payment
         </button>
-        {!data.reminders.enabled && <RemindersOff />}
-        <SendResult mutation={remind} />
+        <MessageLink contact={retainer.ask_via} />
       </div>
+      {dialog}
     </section>
   )
 }
@@ -493,12 +491,13 @@ function ClientsTile({ clients }: { clients: Client[] }) {
           <ul className="ov-stack">
             {clients.slice(0, STACK_SIZE).map((client) => (
               <li key={client.id} title={client.name}>
-                <Avatar
-                  className={`ov-stack-avatar ${tintClass(client.id)}`}
-                  src={client.avatar_url}
-                  fallback={initials(client.name)}
-                  aria-label={client.name}
-                />
+                <Link to={`/clients/${client.id}`} aria-label={client.name}>
+                  <Avatar
+                    className={`ov-stack-avatar ${tintClass(client.id)}`}
+                    src={client.avatar_url}
+                    fallback={initials(client.name)}
+                  />
+                </Link>
               </li>
             ))}
             {clients.length > STACK_SIZE && (

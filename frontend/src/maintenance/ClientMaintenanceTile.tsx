@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { contactKinds } from '../clients/contactKinds.ts'
 import type { Client } from '../clients/queries.ts'
 import { formatDay, formatNumber, parseDate, todayISO } from '../format.ts'
 import { dueLabel, monthName, ordinal } from './labels.ts'
@@ -45,12 +44,9 @@ export function ClientMaintenanceTile({ client }: { client: Client }) {
 }
 
 function describe(retainer: Retainer): string {
+  // How you ask is on the Contact tile, and when reminders go out is in Settings.
   const parts = [`Due on the ${ordinal(retainer.due_day)}`]
   if (retainer.collection === 'auto_transfer') parts.push('paid by automatic bank transfer')
-  else {
-    parts.push(retainer.ask_via ? `you ask on ${contactKinds[retainer.ask_via.kind].label}` : 'you ask')
-    parts.push('reminder at 09:00 on the due date')
-  }
   if (retainer.ended_on && !retainer.active) {
     const past = retainer.ended_on < todayISO()
     parts.push(past ? `ended ${formatDay(retainer.ended_on, { year: true })}` : `ends ${formatDay(retainer.ended_on)}`)

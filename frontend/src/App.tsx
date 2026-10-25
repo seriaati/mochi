@@ -16,7 +16,7 @@ const pages = [
   { path: '/', label: 'Overview' },
   { path: '/projects', label: 'Projects' },
   { path: '/clients', label: 'Clients' },
-  { path: '/maintenance', label: 'Maintenance' },
+  { path: '/maintenance', label: 'Retainers' },
 ]
 
 /** Where the sliding highlight sits: over the active link, following it on navigation and resize. */

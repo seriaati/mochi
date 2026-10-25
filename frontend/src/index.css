@@ -517,6 +517,12 @@ button {
   color: var(--hero);
 }
 
+/* A secondary button beside it, on the hero's inset panel colour. */
+.tile.ink .btn.secondary {
+  background: var(--hero-inset);
+  color: var(--on-hero);
+}
+
 .btn.danger {
   background: var(--warn-bg);
   color: var(--warn);

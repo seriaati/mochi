@@ -1,13 +1,14 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
-import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
+import { MessageLink } from '../clients/MessageLink.tsx'
 import { Avatar } from '../components/Avatar.tsx'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { daysBetween, formatDay, formatNTD, formatNumber, initials, parseDate, plural } from '../format.ts'
 import { tintClass } from '../tint.ts'
-import { monthChip, monthName, ordinal, scheduleText } from './labels.ts'
+import { findMonth, monthChip, monthName, monthStatusChip, ordinal, scheduleText } from './labels.ts'
 import {
   useMaintenance,
-  useRemindClient,
   useSendTest,
   type CalendarDay,
   type Maintenance,
@@ -16,6 +17,7 @@ import {
 } from './queries.ts'
 import { RetainerDialog } from './RetainerDialog.tsx'
 import { MonthDialog } from './RetainerPaymentDialog.tsx'
+import { useRecordPayment } from './useRecordPayment.tsx'
 import './MaintenancePage.css'
 
 /** "2026-11" for the month `count` months from an ISO date's month. */
@@ -33,12 +35,13 @@ export function MaintenancePage() {
   const maintenance = useMaintenance(month)
   const [adding, setAdding] = useState(false)
   const data = maintenance.data
+  const linked = useLinkedMonth(data)
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Maintenance</h1>
+          <h1 className="page-title">Retainers</h1>
           {data && (
             <p className="page-sub">
               {plural(data.active_count, 'retainer')} · {formatNTD(data.monthly_total)} per month
@@ -52,8 +55,8 @@ export function MaintenancePage() {
         </div>
       </div>
 
-      {maintenance.isPending && <p className="status">Loading maintenance…</p>}
-      {maintenance.error && <p className="status">Couldn't load maintenance: {maintenance.error.message}</p>}
+      {maintenance.isPending && <p className="status">Loading retainers…</p>}
+      {maintenance.error && <p className="status">Couldn't load retainers: {maintenance.error.message}</p>}
 
       {data && (
         <div className="bento">
@@ -75,8 +78,35 @@ export function MaintenancePage() {
       )}
 
       {adding && <RetainerDialog onClose={() => setAdding(false)} />}
+      {linked.opened && <MonthDialog {...linked.opened} onClose={linked.close} />}
     </>
   )
+}
+
+/**
+ * The month a reminder's Record payment link opens, from ?record=<retainer id>&month=YYYY-MM.
+ * Read once, when the data arrives, and dropped from the address so a reload doesn't reopen it.
+ */
+function useLinkedMonth(data: Maintenance | undefined) {
+  const [params, setParams] = useSearchParams()
+  const [link, setLink] = useState(() =>
+    params.has('record') ? { id: Number(params.get('record')), period: `${params.get('month')}-01` } : null,
+  )
+  const [opened, setOpened] = useState<Opened>()
+
+  // Resolved once, so the dialog keeps the month it opened with while a payment refetches.
+  if (link && data) {
+    const retainer = data.retainers.find((r) => r.id === link.id)
+    const month = retainer && findMonth(retainer, link.period)
+    setLink(null)
+    if (retainer && month) setOpened({ retainer, month })
+  }
+
+  useEffect(() => {
+    if (params.has('record')) setParams({}, { replace: true })
+  }, [params, setParams])
+
+  return { opened, close: () => setOpened(undefined) }
 }
 
 /** The note under a reminder button: what was sent, or why it failed. */
@@ -91,8 +121,9 @@ const monthList = (periods: string[]) => [...new Set(periods.map((p) => monthNam
 
 /** The client overdue the longest, with everything they owe past the grace days. */
 function OverdueTile({ data }: { data: Maintenance }) {
-  const remind = useRemindClient()
+  const [dialog, record] = useRecordPayment()
   const [worst] = data.overdue
+  const retainer = data.retainers.find((r) => r.id === worst?.retainer_id)
   const theirs = data.overdue.filter((o) => o.client.id === worst?.client.id)
   const others = new Set(data.overdue.map((o) => o.client.id)).size - (worst ? 1 : 0)
   const reminded = worst?.last_reminded_on
@@ -111,27 +142,29 @@ function OverdueTile({ data }: { data: Maintenance }) {
         {formatNumber(theirs.reduce((sum, o) => sum + o.amount, 0))}
       </p>
       <p className="mt-meta">{meta}</p>
-      {worst && (
+      {worst && retainer && (
         <div className="mt-action">
-          <button
-            className="btn"
-            type="button"
-            disabled={!data.reminders.enabled || remind.isPending}
-            title={data.reminders.enabled ? `Remind ${worst.client.name} on Discord` : 'Reminders are off'}
-            onClick={() => remind.mutate(worst.client.id)}
-          >
-            {reminded ? 'Ping again' : 'Ping now'}
+          <button className="btn" type="button" onClick={() => record(retainer, worst.period)}>
+            Record payment
           </button>
-          <SendResult mutation={remind} />
+          <MessageLink contact={retainer.ask_via} />
         </div>
       )}
+      {dialog}
     </section>
   )
 }
 
 function NextReminderTile({ data }: { data: Maintenance }) {
-  const remind = useRemindClient()
+  const [dialog, record] = useRecordPayment()
   const next = data.next_reminder
+  // The retainer of the oldest month it asks for, which Record payment opens.
+  const retainer =
+    next &&
+    data.retainers.find((r) => {
+      const month = findMonth(r, next.periods[0])
+      return r.client.id === next.client.id && month !== undefined && month.status !== 'paid'
+    })
   let when = 'None'
   if (next) {
     const day = next.at.slice(0, 10)
@@ -153,20 +186,15 @@ function NextReminderTile({ data }: { data: Maintenance }) {
         {next?.last_reminded_on === data.today && ' · reminded today'}
         {next?.pending && !data.reminders.enabled && ' · reminders are off'}
       </p>
-      {next && (
+      {next && retainer && (
         <div className="mt-action">
-          <button
-            className="btn"
-            type="button"
-            disabled={!data.reminders.enabled || remind.isPending}
-            title={data.reminders.enabled ? `Remind ${next.client.name} on Discord now` : 'Reminders are off'}
-            onClick={() => remind.mutate(next.client.id)}
-          >
-            Send now
+          <button className="btn" type="button" onClick={() => record(retainer, next.periods[0])}>
+            Record payment
           </button>
-          <SendResult mutation={remind} />
+          <MessageLink contact={retainer.ask_via} />
         </div>
       )}
+      {dialog}
     </section>
   )
 }
@@ -226,6 +254,9 @@ function CalendarTile({ data, onMonth, onToday }: CalendarProps) {
   const byDay = new Map(data.calendar.map((d) => [d.day, d]))
   const thisMonth = data.today.slice(0, 7) === data.month.slice(0, 7)
   const title = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  // A day with several months due picks one first; one month opens straight away.
+  const [picking, setPicking] = useState<{ day: string; items: Opened[] }>()
+  const [opened, setOpened] = useState<Opened>()
 
   return (
     <section className="tile span-5">
@@ -258,7 +289,16 @@ function CalendarTile({ data, onMonth, onToday }: CalendarProps) {
         ))}
         {Array.from({ length: length }, (_, i) => {
           const day = `${data.month.slice(0, 8)}${String(i + 1).padStart(2, '0')}`
-          return <CalendarCell key={day} day={day} entry={byDay.get(day)} today={day === data.today} />
+          const items = dueMonths(byDay.get(day), data)
+          return (
+            <CalendarCell
+              key={day}
+              day={day}
+              entry={byDay.get(day)}
+              today={day === data.today}
+              onOpen={items.length ? () => (items.length === 1 ? setOpened(items[0]) : setPicking({ day, items })) : undefined}
+            />
+          )
         })}
       </div>
       <div className="mt-legend" aria-hidden="true">
@@ -275,20 +315,87 @@ function CalendarTile({ data, onMonth, onToday }: CalendarProps) {
           Due
         </span>
       </div>
+      {picking && (
+        <DayDialog {...picking} today={data.today} onPick={setOpened} onClose={() => setPicking(undefined)} />
+      )}
+      {opened && <MonthDialog {...opened} onClose={() => setOpened(undefined)} />}
     </section>
   )
 }
 
-function CalendarCell({ day, entry, today }: { day: string; entry?: CalendarDay; today: boolean }) {
+/** The "ask" months due on a calendar day, each opening its payment. Auto transfers need nothing. */
+function dueMonths(entry: CalendarDay | undefined, data: Maintenance): Opened[] {
+  if (!entry) return []
+  const period = `${entry.day.slice(0, 8)}01`
+  return entry.entries.flatMap((e) => {
+    const retainer = data.retainers.find((r) => r.id === e.retainer_id)
+    const month = retainer?.collection === 'ask' ? findMonth(retainer, period) : undefined
+    return retainer && month ? [{ retainer, month }] : []
+  })
+}
+
+type CellProps = { day: string; entry?: CalendarDay; today: boolean; onOpen?: () => void }
+
+function CalendarCell({ day, entry, today, onOpen }: CellProps) {
   const date = parseDate(day).getDate()
   const classes = ['mt-day', entry?.status, today && 'today'].filter(Boolean).join(' ')
   const label = entry
     ? `${formatDay(day)}: ${entry.entries.map((e) => `${e.client.name} ${formatNTD(e.amount)} ${e.status}`).join(', ')}`
     : undefined
+  if (onOpen) {
+    return (
+      <button className={classes} type="button" title={label} aria-label={label} aria-current={today ? 'date' : undefined} onClick={onOpen}>
+        {date}
+      </button>
+    )
+  }
   return (
     <span className={classes} title={label} aria-label={label} aria-current={today ? 'date' : undefined}>
       {date}
     </span>
+  )
+}
+
+type DayProps = { day: string; items: Opened[]; today: string; onPick: (item: Opened) => void; onClose: () => void }
+
+/** Several months due on one day: pick whose payment to record or view. */
+function DayDialog({ day, items, today, onPick, onClose }: DayProps) {
+  const dialog = useRef<DialogHandle>(null)
+
+  return (
+    <Dialog title={`Due ${formatDay(day, { weekday: true })}`} ref={dialog} onClose={onClose}>
+      <ul className="mt-day-list">
+        {items.map((item) => {
+          const { retainer, month } = item
+          const chip = monthStatusChip(month, retainer, today)
+          return (
+            <li key={retainer.id}>
+              <button
+                className="mt-day-row"
+                type="button"
+                onClick={() => {
+                  onPick(item)
+                  dialog.current?.close()
+                }}
+              >
+                <Avatar
+                  className={`mt-avatar ${tintClass(retainer.client.id)}`}
+                  aria-hidden="true"
+                  src={retainer.client.avatar_url}
+                  fallback={initials(retainer.client.name)}
+                />
+                <b>{retainer.client.name}</b>
+                <span className="mt-amount">{formatNTD(month.amount)}</span>
+                {/* "Due Sun" would only repeat the title. */}
+                {(chip.tone === 'ok' || chip.tone === 'late') && (
+                  <span className={`chip mt-status ${chip.tone}`}>{chip.label}</span>
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </Dialog>
   )
 }
 
@@ -328,28 +435,46 @@ function RetainerRow({ retainer, today, onEdit, onMonth }: RowProps) {
   const chip = monthChip(retainer, today)
   const month = retainer.this_month
   const actionable = retainer.collection === 'ask' && month !== null
+  const contact = retainer.ask_via
+  const url = contact && contactUrl(contact)
 
   return (
     <li className={`mt-row${retainer.active ? '' : ' ended'}`}>
-      <Avatar
-        className={`mt-avatar ${tintClass(retainer.client.id)}`}
-        aria-hidden="true"
-        src={retainer.client.avatar_url}
-        fallback={initials(retainer.client.name)}
-      />
+      <Link className="mt-avatar-link" to={`/clients/${retainer.client.id}`} aria-label={`Open ${retainer.client.name}`}>
+        <Avatar
+          className={`mt-avatar ${tintClass(retainer.client.id)}`}
+          src={retainer.client.avatar_url}
+          fallback={initials(retainer.client.name)}
+        />
+      </Link>
       <button className="mt-name" type="button" onClick={onEdit} aria-label={`Edit ${retainer.client.name} retainer`}>
         <b>{retainer.client.name}</b>
         <small>
           {retainer.project && `${retainer.project.name} · `}
-          {scheduleText(retainer)}
+          {scheduleText(retainer, { contact: false })}
         </small>
       </button>
       <span className="mt-amount">{formatNTD(retainer.amount)}</span>
       {retainer.collection === 'auto_transfer' ? (
         <span className="chip good mt-contact">Auto transfer</span>
-      ) : retainer.ask_via ? (
-        <span className="chip mt-contact" title={contactHandle(retainer.ask_via)}>
-          {contactKinds[retainer.ask_via.kind].label} {contactHandle(retainer.ask_via)}
+      ) : contact && url ? (
+        // The platform says how you ask; the link opens the conversation.
+        <a
+          className={`chip mt-contact mt-link kind-${contact.kind}`}
+          href={url}
+          target={url.startsWith('https:') ? '_blank' : undefined}
+          rel="noreferrer"
+          title={`${contactKinds[contact.kind].message}: ${contactHandle(contact)}`}
+        >
+          {contactKinds[contact.kind].label}
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 17 17 7" />
+            <path d="M8 7h9v9" />
+          </svg>
+        </a>
+      ) : contact ? (
+        <span className="chip mt-contact" title={contactHandle(contact)}>
+          {contactKinds[contact.kind].label} {contactHandle(contact)}
         </span>
       ) : (
         <span className="chip mt-contact">No contact</span>
@@ -400,24 +525,29 @@ function RemindersTile({ data }: { data: Maintenance }) {
             ) : (
               <b>{mention_user_id ? '@you' : 'No mention'}</b>
             )}
-            {mention_user_id ? 'mentioned in each ping' : <Link to="/settings">set your Discord ID</Link>}
+            {mention_user_id ? 'mentioned in each ping' : <Link to="/settings#discord">set your Discord ID</Link>}
           </li>
         </ul>
         <div className="mt-hook-action">
-          <button
-            className="btn secondary"
-            type="button"
-            disabled={!enabled || test.isPending}
-            onClick={() => test.mutate()}
-          >
-            Send test
-          </button>
+          <div className="mt-hook-buttons">
+            <Link className="btn secondary" to="/settings#discord">
+              Edit in Settings
+            </Link>
+            <button
+              className="btn secondary"
+              type="button"
+              disabled={!enabled || test.isPending}
+              onClick={() => test.mutate()}
+            >
+              Send test
+            </button>
+          </div>
           <SendResult mutation={test} />
         </div>
       </div>
       {!enabled && (
         <p className="mt-hook-note">
-          Reminders are off. Add a Discord webhook URL in <Link to="/settings">Settings</Link>.
+          Reminders are off. Add a Discord webhook URL in <Link to="/settings#discord">Settings</Link>.
         </p>
       )}
     </section>

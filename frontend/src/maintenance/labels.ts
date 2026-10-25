@@ -33,10 +33,13 @@ export function dueLabel(dueOn: string, today = todayISO()): string {
   return `Due ${formatDay(dueOn)}`
 }
 
-/** "Every 25th · ask on Discord", "Every 1st", plus how it ended or starts. */
-export function scheduleText(retainer: Retainer): string {
+/**
+ * "Every 25th · ask on Discord", "Every 1st", plus how it ended or starts. Without `contact`,
+ * no "ask on", for rows that show the contact beside it.
+ */
+export function scheduleText(retainer: Retainer, { contact = true } = {}): string {
   const parts = [`Every ${ordinal(retainer.due_day)}`]
-  if (retainer.collection === 'ask') {
+  if (contact && retainer.collection === 'ask') {
     parts[0] += retainer.ask_via ? ` · ask on ${contactKinds[retainer.ask_via.kind].label}` : ' · you ask'
   }
   if (retainer.ended_on && !retainer.active) parts.push(`ended ${formatDay(retainer.ended_on)}`)
@@ -63,9 +66,18 @@ export function monthStatusChip(month: Month, retainer: Retainer, today: string)
   return { label: dueLabel(month.due_on, today), tone: retainer.collection === 'ask' ? 'due' : '' }
 }
 
+/** Every month the API sent for a retainer: overdue ones, the recent ones and this month. */
+function knownMonths(retainer: Retainer): Month[] {
+  return [...retainer.overdue, ...retainer.months, ...(retainer.this_month ? [retainer.this_month] : [])]
+}
+
+/** One of those months by its first day, e.g. for a reminder's Record payment link. */
+export function findMonth(retainer: Retainer, period: string): Month | undefined {
+  return knownMonths(retainer).find((m) => m.period === period)
+}
+
 /** Unpaid "ask" months a payment can be recorded for: due and overdue ones, and the next one. */
 export function openMonths(retainer: Retainer): Month[] {
-  const all = [...retainer.overdue, ...retainer.months, ...(retainer.this_month ? [retainer.this_month] : [])]
-  const unpaid = new Map(all.filter((m) => m.status !== 'paid').map((m) => [m.period, m]))
+  const unpaid = new Map(knownMonths(retainer).filter((m) => m.status !== 'paid').map((m) => [m.period, m]))
   return [...unpaid.values()].sort((a, b) => a.period.localeCompare(b.period))
 }
