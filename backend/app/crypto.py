@@ -1,5 +1,5 @@
-"""Encrypts secrets stored in the database, the Discord webhook URL and bot token, with
-ENCRYPTION_KEY (Fernet: AES-128-CBC with an HMAC). The key never touches the database, so a
+"""Encrypts secrets stored in the database, the Discord webhook URL and bot token and the Keni
+API token, with ENCRYPTION_KEY (Fernet: AES-128-CBC with an HMAC). The key never touches the database, so a
 leaked dump alone doesn't reveal them."""
 
 import base64

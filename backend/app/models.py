@@ -253,6 +253,21 @@ class AppSettings(DiscordProfile, Base):
     discord_bot_token_encrypted: Mapped[str | None] = mapped_column(Text)
     # Whose profile is cached here: discord_mention_user_id when it was last synced.
     discord_user_id: Mapped[int | None] = mapped_column(BigInteger)
+    # Keni, where money received is mirrored as income (see app/keni_sync.py). Its base URL,
+    # e.g. https://app.keni.seria.moe. None: not connected.
+    keni_url: Mapped[str | None] = mapped_column(String(255))
+    # A Keni personal API token, encrypted like the bot token.
+    keni_token_encrypted: Mapped[str | None] = mapped_column(Text)
+    # Where new income is recorded, changeable while connected. Names as shown in Settings.
+    keni_wallet_id: Mapped[str | None] = mapped_column(String(36))
+    keni_wallet_name: Mapped[str | None] = mapped_column(String(100))
+    keni_wallet_currency: Mapped[str | None] = mapped_column(String(10))
+    keni_category_id: Mapped[str | None] = mapped_column(String(36))
+    keni_category_name: Mapped[str | None] = mapped_column(String(100))
+    # The local day it was connected. Money already received by then stays out of Keni.
+    keni_connected_on: Mapped[date | None]
+    # Why the last sync stopped, until a sync gets everything through.
+    keni_error: Mapped[str | None] = mapped_column(Text)
 
     @property
     def discord_bot_token_set(self) -> bool:
@@ -268,6 +283,25 @@ class AppSettings(DiscordProfile, Base):
     def discord_webhook_url(self, url: str | None) -> None:
         """Raises crypto.NoKey for a URL without ENCRYPTION_KEY."""
         self.discord_webhook_url_encrypted = crypto.encrypt(url) if url is not None else None
+
+
+class KeniLink(Base):
+    """Money received here and its Keni transaction (see app/keni_sync.py)."""
+
+    __tablename__ = "keni_links"
+
+    # What it mirrors: "payment:<id>", "retainer_payment:<id>", or "retainer:<id>:<YYYY-MM>" for
+    # an auto transfer month. No foreign key: once the source is gone, the next sync deletes its
+    # Keni transaction, then this row.
+    source: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # None: kept out of Keni, as it was received before connecting or was deleted in Keni.
+    keni_id: Mapped[str | None] = mapped_column(String(36))
+    # The wallet it is in, which Keni addresses it through: the one chosen when it was sent.
+    wallet_id: Mapped[str | None] = mapped_column(String(36))
+    # As last sent, to tell when the source changes. None while kept out.
+    amount: Mapped[int | None]
+    paid_on: Mapped[date | None]
+    description: Mapped[str | None] = mapped_column(String(500))
 
 
 class AuthSession(Base):

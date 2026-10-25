@@ -28,7 +28,7 @@ from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import auth, discord  # noqa: E402
+from app import auth, discord, keni  # noqa: E402
 from app.config import settings  # noqa: E402
 from app.db import engine, get_session  # noqa: E402
 from app.main import app  # noqa: E402
@@ -117,3 +117,13 @@ def _no_discord(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(discord, "fetch_user", refuse)
     monkeypatch.setattr(discord.httpx, "get", refuse)
     monkeypatch.setattr(discord.httpx, "post", refuse)
+
+
+@pytest.fixture(autouse=True)
+def _no_keni(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nothing can reach Keni. Tests that sync swap in a fake one."""
+
+    def refuse(*args: object) -> None:
+        raise AssertionError("tests must not reach Keni")
+
+    monkeypatch.setattr(keni, "_request", refuse)

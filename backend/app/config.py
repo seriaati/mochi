@@ -27,9 +27,9 @@ class Settings(BaseSettings):
     # Only changed to point the lookups at a local mock API while testing.
     discord_api_base: str = "https://discord.com/api/v10"
 
-    # Encrypts the Discord webhook URL and bot token in the database: any random string of 32+
-    # characters. Without it, neither can be saved. A new key makes them unreadable, so they
-    # need entering again.
+    # Encrypts the Discord webhook URL, bot token and Keni API token in the database: any random
+    # string of 32+ characters. Without it, none can be saved. A new key makes them unreadable,
+    # so they need entering again.
     encryption_key: Annotated[
         Annotated[SecretStr, Field(min_length=32)] | None, BeforeValidator(blank_to_none)
     ] = None

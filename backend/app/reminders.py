@@ -21,7 +21,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app import discord, discord_sync
+from app import discord, discord_sync, keni_sync
 from app.clock import Clock, clock_for, utc_now
 from app.db import SessionLocal
 from app.maintenance import (
@@ -217,8 +217,8 @@ def _tick() -> None:
 
 
 async def run_forever() -> None:
-    """Started from the app lifespan. Each tick sends due reminders, then refreshes stale
-    Discord profiles. Errors are logged and retried on the next tick."""
+    """Started from the app lifespan. Each tick sends due reminders, refreshes stale Discord
+    profiles, then catches Keni up. Errors are logged and retried on the next tick."""
     while True:
         try:
             await asyncio.to_thread(_tick)
@@ -228,4 +228,8 @@ async def run_forever() -> None:
             await asyncio.to_thread(discord_sync.tick)
         except Exception:
             log.exception("Syncing Discord profiles failed")
+        try:
+            await asyncio.to_thread(keni_sync.tick)
+        except Exception:
+            log.exception("Syncing to Keni failed")
         await asyncio.sleep(TICK_SECONDS)

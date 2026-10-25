@@ -16,6 +16,7 @@ from app.mcp_server import mcp
 from app.routers import (
     auth,
     clients,
+    keni,
     maintenance,
     oauth,
     overview,
@@ -29,8 +30,8 @@ from app.routers import (
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     with SessionLocal() as session:
         discord.load(session)  # the Discord setup saved in Settings
-    # Sends maintenance reminders and refreshes Discord profiles in the background. Tests never
-    # enter the lifespan.
+    # Sends maintenance reminders, refreshes Discord profiles and syncs to Keni in the
+    # background. Tests never enter the lifespan.
     task = asyncio.create_task(reminders.run_forever())
     async with mcp.session_manager.run():
         yield
@@ -62,6 +63,7 @@ protected.include_router(projects.router)
 protected.include_router(retainers.router)
 protected.include_router(maintenance.router)
 protected.include_router(settings.router)
+protected.include_router(keni.router)
 protected.include_router(overview.router)
 protected.include_router(oauth.router)
 app.include_router(protected)
