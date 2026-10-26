@@ -5,7 +5,9 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import { isUnauthorized } from './api.ts'
 import { AuthGate } from './auth/AuthGate.tsx'
 import { loggedOut } from './auth/queries.ts'
+import { showManifest } from './manifest.ts'
 import { AuthorizePage } from './oauth/AuthorizePage.tsx'
+import { savedStudio } from './studio.ts'
 import './index.css'
 import App from './App.tsx'
 
@@ -21,6 +23,9 @@ const queryClient: QueryClient = new QueryClient({
     queries: { staleTime: 30_000, retry: (failures, error) => failures < 1 && !isUnauthorized(error) },
   },
 })
+
+// The last saved studio, so it's the one installed from the login screen too.
+showManifest(savedStudio())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -4,6 +4,7 @@ import { useLogout } from './auth/queries.ts'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
 import { useFavicon } from './favicon.ts'
+import { showManifest } from './manifest.ts'
 import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
 import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
 import { OverviewPage } from './overview/OverviewPage.tsx'
@@ -61,7 +62,9 @@ export default function App() {
     document.title = studio
   }, [studio])
   useEffect(() => {
-    if (settings.data) rememberStudio(settings.data)
+    if (!settings.data) return
+    rememberStudio(settings.data)
+    showManifest(settings.data)
   }, [settings.data])
   useFavicon(settings.data?.studio_logo)
 

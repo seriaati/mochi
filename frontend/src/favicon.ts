@@ -13,17 +13,17 @@ const SIZE = 64
 const RADIUS = 7 / 26
 
 /** The logo fitted into a transparent square with rounded corners, as a PNG data: URL. */
-async function iconFrom(logo: string): Promise<string> {
+export async function iconFrom(logo: string, size = SIZE): Promise<string> {
   const image = new Image()
   image.src = logo
   await image.decode()
-  const scale = SIZE / Math.max(image.naturalWidth, image.naturalHeight)
+  const scale = size / Math.max(image.naturalWidth, image.naturalHeight)
   const width = image.naturalWidth * scale
   const height = image.naturalHeight * scale
-  const x = (SIZE - width) / 2
-  const y = (SIZE - height) / 2
+  const x = (size - width) / 2
+  const y = (size - height) / 2
   const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = SIZE
+  canvas.width = canvas.height = size
   const context = canvas.getContext('2d')!
   context.imageSmoothingQuality = 'high'
   context.beginPath()
