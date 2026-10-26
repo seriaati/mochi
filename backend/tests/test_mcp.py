@@ -435,6 +435,23 @@ def test_contact_and_payment_tools() -> None:
     assert call("get_project", project_id=project["id"])["total_paid"] == 400
 
 
+def test_update_client_sets_the_discord_id() -> None:
+    client_id = call("create_client", client={"name": "Northwind"})["id"]
+    linked = call(
+        "update_client", client_id=client_id, changes={"discord_user_id": "1207716883264966748"}
+    )
+    assert [(c["kind"], c["discord_user_id"]) for c in linked["contacts"]] == [
+        ("discord", "1207716883264966748")
+    ]
+
+    renamed = call("update_client", client_id=client_id, changes={"name": "Northwind Coffee"})
+    assert renamed["contacts"][0]["discord_user_id"] == "1207716883264966748"
+
+    unlinked = call("update_client", client_id=client_id, changes={"discord_user_id": None})
+    assert unlinked["contacts"][0]["discord_user_id"] is None
+    assert unlinked["name"] == "Northwind Coffee"
+
+
 def test_discord_ids_match_the_output_schemas() -> None:
     client = call(
         "create_client", client={"name": "Northwind", "discord_user_id": "1207716883264966748"}

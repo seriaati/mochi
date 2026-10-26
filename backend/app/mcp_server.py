@@ -110,7 +110,7 @@ def _merge[M: BaseModel](model: type[M], current: object, changes: BaseModel) ->
     return model.model_validate(values | changes.model_dump(exclude_unset=True))
 
 
-ClientChanges = _changes(ClientIn)
+ClientChanges = _changes(ClientUpdate)
 ContactChanges = _changes(ContactIn)
 ProjectChanges = _changes(ProjectIn)
 AdditionChanges = _changes(AdditionIn)
@@ -143,12 +143,15 @@ async def create_client(client: ClientCreate) -> ClientOut:
 
 @mcp.tool(annotations=_ann("Update client", destructive=True))
 async def update_client(client_id: int, changes: ClientChanges) -> ClientOut:
-    """Edits a client. Changes only the fields in `changes`; null clears an optional one."""
+    """Edits a client. Changes only the fields in `changes`; null clears an optional one. A
+    discord_user_id goes on their first Discord contact (one is added if they have none); null
+    takes it off."""
 
     def work(s: Session, c: Clock) -> ClientOut:
         body = _merge(ClientIn, clients._get_client(s, client_id), changes)
-        # Without discord_user_id, so the client's contacts stay as they are.
-        update = ClientUpdate.model_validate(body.model_dump())
+        # discord_user_id only when sent, so otherwise the client's contacts stay as they are.
+        discord = changes.model_dump(include={"discord_user_id"}, exclude_unset=True)
+        update = ClientUpdate.model_validate(body.model_dump() | discord)
         return clients.update_client(client_id, update, session=s, clock=c)
 
     return await _run(work)
