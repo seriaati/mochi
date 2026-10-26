@@ -20,7 +20,7 @@ Mochi is a small personal dashboard I made for myself for freelance work.
 Requires Docker, [uv](https://docs.astral.sh/uv/) and [bun](https://bun.sh/).
 
 ```sh
-docker compose up -d                 # PostgreSQL on localhost:5433
+docker compose up -d db              # PostgreSQL on localhost:5433
 
 cd backend
 cp .env.example .env                 # then set AUTH_PASSWORD_HASH, ENCRYPTION_KEY, and COOKIE_SECURE=false
@@ -52,6 +52,14 @@ Settings can connect [Keni](https://keni.seria.moe), a personal finance tracker,
 The API syncs once a minute, in the same loop as the reminders. When Keni can't be reached or refuses a change, Settings shows why and the next minute retries. Amounts are sent as NT$ whatever the wallet's currency. The token is stored encrypted with `ENCRYPTION_KEY`.
 
 ## Deployment
+
+### Docker Compose
+
+`docker-compose.yml` runs the whole app on one origin: PostgreSQL, the API, and nginx serving the frontend and passing `/api`, `/mcp` and the OAuth routes to the API. Copy `.env.example` to `.env` and fill it in, then run `docker compose up -d --build`. The app is on port 8080; put your own reverse proxy in front of it for HTTPS. Behind one, the login throttle sees the proxy's IP for every client.
+
+Pushes to `main` and `v*` tags also publish both images to `ghcr.io/seriaati/mochi-backend` and `ghcr.io/seriaati/mochi-frontend`.
+
+### Cloudflare Pages and a separate API
 
 With the frontend on Cloudflare Pages at `dash.example.com` and the API at `api.example.com`:
 

@@ -1,12 +1,17 @@
+# The whole app: `docker compose up -d --build`, then open http://localhost:8080. Settings come
+# from .env next to this file (see .env.example). For development, start only the database:
+# `docker compose up -d db`.
 services:
   db:
     image: postgres:18
+    restart: unless-stopped
     environment:
       POSTGRES_USER: freelance
       POSTGRES_PASSWORD: freelance
       POSTGRES_DB: freelance
     ports:
-      - "5433:5432"
+      # For the API in development. This machine only: Docker's ports skip the firewall.
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -14,6 +19,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    build: backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://freelance:freelance@db:5432/freelance
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # The app and the API share the frontend's origin; nginx passes the API's paths through.
+      FRONTEND_ORIGIN: ${APP_URL:-http://localhost:8080}
+      PUBLIC_URL: ${APP_URL:-http://localhost:8080}
+      # Only nginx can reach the API, so trust the client IP it forwards (for the login throttle).
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:
