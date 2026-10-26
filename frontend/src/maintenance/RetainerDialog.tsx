@@ -3,6 +3,7 @@ import { contactHandle, contactKinds } from '../clients/contactKinds.ts'
 import { useClients, type Client } from '../clients/queries.ts'
 import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, todayISO } from '../format.ts'
 import { useProjects } from '../projects/queries.ts'
@@ -144,7 +145,7 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
         </div>
         <div className="field">
           <span id="collection-label">How it's paid</span>
-          <div className="segmented" role="group" aria-labelledby="collection-label">
+          <Segmented role="group" aria-labelledby="collection-label">
             <button type="button" aria-pressed={collection === 'ask'} onClick={() => setCollection('ask')}>
               I ask for it
             </button>
@@ -155,7 +156,7 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
             >
               Auto transfer
             </button>
-          </div>
+          </Segmented>
           <small>
             {collection === 'ask'
               ? 'You get a Discord reminder at 09:00 on the due date and record each payment.'

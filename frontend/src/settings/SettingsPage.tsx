@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
+import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, plural } from '../format.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
@@ -111,7 +112,7 @@ function ThemeTile() {
       <p className="settings-text">
         Light is Bento, dark is Bento Night. System follows this device's setting. Saved in this browser.
       </p>
-      <div className="segmented settings-theme" role="group" aria-label="Theme">
+      <Segmented className="settings-theme" role="group" aria-label="Theme">
         {themes.map(({ value, label }) => (
           <button
             key={value}
@@ -125,7 +126,7 @@ function ThemeTile() {
             {label}
           </button>
         ))}
-      </div>
+      </Segmented>
     </section>
   )
 }

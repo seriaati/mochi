@@ -102,7 +102,8 @@ Reuse these instead of writing new ones:
 - **Status and progress:**
   - `.chip`, `.chip.good`, `.chip.warn`
   - `.track` with `<i style="width: N%">` for progress; `.track.open` (dashed) for "no end date"
-- **Also shared:** `.segmented` (filters, buttons with `aria-pressed`), `.search`, `.tile-head` (label plus a link on one line), `.empty-note`.
+- **`Segmented`** (`src/components/Segmented.tsx`): every `.segmented` group (filters, buttons with `aria-pressed`); its highlight slides to the pressed button like the nav pill.
+- **Also shared:** `.search`, `.tile-head` (label plus a link on one line), `.empty-note`.
 - **Destructive actions** confirm in two steps on the same button, e.g. "Delete" becomes "Confirm delete". Don't use `window.confirm`.
 
 ## Content

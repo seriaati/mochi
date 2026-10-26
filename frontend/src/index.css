@@ -416,6 +416,7 @@ svg.email-icon {
 
 /* Segmented filter: buttons with aria-pressed. */
 .segmented {
+  position: relative;
   display: flex;
   gap: 4px;
   padding: 4px;
@@ -424,6 +425,8 @@ svg.email-icon {
 }
 
 .segmented button {
+  position: relative;
+  z-index: 1;
   height: 36px;
   transition: color 0.2s ease, background-color 0.2s ease;
   padding: 0 14px;
@@ -442,6 +445,21 @@ svg.email-icon {
   background: var(--nav-on);
   color: var(--ink);
 }
+
+/* The pressed button's highlight, slid into place by Segmented. */
+.segmented-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 10px;
+  background: var(--nav-on);
+  transition:
+    transform 0.4s var(--ease-spring),
+    width 0.4s var(--ease-spring),
+    height 0.4s var(--ease-spring);
+}
+
+.segmented:has(.segmented-pill) button[aria-pressed='true'] { background: none; }
 
 .segmented button span {
   margin-left: 6px;

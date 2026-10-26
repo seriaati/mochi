@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
+import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatNumber, formatNTD, plural, todayISO } from '../format.ts'
 import { ProjectCard } from './ProjectCard.tsx'
@@ -63,7 +64,7 @@ export function ProjectsPage() {
           )}
         </div>
         <div className="page-actions">
-          <div className="segmented" role="group" aria-label="Filter projects">
+          <Segmented role="group" aria-label="Filter projects">
             {(Object.keys(filters) as Filter[]).map((key) => (
               <button
                 key={key}
@@ -75,7 +76,7 @@ export function ProjectsPage() {
                 <span>{all.filter(filters[key].test).length}</span>
               </button>
             ))}
-          </div>
+          </Segmented>
           <div className="project-sort">
             <Select
               aria-label="Sort projects"
