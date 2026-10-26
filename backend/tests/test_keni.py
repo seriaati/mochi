@@ -213,6 +213,12 @@ def test_wrong_token_or_unreachable_keni_is_a_bad_gateway(
     assert response.json()["detail"] == "Couldn't reach Keni: Connection refused"
 
 
+def test_options_need_an_encryption_key(client: TestClient) -> None:
+    response = client.post("/api/settings/keni/options", json={"url": URL, "token": TOKEN})
+    assert response.status_code == 409
+    assert "ENCRYPTION_KEY" in response.json()["detail"]
+
+
 def test_url_must_be_http(client: TestClient) -> None:
     response = client.post("/api/settings/keni/options", json={"url": "keni", "token": TOKEN})
     assert response.status_code == 422

@@ -53,6 +53,13 @@ def _saved_account(row: AppSettings) -> keni.Account:
     return account
 
 
+def _need_key() -> None:
+    if not crypto.can_encrypt():
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Set ENCRYPTION_KEY on the API before connecting Keni"
+        )
+
+
 def _options(account: keni.Account) -> KeniOptionsOut:
     try:
         wallets, categories = keni.wallets(account), keni.categories(account)
@@ -85,7 +92,10 @@ def get_keni(session: SessionDep, today: TodayDep) -> KeniOut:
 
 @router.post("/options")
 def find_options(body: KeniLogin) -> KeniOptionsOut:
-    """The wallets and categories a token can record in, to pick from before connecting."""
+    """The wallets and categories a token can record in, to pick from before connecting.
+    Refused without ENCRYPTION_KEY, as connecting would be, so the API never fetches a URL it was
+    just handed for nothing (e.g. on a demo with a public password)."""
+    _need_key()
     return _options(keni.Account(body.url, body.token))
 
 
@@ -99,10 +109,7 @@ def get_options(session: SessionDep) -> KeniOptionsOut:
 def connect(body: KeniConnectIn, session: SessionDep, today: TodayDep) -> KeniOut:
     """Connects (again) with the token stored encrypted. Money received from now on is sent to
     the wallet and category; what is already recorded stays out of Keni."""
-    if not crypto.can_encrypt():
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Set ENCRYPTION_KEY on the API before connecting Keni"
-        )
+    _need_key()
     row = _row(session)
     _choose(row, keni.Account(body.url, body.token), body)
     row.keni_url = body.url
