@@ -1,4 +1,4 @@
-import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
+import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref, type RefObject } from 'react'
 
 /** Closes the dialog with its exit animation, then calls onClose. */
 export type DialogHandle = { close: () => void }
@@ -20,6 +20,7 @@ export function Dialog({ title, onClose, children, ref }: Props) {
     const dialog = dialogRef.current
     if (dialog && !dialog.open) dialog.showModal()
   }, [])
+  useSwipeToClose(dialogRef, setClosing)
 
   return (
     <dialog
@@ -41,4 +42,80 @@ export function Dialog({ title, onClose, children, ref }: Props) {
       {children}
     </dialog>
   )
+}
+
+// Where the dialog is a bottom sheet; matches the phone query in index.css.
+const phone = matchMedia('(max-width: 700px)')
+
+/**
+ * On phones, dragging the sheet down follows the finger, and letting go far enough down, or with a
+ * flick, closes it. It only starts once the sheet is scrolled to the top, so a long form scrolls
+ * back up first.
+ */
+function useSwipeToClose(ref: RefObject<HTMLDialogElement | null>, setClosing: (closing: boolean) => void) {
+  useEffect(() => {
+    const dialog = ref.current
+    if (!dialog) return
+    let start: { y: number; time: number } | null = null
+    let offset = 0
+
+    const scrolled = (target: Element) => {
+      for (let el: Element | null = target; el && dialog.contains(el); el = el.parentElement) {
+        if (el.scrollTop > 0) return true
+      }
+      return false
+    }
+
+    const settle = () => {
+      start = null
+      dialog.style.transition = 'transform 0.3s var(--ease-out)'
+      dialog.style.transform = ''
+    }
+
+    const onStart = (event: TouchEvent) => {
+      const target = event.target as Element
+      const touch = event.touches[0]
+      // Not on the backdrop (which targets the dialog too), nor in an open dropdown's menu.
+      if (!phone.matches || event.touches.length > 1 || touch.clientY < dialog.getBoundingClientRect().top) return
+      if (target.closest('[popover]') || scrolled(target)) return
+      start = { y: touch.clientY, time: event.timeStamp }
+      offset = 0
+    }
+
+    const onMove = (event: TouchEvent) => {
+      if (!start) return
+      const dy = event.touches[0].clientY - start.y
+      // Pulling up scrolls the sheet as usual.
+      if (offset === 0 && dy < 0) {
+        start = null
+        return
+      }
+      event.preventDefault()
+      offset = Math.max(dy, 0)
+      dialog.style.transition = 'none'
+      dialog.style.transform = `translateY(${offset}px)`
+    }
+
+    const onEnd = (event: TouchEvent) => {
+      if (!start) return
+      const flick = offset > 24 && offset / (event.timeStamp - start.time) > 0.5 // px per ms
+      if (offset > dialog.offsetHeight / 4 || flick) {
+        start = null
+        setClosing(true) // the exit animation carries on from where the finger left it
+      } else {
+        settle()
+      }
+    }
+
+    dialog.addEventListener('touchstart', onStart, { passive: true })
+    dialog.addEventListener('touchmove', onMove, { passive: false })
+    dialog.addEventListener('touchend', onEnd)
+    dialog.addEventListener('touchcancel', settle)
+    return () => {
+      dialog.removeEventListener('touchstart', onStart)
+      dialog.removeEventListener('touchmove', onMove)
+      dialog.removeEventListener('touchend', onEnd)
+      dialog.removeEventListener('touchcancel', settle)
+    }
+  }, [ref, setClosing])
 }
