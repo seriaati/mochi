@@ -33,7 +33,8 @@ export function Dialog({ title, onClose, children, ref }: Props) {
       }}
       onClose={onClose}
       onAnimationEnd={(event) => {
-        if (event.animationName === 'dialog-out') onClose()
+        // sheet-out on phones, where the dialog is a bottom sheet.
+        if (event.animationName === 'dialog-out' || event.animationName === 'sheet-out') onClose()
       }}
     >
       <h2 id={titleId}>{title}</h2>

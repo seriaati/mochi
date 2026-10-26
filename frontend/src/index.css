@@ -641,6 +641,15 @@ button {
   to { opacity: 0; }
 }
 
+/* The same, as a bottom sheet on phones. */
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+
+@keyframes sheet-out {
+  to { transform: translateY(100%); }
+}
+
 .dialog[open] { animation: dialog-in 0.35s var(--ease-spring); }
 .dialog::backdrop { background: var(--backdrop); }
 .dialog[open]::backdrop { animation: fade-in 0.25s ease-out; }
@@ -1064,6 +1073,19 @@ button {
 
   .page-actions { flex-basis: 100%; }
   .search { width: 100%; }
+
+  /* Dialogs are bottom sheets, their buttons a thumb's reach away. */
+  .dialog {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100% - 24px);
+    margin: auto 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    border-radius: var(--radius-tile) var(--radius-tile) 0 0;
+  }
+
+  .dialog[open] { animation: sheet-in 0.35s var(--ease-out); }
+  .dialog[open].closing { animation: sheet-out 0.2s ease-in forwards; }
 }
 
 @media (prefers-reduced-motion: reduce) {
