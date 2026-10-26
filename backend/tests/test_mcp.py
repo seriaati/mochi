@@ -9,6 +9,7 @@ from contextlib import nullcontext
 from datetime import timedelta
 from urllib.parse import parse_qs, urlsplit
 
+import jsonschema
 import pytest
 from fastapi.testclient import TestClient
 from mcp.server.fastmcp.exceptions import ToolError
@@ -432,6 +433,29 @@ def test_contact_and_payment_tools() -> None:
     assert moved["amount"] == 400
     assert moved["note"] == "Deposit"
     assert call("get_project", project_id=project["id"])["total_paid"] == 400
+
+
+def test_discord_ids_match_the_output_schemas() -> None:
+    client = call(
+        "create_client", client={"name": "Northwind", "discord_user_id": "1207716883264966748"}
+    )
+    contact = client["contacts"][0]
+    call(
+        "create_retainer",
+        retainer={
+            "client_id": client["id"],
+            "amount": 3000,
+            "due_day": 5,
+            "collection": "ask",
+            "ask_via_id": contact["id"],
+            "started_on": "2026-09-01",
+        },
+    )
+    tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+    for name in ("list_clients", "list_retainers"):
+        _, structured = asyncio.run(mcp.call_tool(name, {}))
+        jsonschema.validate(structured, tools[name].outputSchema)
+    assert contact["discord_user_id"] == "1207716883264966748"
 
 
 def test_settings_tools() -> None:

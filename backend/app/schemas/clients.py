@@ -2,15 +2,29 @@ import enum
 from datetime import date, datetime
 from typing import Annotated, Self
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, PlainSerializer, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    WithJsonSchema,
+    model_validator,
+)
 
 from app.maintenance import ClientFlag
 from app.models import ContactKind
 from app.schemas.common import Name, OptionalName, OptionalText, blank_to_none
 
 # Discord user IDs are 64-bit snowflakes. They travel as strings because
-# JavaScript numbers can't hold them exactly.
-Snowflake = Annotated[int, Field(ge=10**16, lt=2**63), PlainSerializer(str, return_type=str)]
+# JavaScript numbers can't hold them exactly. The schema says string for input
+# too, so it matches the output, though a number is still accepted.
+Snowflake = Annotated[
+    int,
+    Field(ge=10**16, lt=2**63),
+    PlainSerializer(str, return_type=str),
+    WithJsonSchema({"type": "string", "pattern": "^[0-9]{17,19}$"}),
+]
 
 
 class ContactIn(BaseModel):
