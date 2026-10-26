@@ -4,6 +4,7 @@ import { useLogout } from './auth/queries.ts'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
 import { useFavicon } from './favicon.ts'
+import { useInstall } from './install.ts'
 import { showManifest } from './manifest.ts'
 import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
 import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
@@ -57,6 +58,7 @@ export default function App() {
   const studio = brand?.studio_name ?? 'Studio'
   const logo = brand?.studio_logo
   const logout = useLogout()
+  const install = useInstall()
 
   useEffect(() => {
     document.title = studio
@@ -88,6 +90,15 @@ export default function App() {
               {page.label}
             </NavLink>
           ))}
+          {install && (
+            <button className="nav-icon nav-button" type="button" aria-label="Install app" title="Install app" onClick={install}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+            </button>
+          )}
           <NavLink to="/settings" className="nav-icon" aria-label="Settings" title="Settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="3" />
@@ -95,7 +106,7 @@ export default function App() {
             </svg>
           </NavLink>
           <button
-            className="nav-icon nav-logout"
+            className="nav-icon nav-button"
             type="button"
             aria-label="Log out"
             title={logout.error ? `Couldn't log out: ${logout.error.message}` : 'Log out'}

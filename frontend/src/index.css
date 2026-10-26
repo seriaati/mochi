@@ -178,8 +178,8 @@ a {
   padding: 8px 10px;
 }
 
-/* Log out, beside the settings cog. */
-.nav-logout {
+/* Icon buttons beside the settings cog: install and log out. */
+.nav-button {
   position: relative;
   z-index: 1;
   border: 0;
