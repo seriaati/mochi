@@ -211,7 +211,7 @@ def test_sign_in_and_use_the_tools(
                 "clientInfo": {"name": "test", "version": "1"},
             },
         )
-        assert init["result"]["serverInfo"]["name"] == "Freelance Dashboard"
+        assert init["result"]["serverInfo"]["name"] == "Mochi"
         rpc("notifications/initialized", {}, request_id=None)
 
         tools = rpc("tools/list", {})["result"]["tools"]

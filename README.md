@@ -1,4 +1,4 @@
-# freelance-dashboard
+# Mochi
 
 A small personal dashboard for freelance work: projects and their paid additions, clients and their contact methods, and monthly maintenance fees with Discord reminders.
 

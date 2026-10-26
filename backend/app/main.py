@@ -38,7 +38,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     task.cancel()
 
 
-app = FastAPI(title="Freelance Dashboard", lifespan=lifespan)
+app = FastAPI(title="Mochi", lifespan=lifespan)
 
 # Added first so it runs inside CORS, whose headers then reach the browser on a 403 too.
 app.add_middleware(CSRFMiddleware)

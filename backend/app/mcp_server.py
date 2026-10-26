@@ -47,7 +47,7 @@ from app.schemas.projects import (
 from app.schemas.settings import SettingsIn, SettingsText
 
 mcp = FastMCP(
-    name="Freelance Dashboard",
+    name="Mochi",
     instructions=(
         "A freelancer's dashboard: clients and their contact methods, projects with their paid "
         "additions and payments, and clients' monthly maintenance fees (retainers). Money is "

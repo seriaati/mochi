@@ -37,7 +37,7 @@ from app.models import Client, Collection, ContactMethod, ReminderLog, Retainer
 log = logging.getLogger(__name__)
 
 TICK_SECONDS = 60
-TEST_LINE = "Test from your freelance dashboard: maintenance reminders will post here."
+TEST_LINE = "Test from Mochi: maintenance reminders will post here."
 
 
 @dataclass(frozen=True)

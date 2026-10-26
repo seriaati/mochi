@@ -1,6 +1,6 @@
-# freelance-dashboard
+# Mochi
 
-A single-user dashboard for freelance work: a FastAPI + PostgreSQL backend in `backend/`, and a React + Vite frontend in `frontend/` (bun). See `README.md` for setup.
+Mochi is a single-user dashboard for freelance work: a FastAPI + PostgreSQL backend in `backend/`, and a React + Vite frontend in `frontend/` (bun). See `README.md` for setup.
 
 ## UI work
 

@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "API for the freelance dashboard"
+description = "API for Mochi, a freelance dashboard"
 requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.20.1",
