@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
+import { Select } from '../components/Select.tsx'
 import { formatNumber, formatNTD, plural, todayISO } from '../format.ts'
 import { ProjectCard } from './ProjectCard.tsx'
 import { ProjectDialog } from './ProjectDialog.tsx'
@@ -14,16 +15,38 @@ const filters = {
 
 type Filter = keyof typeof filters
 
+// Unfinished projects come first under either order. ISO dates compare as strings.
+const sorts = {
+  due: {
+    label: 'Sort by due date',
+    compare: (a: Project, b: Project) =>
+      Number(a.due_on === null) - Number(b.due_on === null) ||
+      (a.due_on ?? '').localeCompare(b.due_on ?? ''),
+  },
+  start: {
+    label: 'Sort by start date',
+    compare: (a: Project, b: Project) => b.started_on.localeCompare(a.started_on),
+  },
+}
+
+type Sort = keyof typeof sorts
+
+const byDone = (a: Project, b: Project) =>
+  Number(a.status === 'done') - Number(b.status === 'done')
+
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 
 export function ProjectsPage() {
   const projects = useProjects()
   const [filter, setFilter] = useState<Filter>('all')
+  const [sort, setSort] = useState<Sort>('due')
   const [adding, setAdding] = useState(false)
   const navigate = useNavigate()
 
   const all = projects.data ?? []
-  const shown = all.filter(filters[filter].test)
+  const shown = all
+    .filter(filters[filter].test)
+    .sort((a, b) => byDone(a, b) || sorts[sort].compare(a, b))
   const year = todayISO().slice(0, 4)
   const open = all.filter(filters.open.test)
   const doneThisYear = all.filter((p) => p.status === 'done' && p.delivered_on?.startsWith(year))
@@ -52,6 +75,17 @@ export function ProjectsPage() {
                 <span>{all.filter(filters[key].test).length}</span>
               </button>
             ))}
+          </div>
+          <div className="project-sort">
+            <Select
+              aria-label="Sort projects"
+              value={sort}
+              onChange={setSort}
+              options={(Object.keys(sorts) as Sort[]).map((key) => ({
+                value: key,
+                label: sorts[key].label,
+              }))}
+            />
           </div>
           <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
             New project

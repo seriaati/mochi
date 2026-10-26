@@ -11,6 +11,8 @@ type Props<T extends string> = {
   /** Submits the value with the form under this name. */
   name?: string
   required?: boolean
+  /** Names the field when no <label> wraps it. */
+  'aria-label'?: string
 }
 
 const GAP = 6 // px between the field and its menu
@@ -28,6 +30,7 @@ export function Select<T extends string>({
   placeholder,
   name,
   required,
+  'aria-label': ariaLabel,
 }: Props<T>) {
   const id = useId()
   const field = useRef<HTMLButtonElement>(null)
@@ -150,6 +153,7 @@ export function Select<T extends string>({
         type="button"
         className="select-field"
         role="combobox"
+        aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-menu`}

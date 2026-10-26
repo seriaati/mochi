@@ -9,6 +9,15 @@
   color: var(--muted);
 }
 
+.project-sort {
+  min-width: 210px;
+}
+
+/* --field matches the page ground, so sit on the filter's ground instead. */
+.project-sort .select-field {
+  background: var(--nav-bg);
+}
+
 .project-card {
   color: var(--ink);
   transition: transform 0.15s ease;
