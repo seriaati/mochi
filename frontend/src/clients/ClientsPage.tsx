@@ -52,7 +52,7 @@ export function ClientsPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <button className="btn" type="button" onClick={() => setAdding(true)}>
+          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
             Add client
           </button>
         </div>

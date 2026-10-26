@@ -51,7 +51,7 @@ export function MaintenancePage() {
           )}
         </div>
         <div className="page-actions">
-          <button className="btn" type="button" onClick={() => setAdding(true)}>
+          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
             Add retainer
           </button>
         </div>

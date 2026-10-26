@@ -53,7 +53,7 @@ export function ProjectsPage() {
               </button>
             ))}
           </div>
-          <button className="btn" type="button" onClick={() => setAdding(true)}>
+          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
             New project
           </button>
         </div>

@@ -1041,6 +1041,28 @@ button {
 
   .nav-actions .nav-icon { padding: 13px; }
 
+  /* The page's main action floats above the nav, in thumb reach. */
+  .page-main {
+    position: fixed;
+    z-index: 10;
+    right: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    width: auto;
+    height: 48px;
+    padding: 0 20px;
+    border-radius: 16px;
+    /* The edge keeps it apart from a hero tile of its own colour. */
+    box-shadow:
+      0 0 0 1px var(--track),
+      0 12px 32px rgba(0, 0, 0, 0.14);
+  }
+
+  .shell:has(.page-main) { padding-bottom: calc(172px + env(safe-area-inset-bottom)); }
+
+  /* Fade only: a transform would pin the floating action to the header while it plays. */
+  .page .page-head { animation-name: page-in; }
+
+  .page-actions { flex-basis: 100%; }
   .search { width: 100%; }
 }
 

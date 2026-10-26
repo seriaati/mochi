@@ -101,7 +101,7 @@ function ProjectTiles({ project }: { project: Project }) {
           >
             {confirmingDelete ? 'Delete with its payments?' : 'Delete'}
           </button>
-          <button className="btn" type="button" onClick={() => setAddition(null)}>
+          <button className="btn page-main" type="button" onClick={() => setAddition(null)}>
             Add addition
           </button>
         </div>
