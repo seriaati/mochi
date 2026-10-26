@@ -47,11 +47,11 @@
   --hero-warn: light-dark(#f6b99a, #8a3a12);
   --hero-line: light-dark(#3a3a37, #d4d3cd);
 
-  /* Mochi's mark (components/MochiMark.tsx): outlined on lavender in light, cream on ink in dark */
-  --mark-ground: light-dark(#e5e3f3, #1c1c1a);
+  /* Mochi's mark (components/MochiMark.tsx): outlined on lavender in light, on deep lavender in dark */
+  --mark-ground: light-dark(#e5e3f3, #2d2a4a);
   --mark-mochi: light-dark(#fbfaf7, #f2f1ec);
   --mark-outline: light-dark(#1c1c1a, transparent);
-  --mark-shadow: light-dark(#cfcbe8, #2e2e2b); /* under the mochi */
+  --mark-shadow: light-dark(#cfcbe8, #1c1a33); /* under the mochi */
   --mark-face: light-dark(#1c1c1a, #1c1c1a); /* eyes */
   --mark-blush: light-dark(#e89f82, #e89f82);
 
