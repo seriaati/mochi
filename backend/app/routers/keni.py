@@ -96,7 +96,7 @@ def find_options(body: KeniLogin) -> KeniOptionsOut:
     Refused without ENCRYPTION_KEY, as connecting would be, so the API never fetches a URL it was
     just handed for nothing (e.g. on a demo with a public password)."""
     _need_key()
-    return _options(keni.Account(body.url, body.token))
+    return _options(keni.Account(str(body.url), body.token))
 
 
 @router.get("/options")
@@ -111,8 +111,8 @@ def connect(body: KeniConnectIn, session: SessionDep, today: TodayDep) -> KeniOu
     the wallet and category; what is already recorded stays out of Keni."""
     _need_key()
     row = _row(session)
-    _choose(row, keni.Account(body.url, body.token), body)
-    row.keni_url = body.url
+    _choose(row, keni.Account(str(body.url), body.token), body)
+    row.keni_url = str(body.url)
     row.keni_token_encrypted = crypto.encrypt(body.token)
     keni_sync.connect(session, row, today)
     session.commit()

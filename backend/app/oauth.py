@@ -191,8 +191,12 @@ def _issue(
 
 def exchange_code(session: Session, now: datetime, code: AuthorizationCode) -> TokenResponse:
     # Deleting decides which of two simultaneous exchanges of one code wins.
-    used = session.execute(delete(OAuthCode).where(OAuthCode.code_hash == token_hash(code.code)))
-    if used.rowcount == 0:
+    used = session.scalar(
+        delete(OAuthCode)
+        .where(OAuthCode.code_hash == token_hash(code.code))
+        .returning(OAuthCode.code_hash)
+    )
+    if used is None:
         raise TokenError("invalid_grant", "authorization code already used")
     return _issue(session, now, code.client_id, code.scopes, code.resource)
 

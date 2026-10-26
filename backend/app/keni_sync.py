@@ -17,7 +17,7 @@ A transaction deleted in Keni is kept out from then on too.
 """
 
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, astuple, dataclass
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
@@ -127,8 +127,10 @@ def plan(session: Session, row: AppSettings, today: date) -> Plan:
         link = links.get(source)
         if link is None:
             create.append((source, entry))
-        elif link.keni_id is not None and entry != Entry(
-            link.amount, link.paid_on, link.description
+        elif link.keni_id is not None and astuple(entry) != (
+            link.amount,
+            link.paid_on,
+            link.description,
         ):
             update.append((link, entry))
     for source, link in links.items():
@@ -189,10 +191,12 @@ def sync(session: Session, now: datetime) -> int:
     session.commit()
     try:
         for link in todo.delete:
+            assert link.wallet_id is not None and link.keni_id is not None
             keni.delete(account, link.wallet_id, link.keni_id)
             session.delete(link)
             session.commit()
         for link, entry in todo.update:
+            assert link.wallet_id is not None and link.keni_id is not None
             when = _at(entry.paid_on, clock.tz)
             args = (account, link.wallet_id, link.keni_id, entry.amount, when, entry.description)
             if keni.update(*args):

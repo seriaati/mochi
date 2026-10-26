@@ -2,7 +2,7 @@ import math
 from datetime import date, datetime
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import Select, func, select
+from sqlalchemy import Row, Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import discord, discord_sync
@@ -23,7 +23,7 @@ from app.schemas.clients import ClientCreate, ClientOut, ClientUpdate, ContactIn
 router = APIRouter(prefix="/api/clients", tags=["clients"])
 
 
-def _with_stats() -> Select[tuple[Client, int, int, int]]:
+def _with_stats() -> Select[Client, int, int, int]:
     """Clients with their contacts, retainers and the project figures the cards show."""
     project_count = select(func.count(Project.id)).where(Project.client_id == Client.id)
     project_total = select(func.coalesce(func.sum(Project.price), 0)).where(
@@ -54,9 +54,8 @@ def contact_out(contact: ContactMethod) -> ContactOut:
     return ContactOut.model_validate(contact).model_copy(update={"discord_profile": profile})
 
 
-def _out(
-    client: Client, project_count: int, projects: int, additions: int, today: date
-) -> ClientOut:
+def _out(row: Row[Client, int, int, int], today: date) -> ClientOut:
+    client, project_count, projects, additions = row
     maintenance = client_maintenance(client.retainers, today)
     primary = discord_sync.primary(client.contacts)
     return ClientOut(
@@ -80,7 +79,7 @@ def _read(session: Session, client_id: int, today: date) -> ClientOut:
     row = session.execute(_with_stats().where(Client.id == client_id)).one_or_none()
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
-    return _out(*row, today)
+    return _out(row, today)
 
 
 def _get_client(session: Session, client_id: int) -> Client:
@@ -100,7 +99,7 @@ def _get_contact(session: Session, client_id: int, contact_id: int) -> ContactMe
 @router.get("")
 def list_clients(session: SessionDep, today: TodayDep) -> list[ClientOut]:
     rows = session.execute(_with_stats().order_by(func.lower(Client.name), Client.id))
-    return [_out(*row, today) for row in rows]
+    return [_out(row, today) for row in rows]
 
 
 def _link_discord(contact: ContactMethod, user_id: int | None, now: datetime) -> None:
@@ -156,7 +155,7 @@ def create_client(body: ClientCreate, session: SessionDep, clock: ClockDep) -> C
     if body.discord_user_id is not None:
         contact = _discord_contact(body.discord_user_id, clock.now)
         client.contacts.append(contact)
-        if client.name is None:
+        if body.name is None:
             client.name = _discord_name(contact)
     session.add(client)
     session.commit()

@@ -141,6 +141,7 @@ def refresh_due(session: Session, now: datetime, pause: float = 0) -> int:
         for row in rows:
             if done and pause:
                 time.sleep(pause)
+            assert row.discord_user_id is not None  # due() only returns rows with one
             _lookup(row, row.discord_user_id, now, TIMEOUT)
             session.commit()
             done += 1
@@ -174,7 +175,7 @@ def profile_out(row: DiscordProfile, user_id: int | None) -> DiscordProfileOut |
             avatar_url=None,
         )
     return DiscordProfileOut(
-        status=row.discord_sync_status or ProfileStatus.PENDING,
+        status=ProfileStatus(row.discord_sync_status or ProfileStatus.PENDING),
         synced_at=row.discord_synced_at,
         username=row.discord_username,
         display_name=row.discord_global_name or row.discord_username,

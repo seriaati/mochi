@@ -86,7 +86,7 @@ def sort_key(retainer: RetainerOut) -> tuple:
     return (not retainer.active, retainer.client.name.lower(), retainer.id)
 
 
-def with_children() -> Select[tuple[Retainer]]:
+def with_children() -> Select[Retainer]:
     return (
         select(Retainer)
         .options(

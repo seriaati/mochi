@@ -6,7 +6,7 @@ share its validation, errors and output; an error such as a 404 comes back as a 
 
 import asyncio
 from collections.abc import Callable
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
@@ -98,7 +98,8 @@ def _ann(
 def _changes(model: type[BaseModel]) -> type[BaseModel]:
     """`model` with every field optional, for updates that send only the fields they change."""
     fields: dict[str, Any] = {
-        name: (field.annotation | None, None) for name, field in model.model_fields.items()
+        name: (cast(Any, field.annotation) | None, None)
+        for name, field in model.model_fields.items()
     }
     return create_model(f"{model.__name__.removesuffix('In')}Changes", **fields)
 
@@ -110,12 +111,16 @@ def _merge[M: BaseModel](model: type[M], current: object, changes: BaseModel) ->
     return model.model_validate(values | changes.model_dump(exclude_unset=True))
 
 
-ClientChanges = _changes(ClientUpdate)
-ContactChanges = _changes(ContactIn)
-ProjectChanges = _changes(ProjectIn)
-AdditionChanges = _changes(AdditionIn)
-PaymentChanges = _changes(PaymentIn)
-RetainerChanges = _changes(RetainerIn)
+if TYPE_CHECKING:  # made at runtime, which type checkers can't follow
+    ClientChanges = ContactChanges = ProjectChanges = BaseModel
+    AdditionChanges = PaymentChanges = RetainerChanges = BaseModel
+else:
+    ClientChanges = _changes(ClientUpdate)
+    ContactChanges = _changes(ContactIn)
+    ProjectChanges = _changes(ProjectIn)
+    AdditionChanges = _changes(AdditionIn)
+    PaymentChanges = _changes(PaymentIn)
+    RetainerChanges = _changes(RetainerIn)
 
 
 # Clients

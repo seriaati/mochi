@@ -134,7 +134,7 @@ def _sort_key(project: ProjectOut) -> tuple:
     )
 
 
-def _with_children() -> Select[tuple[Project]]:
+def _with_children() -> Select[Project]:
     # populate_existing refreshes rows already in the session, including their collections.
     return (
         select(Project)
