@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # and it is the issuer of their OAuth tokens.
     public_url: str = "http://localhost:8000"
 
+    # This deployment is the public demo, whose data `python -m app.demo reset` wipes and fills
+    # with made-up records. Never set it where the data matters.
+    demo: bool = False
+
     @property
     def frontend_origins(self) -> list[str]:
         return [o.strip().rstrip("/") for o in self.frontend_origin.split(",") if o.strip()]
