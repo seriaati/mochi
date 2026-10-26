@@ -16,9 +16,6 @@ Try it at [demo.mochi.seria.moe](https://demo.mochi.seria.moe) with the password
 - **Keni sync**: record the money you receive as income in [Keni](https://keni.seria.moe).
 - **Installable**: works as an app on your phone, in light or dark mode.
 
-- `backend/`: FastAPI, SQLAlchemy, Alembic, PostgreSQL (Python, managed with uv)
-- `frontend/`: React, Vite, TypeScript (managed with bun)
-
 ## Development
 
 Requires Docker, [uv](https://docs.astral.sh/uv/) and [bun](https://bun.sh/).
