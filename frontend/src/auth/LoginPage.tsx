@@ -4,11 +4,14 @@ import { MochiMark } from '../components/MochiMark.tsx'
 import { clearCache, useLogin } from './queries.ts'
 import './LoginPage.css'
 
+/** Set only on the public demo's build: the screen then gives the password and fills it in. */
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD
+
 /** The password screen. `checkError` is why the session check failed, e.g. the API is down. */
 export function LoginPage({ checkError }: { checkError?: string }) {
   const queryClient = useQueryClient()
   const login = useLogin()
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState(DEMO_PASSWORD ?? '')
 
   // Nothing from the last session outlives it.
   useEffect(() => clearCache(queryClient), [queryClient])
@@ -27,8 +30,19 @@ export function LoginPage({ checkError }: { checkError?: string }) {
           <MochiMark />
           <span>Mochi</span>
         </div>
-        <h1 className="login-title">Welcome back</h1>
-        <p className="login-sub">Enter your password to open the dashboard.</p>
+        {DEMO_PASSWORD ? (
+          <>
+            <h1 className="login-title">Try Mochi</h1>
+            <p className="login-sub">
+              A demo with made-up data that resets every day. The password is <strong>{DEMO_PASSWORD}</strong>.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="login-title">Welcome back</h1>
+            <p className="login-sub">Enter your password to open the dashboard.</p>
+          </>
+        )}
         <form className="form login-form" onSubmit={submit}>
           <label className="field">
             Password
