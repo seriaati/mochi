@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
-import { savedStudio } from '../studio.ts'
+import { MochiMark } from '../components/MochiMark.tsx'
 import { clearCache, useLogin } from './queries.ts'
 import './LoginPage.css'
 
@@ -9,7 +9,6 @@ export function LoginPage({ checkError }: { checkError?: string }) {
   const queryClient = useQueryClient()
   const login = useLogin()
   const [password, setPassword] = useState('')
-  const [studio] = useState(savedStudio)
 
   // Nothing from the last session outlives it.
   useEffect(() => clearCache(queryClient), [queryClient])
@@ -25,8 +24,8 @@ export function LoginPage({ checkError }: { checkError?: string }) {
     <main className="login">
       <section className="tile login-tile">
         <div className="brand">
-          {studio?.studio_logo ? <img className="brand-logo" src={studio.studio_logo} alt="" /> : <i />}
-          <span>{studio?.studio_name ?? 'Studio'}</span>
+          <MochiMark />
+          <span>Mochi</span>
         </div>
         <h1 className="login-title">Welcome back</h1>
         <p className="login-sub">Enter your password to open the dashboard.</p>

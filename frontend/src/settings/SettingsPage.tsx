@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Select } from '../components/Select.tsx'
@@ -22,28 +22,6 @@ import './SettingsPage.css'
 
 const zones = Intl.supportedValuesOf('timeZone')
 const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-/** Longest side of a stored logo, in pixels: sharp in the top bar, and small to store. */
-const LOGO_SIZE = 128
-
-/** Shrinks an image file to fit LOGO_SIZE and returns it as a data: URL. */
-async function logoDataUrl(file: File): Promise<string> {
-  const url = URL.createObjectURL(file)
-  try {
-    const image = new Image()
-    image.src = url
-    await image.decode()
-    if (!image.naturalWidth || !image.naturalHeight) throw new Error('No size')
-    const scale = Math.min(1, LOGO_SIZE / Math.max(image.naturalWidth, image.naturalHeight))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
-    canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/webp', 0.9) // PNG where the browser can't write WebP
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
 
 /** The current time, updated every few seconds. */
 function useNow(): Date {
@@ -77,7 +55,7 @@ export function SettingsPage() {
       {settings.error && <p className="status">Couldn't load settings: {settings.error.message}</p>}
       {settings.data && (
         <div className="bento">
-          <StudioTile settings={settings.data} />
+          <NameTile settings={settings.data} />
           <ThemeTile />
           <TimezoneTile settings={settings.data} />
           <DiscordTile settings={settings.data} />
@@ -88,72 +66,24 @@ export function SettingsPage() {
   )
 }
 
-function StudioTile({ settings }: { settings: Settings }) {
+function NameTile({ settings }: { settings: Settings }) {
   const save = useSaveSettings()
-  const [logo, setLogo] = useState(settings.studio_logo)
-  const [logoError, setLogoError] = useState<string>()
-  const fileInput = useRef<HTMLInputElement>(null)
-
-  async function pickLogo(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    try {
-      setLogo(await logoDataUrl(file))
-      setLogoError(undefined)
-    } catch {
-      setLogoError("Couldn't read that image. Try a PNG, JPEG, WebP or SVG.")
-    }
-  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    save.mutate({
-      ...settings,
-      studio_name: form.get('studio_name') as string,
-      user_name: form.get('user_name') as string,
-      studio_logo: logo,
-    })
+    save.mutate({ ...settings, user_name: form.get('user_name') as string })
   }
 
   return (
     <section className="tile span-7 tint-sage">
-      <h2 className="tile-label">Studio</h2>
-      <form className="form settings-studio" onSubmit={submit}>
-        <div className="settings-logo">
-          <span className="settings-logo-preview">{logo ? <img src={logo} alt="Studio logo" /> : <i />}</span>
-          <button className="btn secondary" type="button" onClick={() => fileInput.current?.click()}>
-            {logo ? 'Change logo' : 'Upload logo'}
-          </button>
-          {logo && (
-            <button className="link-btn" type="button" onClick={() => setLogo(null)}>
-              Remove
-            </button>
-          )}
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            hidden
-            onChange={pickLogo}
-          />
-        </div>
-        {logoError && <p className="form-error">{logoError}</p>}
-        <div className="form-row">
-          <label className="field">
-            Studio name
-            <input name="studio_name" defaultValue={settings.studio_name ?? ''} placeholder="Studio" maxLength={60} />
-          </label>
-          <label className="field">
-            Your name
-            <input name="user_name" defaultValue={settings.user_name ?? ''} maxLength={60} autoComplete="given-name" />
-          </label>
-        </div>
-        <p className="settings-zone">
-          The top bar shows the logo and studio name. The Overview greets you by your name, or by your Discord
-          name when it's empty.
-        </p>
+      <h2 className="tile-label">You</h2>
+      <form className="form settings-name" onSubmit={submit}>
+        <label className="field">
+          Your name
+          <input name="user_name" defaultValue={settings.user_name ?? ''} maxLength={60} autoComplete="given-name" />
+        </label>
+        <p className="settings-zone">The Overview greets you by this name, or by your Discord name when it's empty.</p>
         <div className="form-actions">
           <button className="btn" type="submit" disabled={save.isPending}>
             Save

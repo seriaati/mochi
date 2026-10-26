@@ -10,17 +10,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Studio</title>
-    <!-- The saved theme (see src/theme.ts), logo icon (src/favicon.ts) and studio name
-         (src/studio.ts), set before first paint so the page doesn't flash. -->
+    <title>Mochi</title>
+    <!-- The saved theme (see src/theme.ts), set before first paint so the page doesn't flash. -->
     <script>
       try {
         const theme = localStorage.getItem('theme')
         if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
-        const icon = localStorage.getItem('favicon')
-        if (icon) Object.assign(document.querySelector('link[rel="icon"]'), { type: 'image/png', href: icon })
-        const studio = JSON.parse(localStorage.getItem('studio'))
-        if (studio && studio.studio_name) document.title = studio.studio_name
       } catch {}
     </script>
   </head>

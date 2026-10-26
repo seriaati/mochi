@@ -394,18 +394,18 @@ async def get_earnings(year: int | None = None) -> EarningsOut:
 @mcp.tool(annotations=_ann("Get settings", read_only=True))
 async def get_settings() -> SettingsText:
     """The user's settings: the timezone that due dates, 'today' and reminders follow, the name
-    the dashboard calls them (null: their Discord name), and their studio's name."""
+    the dashboard calls them (null: their Discord name)."""
     out = await _run(lambda s, c: settings.get_settings(session=s))
-    return SettingsText(**out.model_dump(exclude={"studio_logo"}))
+    return SettingsText(**out.model_dump())
 
 
 @mcp.tool(annotations=_ann("Update settings", destructive=True))
 async def update_settings(
-    timezone: str | None = None, user_name: str | None = None, studio_name: str | None = None
+    timezone: str | None = None, user_name: str | None = None
 ) -> SettingsText:
     """Changes the settings given; the rest stay as they are. timezone is an IANA name such as
-    Asia/Taipei or Asia/Tokyo. An empty user_name or studio_name clears it."""
-    changes = {"timezone": timezone, "user_name": user_name, "studio_name": studio_name}
+    Asia/Taipei or Asia/Tokyo. An empty user_name clears it."""
+    changes = {"timezone": timezone, "user_name": user_name}
 
     def work(s: Session, c: Clock) -> SettingsText:
         current = settings.get_settings(session=s).model_dump()
@@ -413,7 +413,7 @@ async def update_settings(
             current | {k: v for k, v in changes.items() if v is not None}
         )
         out = settings.update_settings(body, session=s)
-        return SettingsText(**out.model_dump(exclude={"studio_logo"}))
+        return SettingsText(**out.model_dump())
 
     return await _run(work)
 

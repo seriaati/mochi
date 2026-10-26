@@ -46,6 +46,15 @@
   --hero-good: light-dark(#a9d39f, #2f5a2a);
   --hero-warn: light-dark(#f6b99a, #8a3a12);
   --hero-line: light-dark(#3a3a37, #d4d3cd);
+
+  /* Mochi's mark (components/MochiMark.tsx): outlined on lavender in light, cream on ink in dark */
+  --mark-ground: light-dark(#e5e3f3, #1c1c1a);
+  --mark-mochi: light-dark(#fbfaf7, #f2f1ec);
+  --mark-outline: light-dark(#1c1c1a, transparent);
+  --mark-shadow: light-dark(#cfcbe8, #2e2e2b); /* under the mochi */
+  --mark-face: light-dark(#1c1c1a, #1c1c1a); /* eyes */
+  --mark-blush: light-dark(#e89f82, #e89f82);
+
   --lavender-dash: light-dark(#a7a2c9, #5d5888); /* "next month" outlines on lavender tiles */
   --ring-track: light-dark(#ffffff, #2c3a2a); /* the unfilled part of a ring chart on sage tiles */
   --radius-tile: 24px;
@@ -110,20 +119,10 @@ a {
   animation: page-in 0.25s ease-out;
 }
 
-.brand i {
+.mochi-mark {
+  display: block;
   width: 26px;
   height: 26px;
-  border-radius: 9px;
-  background: var(--hero);
-}
-
-/* An uploaded logo, as tall as the plain mark; wide logos keep their shape. */
-.brand-logo {
-  display: block;
-  height: 26px;
-  max-width: 104px;
-  border-radius: 7px;
-  object-fit: contain;
 }
 
 /* The page links, then the install and log out buttons, in one bar. On phones the links float at

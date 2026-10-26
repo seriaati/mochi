@@ -6,10 +6,6 @@ export type Settings = {
   timezone: string
   /** What the dashboard calls the user. Null uses their Discord name. */
   user_name: string | null
-  /** Shown in the top bar. Null shows "Studio". */
-  studio_name: string | null
-  /** A small image as a data: URL. Null shows a plain mark. */
-  studio_logo: string | null
   /** Maintenance reminders post here. Null turns them off. */
   discord_webhook_url: string | null
   /** The user's own Discord ID, @mentioned in each reminder. */

@@ -35,21 +35,12 @@ OptionalName = Annotated[
     BeforeValidator(blank_to_none),
 ]
 
-# A small PNG, JPEG or WebP image as a base64 data: URL. The frontend shrinks uploads to fit.
-LogoDataUrl = Annotated[
-    str,
-    StringConstraints(
-        max_length=200_000, pattern=r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$"
-    ),
-]
-
 
 class SettingsText(BaseModel):
-    """The settings without the logo, which is too big to be worth sending to MCP clients."""
+    """The settings MCP clients see and change."""
 
     timezone: TimeZoneName  # due dates, "today" and the 09:00 reminders follow it
     user_name: OptionalName = None  # what the dashboard calls the user; None: their Discord name
-    studio_name: OptionalName = None  # shown in the top bar; None shows "Studio"
 
 
 # Only Discord's own webhooks: the API posts to this URL.
@@ -74,7 +65,6 @@ WebhookUrl = Annotated[
 
 
 class SettingsIn(SettingsText):
-    studio_logo: LogoDataUrl | None = None  # shown in the top bar; None shows a plain mark
     # Maintenance reminders post here; None turns them off.
     discord_webhook_url: Annotated[WebhookUrl | None, BeforeValidator(blank_to_none)] = None
     # The user's own Discord ID, @mentioned in each reminder.

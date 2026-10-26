@@ -269,9 +269,6 @@ class AppSettings(DiscordProfile, Base):
     # What the dashboard calls the user, e.g. in the Overview greeting. None falls back to their
     # Discord name.
     user_name: Mapped[str | None] = mapped_column(String(60))
-    # Shown in the top bar. None shows "Studio" and a plain mark.
-    studio_name: Mapped[str | None] = mapped_column(String(60))
-    studio_logo: Mapped[str | None] = mapped_column(Text)  # a small image as a data: URL
     # Where maintenance reminders post, encrypted like the bot token: anyone with the URL can
     # post to the channel. Read and set it through discord_webhook_url. None turns reminders off.
     discord_webhook_url_encrypted: Mapped[str | None] = mapped_column(Text)

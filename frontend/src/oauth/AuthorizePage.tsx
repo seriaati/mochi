@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router'
 import '../auth/LoginPage.css'
+import { MochiMark } from '../components/MochiMark.tsx'
 import './AuthorizePage.css'
 import { useAccessRequest, useAnswer } from './queries.ts'
 
@@ -21,8 +22,8 @@ export function AuthorizePage() {
     <main className="login">
       <section className="tile login-tile">
         <div className="brand">
-          <i />
-          Studio
+          <MochiMark />
+          Mochi
         </div>
         {request.isPending ? null : request.isError ? (
           <>

@@ -1,18 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
 import { useLogout } from './auth/queries.ts'
 import { ClientDetailPage } from './clients/ClientDetailPage.tsx'
 import { ClientsPage } from './clients/ClientsPage.tsx'
-import { useFavicon } from './favicon.ts'
+import { MochiMark } from './components/MochiMark.tsx'
 import { useInstall } from './install.ts'
-import { showManifest } from './manifest.ts'
 import { ProjectDetailPage } from './projects/ProjectDetailPage.tsx'
 import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
 import { OverviewPage } from './overview/OverviewPage.tsx'
 import { ProjectsPage } from './projects/ProjectsPage.tsx'
-import { useSettings } from './settings/queries.ts'
 import { SettingsPage } from './settings/SettingsPage.tsx'
-import { rememberStudio, savedStudio } from './studio.ts'
 
 const pages = [
   { path: '/', label: 'Overview' },
@@ -51,37 +48,16 @@ export default function App() {
   const { pathname } = useLocation()
   const nav = useRef<HTMLElement>(null)
   const pill = useNavPill(nav, pathname)
-  const settings = useSettings()
-  // The last saved studio shows straight away, until settings load.
-  const [saved] = useState(savedStudio)
-  const brand = settings.data ?? saved
-  const studio = brand?.studio_name ?? 'Studio'
-  const logo = brand?.studio_logo
   const logout = useLogout()
   const install = useInstall()
 
-  useEffect(() => {
-    document.title = studio
-  }, [studio])
-  useEffect(() => {
-    if (!settings.data) return
-    rememberStudio(settings.data)
-    showManifest(settings.data)
-  }, [settings.data])
-  useFavicon(settings.data?.studio_logo)
 
   return (
     <div className="shell">
       <header className="topbar">
-        {/* Empty until settings load in a browser that hasn't saved them, so the default name
-            doesn't flash first. */}
-        <Link className="brand" to="/" aria-label={`${studio}: Overview`}>
-          {(brand || !settings.isPending) && (
-            <>
-              {logo ? <img className="brand-logo" src={logo} alt="" /> : <i />}
-              <span>{studio}</span>
-            </>
-          )}
+        <Link className="brand" to="/" aria-label="Mochi: Overview">
+          <MochiMark />
+          <span>Mochi</span>
         </Link>
         <div className="nav-bar">
           <nav ref={nav} className="nav" aria-label="Main">

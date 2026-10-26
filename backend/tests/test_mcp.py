@@ -476,12 +476,12 @@ def test_discord_ids_match_the_output_schemas() -> None:
 
 
 def test_settings_tools() -> None:
-    tokyo = {"timezone": "Asia/Tokyo", "user_name": None, "studio_name": None}
+    tokyo = {"timezone": "Asia/Tokyo", "user_name": None}
     assert call("update_settings", timezone="Asia/Tokyo") == tokyo
     assert call("get_settings") == tokyo
-    named = tokyo | {"user_name": "Seria", "studio_name": "Aurora Works"}
-    assert call("update_settings", user_name="Seria", studio_name="Aurora Works") == named
-    # Only what's given changes, and the logo is never sent.
+    named = tokyo | {"user_name": "Seria"}
+    assert call("update_settings", user_name="Seria") == named
+    # Only what's given changes, and nothing secret is sent.
     assert call("update_settings", timezone="Asia/Taipei") == named | {"timezone": "Asia/Taipei"}
     assert call("update_settings", user_name="") == named | {
         "timezone": "Asia/Taipei",

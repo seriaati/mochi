@@ -6,13 +6,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    // Installable, with the built app cached so it opens without the network; data still needs
-    // the API. src/manifest.ts swaps in the studio's name and logo once they're known.
+    // Installable as Mochi, with the built app cached so it opens without the network; data
+    // still needs the API. The manifest is a fixed file, not made in the page: Chrome
+    // on Android only installs a real app (a WebAPK) from a manifest and icons at https URLs, and
+    // falls back to a home screen shortcut otherwise.
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Studio',
-        short_name: 'Studio',
+        name: 'Mochi',
+        short_name: 'Mochi',
         start_url: '/',
         display: 'standalone',
         background_color: '#efeeea',

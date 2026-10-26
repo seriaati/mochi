@@ -27,7 +27,7 @@ How the dashboard should behave, distilled from the owner's feedback. They matte
 - **One click to the outside tool.** Where the next step happens in Discord, LINE or email, link straight to it, e.g. the client's Discord profile, one click from the DM.
 - **Words to clients stay handwritten.** The dashboard gets the user to the conversation; it never drafts, templates or prefills the message. The user writes warm, personal messages, and generated text would read as robotic. Reminders to the user themselves can be generated.
 - **Anything settable is editable.** A field offered when adding a record is offered when editing it too, e.g. a client's Discord user ID.
-- **It's the user's studio, everywhere.** Their name and logo show on the login screen, in the tab and in the top bar from the first paint, never a default that changes once data loads (see `src/studio.ts`).
+- **The app is Mochi, everywhere.** The login screen, the top bar, the tab and the installed app all show the name Mochi and its mark: an outlined cream mochi on lavender in light mode, a cream mochi on ink in dark mode. In the page the mark is `MochiMark` (`src/components/MochiMark.tsx`), coloured by the `--mark-*` tokens; the tab icon is `public/favicon.svg`, which follows the system's light or dark mode; the installed app's icons are the dark version, the PNGs beside it, fixed in the manifest in `vite.config.ts` (Chrome only installs a real app from a manifest and icons at real URLs).
 - **Use the user's words.** Name pages and features the way the user talks about them, e.g. Retainers, not Maintenance.
 
 ## Tokens
@@ -47,6 +47,7 @@ All colours are CSS custom properties on `:root` in `src/index.css`, each writte
 | Status | `--good`, `--good-bg`, `--good-soft`; `--warn`, `--warn-bg` |
 | Controls | `--field`, `--row`, `--pill`, `--track`, `--dash`, `--nav-bg`, `--nav-on`, `--backdrop` |
 | Platforms | `--discord*`, `--line-*` |
+| Mochi's mark | `--mark-ground`, `--mark-mochi`, `--mark-outline`, `--mark-shadow`, `--mark-face`, `--mark-blush` |
 | Shape and motion | `--radius-tile` (24px), `--radius-control` (12px), `--ease-out`, `--ease-spring` |
 
 ### What the colours mean
