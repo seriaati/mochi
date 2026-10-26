@@ -1,5 +1,4 @@
 import { Link } from 'react-router'
-import { contactHandle, contactUrl } from '../clients/contactKinds.ts'
 import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
 import { useClients, type Client, type ContactKind } from '../clients/queries.ts'
@@ -200,38 +199,31 @@ function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
   }
 
   const { retainer, month } = next
-  const contact = retainer.ask_via
-  const handle = contact && (
-    <>
-      <KindLabel kind={contact.kind} /> {contactHandle(contact)}
-    </>
-  )
-  const url = contact && contactUrl(contact)
 
   return (
     <section className="tile span-4 ink ov-summary">
       <h2 className="tile-label">Next to collect</h2>
       <p className="ov-who">
-        <Link to={`/clients/${retainer.client.id}`}>{retainer.client.name}</Link>
+        <Link to={`/clients/${retainer.client.id}`}>
+          <Avatar
+            className={`ov-who-avatar ${tintClass(retainer.client.id)}`}
+            aria-hidden="true"
+            src={retainer.client.avatar_url}
+            fallback={initials(retainer.client.name)}
+          />
+          {retainer.client.name}
+        </Link>
       </p>
       <p className="big-number">
         <small>NT$</small>
         {formatNumber(month.amount)}
       </p>
-      <p className="ov-meta">
-        Due {formatDay(month.due_on, { weekday: true })} ·{' '}
-        {url ? (
-          <a href={url} target={url.startsWith('https:') ? '_blank' : undefined} rel="noreferrer">
-            {handle}
-          </a>
-        ) : (
-          (handle ?? 'no contact set')
-        )}
-      </p>
+      <p className="ov-meta">Due {formatDay(month.due_on, { weekday: true })}</p>
       <div className="ov-action">
         <button className="btn" type="button" onClick={() => record(retainer, month.period)}>
           Record payment
         </button>
+        <MessageLink contact={retainer.ask_via}>Message them</MessageLink>
       </div>
       {dialog}
     </section>
