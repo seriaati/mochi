@@ -4,6 +4,8 @@
 
 Mochi is a small personal dashboard I made for myself for freelance work.
 
+Try it at [demo.mochi.seria.moe](https://demo.mochi.seria.moe) with the password `mochi`. The demo's data is made up and resets every day, and Discord and Keni are off there.
+
 - **Projects**: track each project, its price and paid additions, and what's been paid.
 - **Clients**: keep their contact methods (Discord, LINE, email) and message them in one click.
 - **Retainers**: monthly maintenance fees, with Discord reminders when it's time to collect.
