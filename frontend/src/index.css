@@ -85,7 +85,8 @@ a {
 .shell {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 28px 32px 56px;
+  /* Clear of the notch on phones held sideways. */
+  padding: 28px max(32px, env(safe-area-inset-right)) 56px max(32px, env(safe-area-inset-left));
 }
 
 .topbar {
@@ -125,14 +126,24 @@ a {
   object-fit: contain;
 }
 
-.nav {
-  position: relative;
+/* The page links, then the install and log out buttons, in one bar. On phones the links float at
+   the bottom, in thumb reach, and the buttons stay up here (see the 700px query). */
+.nav-bar,
+.nav,
+.nav-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.nav-bar {
   background: var(--nav-bg);
   padding: 4px;
   border-radius: 14px;
+}
+
+.nav {
+  position: relative;
 }
 
 .nav a {
@@ -148,12 +159,12 @@ a {
 
 .nav a:hover,
 .nav a.active,
-.nav button:hover {
+.nav-button:hover {
   color: var(--ink);
 }
 
 .nav a:hover:not(.active),
-.nav button:hover {
+.nav-button:hover {
   background: color-mix(in srgb, var(--nav-on) 45%, transparent);
 }
 
@@ -172,7 +183,7 @@ a {
 }
 
 /* Icon-only nav item, e.g. Settings. */
-.nav .nav-icon {
+.nav-bar .nav-icon {
   display: grid;
   place-items: center;
   padding: 8px 10px;
@@ -990,8 +1001,45 @@ button {
 
 @media (max-width: 700px) {
   .shell {
-    padding: 16px 16px 40px;
+    /* Room to scroll the last tile clear of the bottom nav. */
+    padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
   }
+
+  .nav-bar {
+    background: none;
+    padding: 0;
+  }
+
+  .nav {
+    position: fixed;
+    z-index: 10;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 16px;
+    flex-wrap: nowrap;
+    padding: 4px;
+    border-radius: 18px;
+    background: var(--nav-bg);
+    box-shadow:
+      0 0 0 1px var(--track),
+      0 12px 32px rgba(0, 0, 0, 0.14);
+  }
+
+  .nav a {
+    flex: 1 0 auto;
+    padding: 12px 4px;
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .nav-pill { border-radius: 14px; }
+
+  .nav-bar a.nav-icon {
+    flex: none;
+    padding: 12px 14px;
+  }
+
+  .nav-actions .nav-icon { padding: 13px; }
 
   .search { width: 100%; }
 }
