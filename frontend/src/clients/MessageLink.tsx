@@ -22,9 +22,10 @@ export function MessageLink({ contact, className = 'btn secondary', children }: 
         (contact.kind === 'email' ? (
           contactKinds.email.message
         ) : (
-          <>
+          // One span, so a flex button doesn't trim the space before the logo.
+          <span>
             Message on <KindLabel kind={contact.kind} />
-          </>
+          </span>
         ))}
     </a>
   )
