@@ -2,8 +2,8 @@
 
 A small personal dashboard for freelance work: projects and their paid additions, clients and their contact methods, and monthly maintenance fees with Discord reminders.
 
-- `backend/` — FastAPI, SQLAlchemy, Alembic, PostgreSQL (Python, managed with uv)
-- `frontend/` — React, Vite, TypeScript (managed with bun)
+- `backend/`: FastAPI, SQLAlchemy, Alembic, PostgreSQL (Python, managed with uv)
+- `frontend/`: React, Vite, TypeScript (managed with bun)
 
 ## Development
 
