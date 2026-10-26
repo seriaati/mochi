@@ -1,6 +1,16 @@
+![Mochi](frontend/public/og-image.png)
+
 # Mochi
 
-A small personal dashboard for freelance work: projects and their paid additions, clients and their contact methods, and monthly maintenance fees with Discord reminders.
+Mochi is a small personal dashboard I made for myself for freelance work.
+
+- **Projects**: track each project, its price and paid additions, and what's been paid.
+- **Clients**: keep their contact methods (Discord, LINE, email) and message them in one click.
+- **Retainers**: monthly maintenance fees, with Discord reminders when it's time to collect.
+- **Overview**: what to collect next, what's overdue, and what you've earned this year.
+- **MCP**: let AI assistants like Claude use the dashboard.
+- **Keni sync**: record the money you receive as income in [Keni](https://keni.seria.moe).
+- **Installable**: works as an app on your phone, in light or dark mode.
 
 - `backend/`: FastAPI, SQLAlchemy, Alembic, PostgreSQL (Python, managed with uv)
 - `frontend/`: React, Vite, TypeScript (managed with bun)
