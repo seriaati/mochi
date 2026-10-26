@@ -7,7 +7,15 @@ from sqlalchemy.orm import Session, selectinload
 from app import discord_sync, maintenance
 from app.clock import TodayDep
 from app.db import SessionDep
-from app.models import Client, Collection, ContactMethod, Project, Retainer, RetainerPayment
+from app.models import (
+    Client,
+    Collection,
+    ContactMethod,
+    Project,
+    Retainer,
+    RetainerPause,
+    RetainerPayment,
+)
 from app.routers.clients import contact_out
 from app.schemas.maintenance import (
     MonthOut,
@@ -61,6 +69,7 @@ def retainer_out(retainer: Retainer, today: date) -> RetainerOut:
         ),
         ask_via=contact_out(retainer.ask_via) if retainer.ask_via else None,
         active=maintenance.is_active(retainer, today),
+        paused_on=pause.paused_on if (pause := maintenance.current_pause(retainer)) else None,
         this_month=month_out(this_month) if this_month else None,
         next_due_on=(
             maintenance.due_on(period, retainer.due_day)
@@ -85,6 +94,7 @@ def with_children() -> Select[tuple[Retainer]]:
             selectinload(Retainer.project),
             selectinload(Retainer.ask_via),
             selectinload(Retainer.payments),
+            selectinload(Retainer.pauses),
         )
         .execution_options(populate_existing=True)
     )
@@ -195,6 +205,46 @@ def delete_retainer(retainer_id: int, session: SessionDep) -> None:
     """Also deletes its recorded payments and reminder history."""
     session.delete(_get_retainer_or_404(session, retainer_id))
     session.commit()
+
+
+@router.post("/{retainer_id}/pause")
+def pause_retainer(retainer_id: int, session: SessionDep, today: TodayDep) -> RetainerOut:
+    """Stops billing from today, and reminders for what's left unpaid, until resumed. For a
+    client who stopped paying."""
+    retainer = _get_retainer_or_404(session, retainer_id)
+    if maintenance.current_pause(retainer) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This retainer is already paused")
+    if retainer.ended_on is not None and retainer.ended_on < today:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This retainer has already ended")
+    paid_ahead = [
+        period
+        for p in retainer.payments
+        for period in maintenance.covered(p)
+        if maintenance.due_on(period, retainer.due_day) >= today
+    ]
+    if paid_ahead:
+        month = min(paid_ahead).strftime("%B %Y")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"A payment covers {month}; remove it before pausing",
+        )
+    session.add(RetainerPause(retainer_id=retainer_id, paused_on=today))
+    session.commit()
+    return _read(session, retainer_id, today)
+
+
+@router.post("/{retainer_id}/resume")
+def resume_retainer(retainer_id: int, session: SessionDep, today: TodayDep) -> RetainerOut:
+    """Bills again from today. Months due while it was paused stay unbilled."""
+    pause = maintenance.current_pause(_get_retainer_or_404(session, retainer_id))
+    if pause is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This retainer isn't paused")
+    if pause.paused_on >= today:
+        session.delete(pause)  # paused and resumed the same day: as if never paused
+    else:
+        pause.resumed_on = today
+    session.commit()
+    return _read(session, retainer_id, today)
 
 
 @router.post("/{retainer_id}/payments", status_code=status.HTTP_201_CREATED)

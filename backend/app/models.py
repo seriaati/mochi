@@ -198,6 +198,27 @@ class Retainer(Base):
     payments: Mapped[list[RetainerPayment]] = relationship(
         back_populates="retainer", cascade="all, delete-orphan"
     )
+    pauses: Mapped[list[RetainerPause]] = relationship(
+        back_populates="retainer", cascade="all, delete-orphan", order_by="RetainerPause.paused_on"
+    )
+
+
+class RetainerPause(Base):
+    """A stretch when a retainer was paused, e.g. the client stopped paying and their bot was
+    switched off. Months falling due in it aren't billed, and months left unpaid when it began
+    are never reminded about again (see app/maintenance.py)."""
+
+    __tablename__ = "retainer_pauses"
+    __table_args__ = (
+        CheckConstraint("resumed_on IS NULL OR resumed_on > paused_on", name="resumed_after"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    retainer_id: Mapped[int] = mapped_column(ForeignKey("retainers.id", ondelete="CASCADE"))
+    paused_on: Mapped[date]  # the local day it was paused
+    resumed_on: Mapped[date | None]  # None while still paused
+
+    retainer: Mapped[Retainer] = relationship(back_populates="pauses")
 
 
 class RetainerPayment(Base):

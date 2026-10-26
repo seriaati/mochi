@@ -2,8 +2,9 @@
 
 A retainer bills one fee per calendar month (its "period", stored as the month's first day).
 The fee falls due on `due_day`, or on the month's last day when the month is shorter. A month
-is billed when its due date falls between `started_on` and `ended_on` (inclusive) and it is
-not before `tracked_from`. Earlier months count as settled and appear nowhere.
+is billed when its due date falls between `started_on` and `ended_on` (inclusive), outside
+any pause, and it is not before `tracked_from`. Earlier months count as settled and appear
+nowhere.
 
 Status of a billed month, as of `today` (a date in the saved timezone):
 - auto transfer: paid once the due date is reached, upcoming before that;
@@ -11,7 +12,8 @@ Status of a billed month, as of `today` (a date in the saved timezone):
   row when the client pays ahead, each counting for an even share of it. Unpaid, a month is
   upcoming before the due date, due from the due date through GRACE_DAYS after it, and
   overdue after that. A payment is late for a month only when made more than GRACE_DAYS
-  after that month's due date.
+  after that month's due date. A month still unpaid when the retainer was paused is just
+  unpaid: never overdue or reminded, though a payment can still be recorded for it.
 
 Reminders (see app/reminders.py) go out per client at 09:00, every REPEAT_DAYS days. Each of
 those times is a "slot", named by its local date.
@@ -24,7 +26,14 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from app.models import Collection, ContactKind, ContactMethod, Retainer, RetainerPayment
+from app.models import (
+    Collection,
+    ContactKind,
+    ContactMethod,
+    Retainer,
+    RetainerPause,
+    RetainerPayment,
+)
 
 REMINDER_TIME = time(9)
 REPEAT_DAYS = 2
@@ -37,6 +46,7 @@ class MonthStatus(enum.StrEnum):
     UPCOMING = "upcoming"  # due date still ahead
     DUE = "due"  # "ask" only: unpaid, due date reached, still within the grace days
     OVERDUE = "overdue"  # "ask" only: unpaid past the grace days
+    UNPAID = "unpaid"  # "ask" only: left unpaid when the retainer was paused
 
 
 @dataclass(frozen=True)
@@ -47,7 +57,8 @@ class Month:
     status: MonthStatus
     paid_on: date | None = None
     payment: RetainerPayment | None = None  # the recorded payment covering it
-    # Due or overdue: days since the due date. Paid "ask" month: days paid after it, or 0.
+    # Due, overdue or unpaid: days since the due date. Paid "ask" month: days paid after it,
+    # or 0.
     days_late: int = 0
     late: bool = False  # overdue, or paid more than GRACE_DAYS after the due date
 
@@ -97,17 +108,34 @@ def due_on(period: date, due_day: int) -> date:
     return period.replace(day=min(due_day, last))
 
 
+def current_pause(retainer: Retainer) -> RetainerPause | None:
+    return next((p for p in retainer.pauses if p.resumed_on is None), None)
+
+
+def is_paused(retainer: Retainer, day: date) -> bool:
+    return any(
+        p.paused_on <= day and (p.resumed_on is None or day < p.resumed_on) for p in retainer.pauses
+    )
+
+
 def is_billed(retainer: Retainer, period: date) -> bool:
-    """Whether a month counts: due between the start and end dates, and tracked."""
+    """Whether a month counts: due between the start and end dates, outside any pause, and
+    tracked."""
     if period < retainer.tracked_from:
         return False
     due = due_on(period, retainer.due_day)
-    return retainer.started_on <= due and (retainer.ended_on is None or due <= retainer.ended_on)
+    return (
+        retainer.started_on <= due
+        and (retainer.ended_on is None or due <= retainer.ended_on)
+        and not is_paused(retainer, due)
+    )
 
 
 def is_active(retainer: Retainer, today: date) -> bool:
-    return retainer.started_on <= today and (
-        retainer.ended_on is None or today <= retainer.ended_on
+    return (
+        retainer.started_on <= today
+        and (retainer.ended_on is None or today <= retainer.ended_on)
+        and not is_paused(retainer, today)
     )
 
 
@@ -123,7 +151,7 @@ def billed_periods(retainer: Retainer, through: date) -> Iterator[date]:
 
 def next_period(retainer: Retainer, today: date) -> date | None:
     """The first billed month due today or later, skipping "ask" months already paid ahead,
-    or None once the retainer has ended."""
+    or None once the retainer has ended or while it's paused."""
     period = max(month_start(today), month_start(retainer.started_on), retainer.tracked_from)
     # This month's due date may have passed or precede the start, and months may be paid.
     paid_until = max((add_months(p.period, p.months) for p in retainer.payments), default=period)
@@ -159,6 +187,8 @@ def month(retainer: Retainer, period: date, today: date) -> Month:
             late=days > GRACE_DAYS,
         )
     days = (today - due).days
+    if any(p.paused_on > due for p in retainer.pauses):
+        return Month(period, due, retainer.amount, MonthStatus.UNPAID, days_late=days)
     if days < 0:
         return Month(period, due, retainer.amount, MonthStatus.UPCOMING)
     if days <= GRACE_DAYS:
@@ -258,12 +288,12 @@ def latest_slot(due: date, now: datetime, tz: ZoneInfo) -> date | None:
 
 def unpaid_ask_months(retainer: Retainer, today: date) -> list[Month]:
     """Unpaid months that are or will be reminded about: due and overdue ones, and the next
-    one coming up."""
+    one coming up. Not those left unpaid by a pause."""
     if retainer.collection != Collection.ASK:
         return []
     through = next_period(retainer, today) or month_start(today)
     months = (month(retainer, p, today) for p in billed_periods(retainer, through))
-    return [m for m in months if m.status != MonthStatus.PAID]
+    return [m for m in months if m.status not in (MonthStatus.PAID, MonthStatus.UNPAID)]
 
 
 # Reminder text

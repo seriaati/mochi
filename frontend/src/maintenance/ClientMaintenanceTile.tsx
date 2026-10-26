@@ -47,7 +47,9 @@ function describe(retainer: Retainer): string {
   // How you ask is on the Contact tile, and when reminders go out is in Settings.
   const parts = [`Due on the ${ordinal(retainer.due_day)}`]
   if (retainer.collection === 'auto_transfer') parts.push('paid by automatic bank transfer')
-  if (retainer.ended_on && !retainer.active) {
+  if (retainer.paused_on) {
+    parts.push(`paused ${formatDay(retainer.paused_on)}`)
+  } else if (retainer.ended_on && !retainer.active) {
     const past = retainer.ended_on < todayISO()
     parts.push(past ? `ended ${formatDay(retainer.ended_on, { year: true })}` : `ends ${formatDay(retainer.ended_on)}`)
   } else if (!retainer.active) parts.push(`starts ${formatDay(retainer.started_on)}`)
@@ -93,6 +95,7 @@ function RetainerSummary({ retainer, onEdit, onMonth }: SummaryProps) {
 function MonthChip({ retainer, month, onOpen }: { retainer: Retainer; month: Month; onOpen: () => void }) {
   let text = dueLabel(month.due_on)
   if (month.status === 'overdue') text = `${month.days_late}d late`
+  if (month.status === 'unpaid') text = 'Unpaid'
   if (month.status === 'paid' && month.paid_on) {
     const sameMonth = month.paid_on.slice(0, 7) === month.period.slice(0, 7)
     text = `Paid ${sameMonth ? ordinal(parseDate(month.paid_on).getDate()) : formatDay(month.paid_on)}`

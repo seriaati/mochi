@@ -32,7 +32,13 @@ from app.schemas.maintenance import (
 router = APIRouter(prefix="/api/maintenance", tags=["maintenance"])
 
 # Calendar day colour when retainers with different statuses fall due the same day.
-_DAY_STATUS_ORDER = [MonthStatus.OVERDUE, MonthStatus.DUE, MonthStatus.UPCOMING, MonthStatus.PAID]
+_DAY_STATUS_ORDER = [
+    MonthStatus.OVERDUE,
+    MonthStatus.DUE,
+    MonthStatus.UPCOMING,
+    MonthStatus.UNPAID,
+    MonthStatus.PAID,
+]
 
 
 def _calendar(retainers: list[Retainer], period: date, today: date) -> list[CalendarDay]:

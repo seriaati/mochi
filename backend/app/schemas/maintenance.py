@@ -59,7 +59,8 @@ class MonthOut(BaseModel):
     status: MonthStatus
     paid_on: date | None  # auto transfers count as paid on the due date
     payment: RetainerPaymentOut | None  # the recorded payment covering it, "ask" retainers only
-    # Due or overdue: days since the due date. Paid "ask" month: days paid after it, or 0.
+    # Due, overdue or unpaid: days since the due date. Paid "ask" month: days paid after it,
+    # or 0.
     days_late: int
     late: bool  # overdue, or paid more than the grace days after the due date
 
@@ -80,9 +81,11 @@ class RetainerOut(RetainerIn):
     client: RetainerClient
     project: RetainerProject | None
     ask_via: ContactOut | None
-    active: bool  # started and not ended, as of today
+    active: bool  # started, not ended and not paused, as of today
+    paused_on: date | None  # when it was paused, while it is
     this_month: MonthOut | None  # None when this month isn't billed
-    # The next month due today or later, past any "ask" months paid ahead; None once ended.
+    # The next month due today or later, past any "ask" months paid ahead; None once ended
+    # or while paused.
     next_due_on: date | None
     months: list[MonthOut]  # the last few billed months up to the next one due, oldest first
     overdue: list[MonthOut]  # oldest first
@@ -135,7 +138,8 @@ class CalendarEntry(BaseModel):
 
 class CalendarDay(BaseModel):
     day: date
-    status: MonthStatus  # the most pressing: overdue, then due, then upcoming, then paid
+    # The most pressing: overdue, then due, then upcoming, then unpaid, then paid.
+    status: MonthStatus
     entries: list[CalendarEntry]
 
 

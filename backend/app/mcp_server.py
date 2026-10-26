@@ -340,6 +340,21 @@ async def delete_retainer(retainer_id: int) -> str:
     return f"Deleted retainer {retainer_id}"
 
 
+@mcp.tool(annotations=_ann("Pause retainer"))
+async def pause_retainer(retainer_id: int) -> RetainerOut:
+    """Pauses a monthly maintenance fee from today, e.g. when the client stopped paying and
+    their bot was switched off: no months are billed and no reminders go out until it is
+    resumed. Months already unpaid stay on record as unpaid."""
+    return await _run(lambda s, c: retainers.pause_retainer(retainer_id, session=s, today=c.today))
+
+
+@mcp.tool(annotations=_ann("Resume retainer"))
+async def resume_retainer(retainer_id: int) -> RetainerOut:
+    """Resumes a paused monthly maintenance fee: months bill again from today. Months that fell
+    due while it was paused are never billed."""
+    return await _run(lambda s, c: retainers.resume_retainer(retainer_id, session=s, today=c.today))
+
+
 @mcp.tool(annotations=_ann("Record retainer payment"))
 async def record_retainer_payment(
     retainer_id: int, payment: RetainerPaymentIn

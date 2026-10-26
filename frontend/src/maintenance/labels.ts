@@ -50,6 +50,7 @@ export type Tone = '' | 'ok' | 'late' | 'due'
 
 /** This month's status chip on the retainers list. */
 export function monthChip(retainer: Retainer, today: string): { label: string; tone: Tone } {
+  if (retainer.paused_on) return { label: 'Paused', tone: '' }
   const month = retainer.this_month
   if (!month) {
     if (retainer.next_due_on) return { label: `From ${formatDay(retainer.next_due_on)}`, tone: '' }
@@ -61,6 +62,7 @@ export function monthChip(retainer: Retainer, today: string): { label: string; t
 export function monthStatusChip(month: Month, retainer: Retainer, today: string): { label: string; tone: Tone } {
   if (month.status === 'paid') return { label: `Paid ${formatDay(month.paid_on ?? month.due_on)}`, tone: 'ok' }
   if (month.status === 'overdue') return { label: `Overdue ${month.days_late}d`, tone: 'late' }
+  if (month.status === 'unpaid') return { label: 'Unpaid', tone: '' }
   // Upcoming, or due within the grace days. Auto transfers need nothing from you, so they
   // don't get the dark "act on this" chip.
   return { label: dueLabel(month.due_on, today), tone: retainer.collection === 'ask' ? 'due' : '' }

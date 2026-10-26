@@ -727,6 +727,95 @@ def test_settled_months_are_left_out_of_totals(
 # Overview
 
 
+def pause(client: TestClient, retainer_id: int):
+    return client.post(f"/api/retainers/{retainer_id}/pause")
+
+
+def resume(client: TestClient, retainer_id: int):
+    return client.post(f"/api/retainers/{retainer_id}/resume")
+
+
+def test_pausing_stops_billing_and_reminders(
+    client: TestClient, owner: dict, session: Session, webhook: list[str], pin
+) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-08-01")
+    assert len(retainer["overdue"]) == 3  # 10 Aug, 10 Sep, 10 Oct
+
+    response = pause(client, retainer["id"])
+    assert response.status_code == 200, response.text
+    paused = response.json()
+    assert paused["paused_on"] == "2026-10-23"
+    assert paused["active"] is False
+    assert paused["next_due_on"] is None
+    # What they never paid stays on record, quietly.
+    assert paused["overdue"] == []
+    assert [(m["period"], m["status"], m["late"]) for m in paused["months"]] == [
+        ("2026-08-01", "unpaid", False),
+        ("2026-09-01", "unpaid", False),
+        ("2026-10-01", "unpaid", False),
+    ]
+    data = overview(client)
+    assert data["overdue"] == []
+    assert data["next_reminder"] is None
+    assert (data["active_count"], data["monthly_total"]) == (0, 0)
+    assert client.get(f"/api/clients/{owner['id']}").json()["maintenance_flag"] is None
+    for day in ("2026-10-23", "2026-10-25", "2026-11-10", "2026-12-10"):
+        assert reminders.send_due(session, at(day, 9)) == 0
+    assert webhook == []
+    assert pause(client, retainer["id"]).json()["detail"] == "This retainer is already paused"
+
+    # A late payment can still be recorded for those months, but none billed while paused.
+    assert pay(client, retainer["id"], "2026-09-01").status_code == 201
+    assert pay(client, retainer["id"], "2026-11-01").status_code == 409
+
+    pin(at("2027-01-05"))
+    resumed = resume(client, retainer["id"]).json()
+    assert resumed["paused_on"] is None
+    assert resumed["active"] is True
+    assert resumed["next_due_on"] == "2027-01-10"
+    # November and December fell due while paused, so they're never billed.
+    assert [(m["period"], m["status"]) for m in resumed["months"]] == [
+        ("2026-08-01", "unpaid"),
+        ("2026-09-01", "paid"),
+        ("2026-10-01", "unpaid"),
+        ("2027-01-01", "upcoming"),
+    ]
+    assert resume(client, retainer["id"]).json()["detail"] == "This retainer isn't paused"
+    # Reminders pick up with the new months only.
+    assert reminders.send_due(session, at("2027-01-10", 9)) == 1
+    assert webhook == [
+        f"<@{USER_ID}> Ask Northwind Coffee for NT$250 (January) on Discord @danpark"
+        + record(retainer, "2027-01")
+    ]
+
+
+def test_paused_auto_transfers_are_not_received(client: TestClient, owner: dict, pin) -> None:
+    auto = make_retainer(client, owner, collection="auto_transfer", started_on="2026-08-01")
+    assert pause(client, auto["id"]).status_code == 200  # before 25 Oct
+    pin(at("2026-12-30"))
+    resumed = resume(client, auto["id"]).json()
+    assert resumed["received"] == 500  # August and September; not October to December
+    assert resumed["next_due_on"] == "2027-01-25"
+
+
+def test_pause_rules(client: TestClient, owner: dict, pin) -> None:
+    ahead = make_retainer(client, owner)
+    pay(client, ahead["id"], "2026-11-01", months=2, amount=500)
+    response = pause(client, ahead["id"])
+    assert response.status_code == 409
+    assert response.json()["detail"] == "A payment covers November 2026; remove it before pausing"
+
+    ended = make_retainer(client, owner, started_on="2026-01-01", ended_on="2026-06-30")
+    assert pause(client, ended["id"]).json()["detail"] == "This retainer has already ended"
+    assert pause(client, 999999).status_code == 404
+
+    # Resumed the same day, it's as if it was never paused.
+    late = make_retainer(client, owner, due_day=10, started_on="2026-09-01")
+    pause(client, late["id"])
+    assert resume(client, late["id"]).json() == get(client, late["id"])
+    assert len(get(client, late["id"])["overdue"]) == 2
+
+
 def test_overview(client: TestClient, pin) -> None:
     northwind = make_client(client)
     pixel = make_client(client, "Pixelforge", contacts=(("discord", "@sora.px"),))

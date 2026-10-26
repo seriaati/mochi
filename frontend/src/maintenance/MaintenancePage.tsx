@@ -389,7 +389,7 @@ function DayDialog({ day, items, today, onPick, onClose }: DayProps) {
                 <b>{retainer.client.name}</b>
                 <span className="mt-amount">{formatNTD(month.amount)}</span>
                 {/* "Due Sun" would only repeat the title. */}
-                {(chip.tone === 'ok' || chip.tone === 'late') && (
+                {(chip.tone === 'ok' || chip.tone === 'late' || month.status === 'unpaid') && (
                   <span className={`chip mt-status ${chip.tone}`}>{chip.label}</span>
                 )}
               </button>

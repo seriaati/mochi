@@ -7,9 +7,10 @@ export type Collection = 'auto_transfer' | 'ask'
 
 /**
  * upcoming: the due date is still ahead. due: an unpaid "ask" month from its due date through
- * the 2 grace days after it. overdue: an unpaid "ask" month past the grace days.
+ * the 2 grace days after it. overdue: an unpaid "ask" month past the grace days. unpaid: an
+ * "ask" month left unpaid when the retainer was paused; never overdue or reminded.
  */
-export type MonthStatus = 'paid' | 'upcoming' | 'due' | 'overdue'
+export type MonthStatus = 'paid' | 'upcoming' | 'due' | 'overdue' | 'unpaid'
 
 export type RetainerInput = {
   client_id: number
@@ -40,7 +41,7 @@ export type Month = {
   paid_on: string | null
   /** The recorded payment covering it, "ask" retainers only. */
   payment: RetainerPayment | null
-  /** Due or overdue: days since the due date. Paid "ask" month: days paid after it. */
+  /** Due, overdue or unpaid: days since the due date. Paid "ask" month: days paid after it. */
   days_late: number
   /** Overdue, or paid more than the 2 grace days after the due date. */
   late: boolean
@@ -54,11 +55,13 @@ export type Retainer = RetainerInput & {
   client: RetainerClient
   project: { id: number; name: string } | null
   ask_via: Contact | null
-  /** Started and not ended, as of today. */
+  /** Started, not ended and not paused, as of today. */
   active: boolean
+  /** When it was paused, while it is. */
+  paused_on: string | null
   /** Null when this month isn't billed. */
   this_month: Month | null
-  /** The next month due today or later, past any "ask" months paid ahead; null once ended. */
+  /** The next month due today or later, past any "ask" months paid ahead; null once ended or while paused. */
   next_due_on: string | null
   /** The last few billed months up to the next one due, oldest first. */
   months: Month[]
@@ -182,6 +185,16 @@ export function useSaveRetainer(id?: number) {
       ? api.post<Retainer>('/retainers', input)
       : api.put<Retainer>(`/retainers/${id}`, input),
   )
+}
+
+/** Stops billing from today, and reminders for what's left unpaid, until resumed. */
+export function usePauseRetainer(id: number) {
+  return useMaintenanceMutation(() => api.post<Retainer>(`/retainers/${id}/pause`, {}))
+}
+
+/** Bills again from today; months due while paused stay unbilled. */
+export function useResumeRetainer(id: number) {
+  return useMaintenanceMutation(() => api.post<Retainer>(`/retainers/${id}/resume`, {}))
 }
 
 export function useDeleteRetainer() {

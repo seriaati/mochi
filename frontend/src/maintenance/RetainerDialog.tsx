@@ -4,9 +4,17 @@ import { useClients, type Client } from '../clients/queries.ts'
 import { DatePicker } from '../components/DatePicker.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { Select } from '../components/Select.tsx'
-import { todayISO } from '../format.ts'
+import { formatDay, todayISO } from '../format.ts'
 import { useProjects } from '../projects/queries.ts'
-import { useDeleteRetainer, useSaveRetainer, type Collection, type Retainer } from './queries.ts'
+import {
+  useDeleteRetainer,
+  usePauseRetainer,
+  useResumeRetainer,
+  useSaveRetainer,
+  type Collection,
+  type Retainer,
+} from './queries.ts'
+import './RetainerDialog.css'
 
 type Props = {
   /** The retainer to edit; omit to add a new one. */
@@ -35,6 +43,8 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const projects = useProjects().data ?? []
   const save = useSaveRetainer(retainer?.id)
   const remove = useDeleteRetainer()
+  const pause = usePauseRetainer(retainer?.id ?? 0)
+  const resume = useResumeRetainer(retainer?.id ?? 0)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [owner, setOwner] = useState<number | undefined>(retainer?.client_id ?? clientId)
   const [project, setProject] = useState(retainer ? retainer.project_id : (projectId ?? null))
@@ -44,7 +54,8 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const [startedOn, setStartedOn] = useState(retainer?.started_on ?? todayISO())
   // YYYY-MM; undefined until picked, then a past start date defaults to tracking this month.
   const [trackedFrom, setTrackedFrom] = useState(retainer?.tracked_from.slice(0, 7))
-  const error = save.error ?? remove.error
+  const error = save.error ?? remove.error ?? pause.error ?? resume.error
+  const ended = !!retainer?.ended_on && retainer.ended_on < todayISO()
 
   const client = clients.find((c) => c.id === owner)
   const contactId = askVia === undefined ? defaultContact(client) : askVia
@@ -185,6 +196,40 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
             date stays as a record of when the work began.
           </small>
         </label>
+        {retainer?.paused_on ? (
+          <div className="field">
+            Paused
+            <div className="rd-pause">
+              <small>Since {formatDay(retainer.paused_on)}. No months are billed and no reminders go out.</small>
+              <button
+                className="btn secondary"
+                type="button"
+                disabled={resume.isPending}
+                onClick={() => resume.mutate(undefined, { onSuccess: close })}
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        ) : (
+          retainer &&
+          !ended && (
+            <div className="field">
+              Stopped paying?
+              <div className="rd-pause">
+                <small>Pausing stops billing and reminders from today. What they owe stays on record.</small>
+                <button
+                  className="btn secondary"
+                  type="button"
+                  disabled={pause.isPending}
+                  onClick={() => pause.mutate(undefined, { onSuccess: close })}
+                >
+                  Pause
+                </button>
+              </div>
+            </div>
+          )
+        )}
         {error && <p className="form-error">{error.message}</p>}
         <div className="form-actions">
           <button className="btn" type="submit" disabled={save.isPending}>

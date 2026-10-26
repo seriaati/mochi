@@ -1,0 +1,12 @@
+/* Pause or resume, beside what it does. Stacks on narrow screens. */
+.rd-pause {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.rd-pause small {
+  flex: 1 1 220px;
+}
