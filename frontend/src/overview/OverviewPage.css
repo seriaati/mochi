@@ -70,6 +70,11 @@
   font-weight: 700;
 }
 
+/* Room between the amount and the line under it. */
+.ov-summary .big-number + .ov-meta {
+  margin-top: 10px;
+}
+
 .ov-action {
   display: flex;
   flex-wrap: wrap;
