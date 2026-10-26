@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { AddButton } from '../components/AddButton.tsx'
 import { ClientCard } from './ClientCard.tsx'
 import { ClientDialog } from './ClientDialog.tsx'
 import { contactHandle } from './contactKinds.ts'
@@ -50,9 +51,7 @@ export function ClientsPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
-            Add client
-          </button>
+          <AddButton label="Add client" onClick={() => setAdding(true)} />
         </div>
       </div>
 

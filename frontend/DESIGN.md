@@ -99,6 +99,7 @@ Reuse these instead of writing new ones:
 - **`DatePicker`** (`src/components/DatePicker.tsx`): every date or month field (`month` for YYYY-MM). Never use a native `type="date"` or `type="month"` input.
 - **`Avatar`** (`src/components/Avatar.tsx`): any person or client picture. The image comes first, then initials if the image is missing or fails to load.
 - **Buttons:** `.btn` (primary, ink), `.btn.secondary`, `.btn.danger`, `.link-btn` (text-only, e.g. "See all"). A `.btn` on a hero tile inverts automatically.
+- **`AddButton`** (`src/components/AddButton.tsx`): a page's main "add" action (New project, Add client) as a plus, with the label as its `aria-label` and tooltip. It floats above the nav on phones.
 - **Status and progress:**
   - `.chip`, `.chip.good`, `.chip.warn`
   - `.track` with `<i style="width: N%">` for progress; `.track.open` (dashed) for "no end date"

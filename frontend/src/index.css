@@ -581,6 +581,23 @@ button {
   cursor: default;
 }
 
+/* A page's main action as a plus (AddButton). */
+.add-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+}
+
+.add-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .link-btn {
   border: 0;
   background: none;
@@ -1081,6 +1098,11 @@ button {
     box-shadow:
       0 0 0 1px var(--track),
       0 12px 32px rgba(0, 0, 0, 0.14);
+  }
+
+  .page-main.add-btn {
+    width: 48px;
+    padding: 0;
   }
 
   .shell:has(.page-main) { padding-bottom: calc(172px + env(safe-area-inset-bottom)); }

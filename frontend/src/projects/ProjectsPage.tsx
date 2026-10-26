@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
+import { AddButton } from '../components/AddButton.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatNumber, formatNTD, plural, todayISO } from '../format.ts'
@@ -88,9 +89,7 @@ export function ProjectsPage() {
               }))}
             />
           </div>
-          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
-            New project
-          </button>
+          <AddButton label="New project" onClick={() => setAdding(true)} />
         </div>
       </div>
 

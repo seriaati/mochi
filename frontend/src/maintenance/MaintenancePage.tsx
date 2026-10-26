@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
 import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
+import { AddButton } from '../components/AddButton.tsx'
 import { Avatar } from '../components/Avatar.tsx'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
@@ -51,9 +52,7 @@ export function MaintenancePage() {
           )}
         </div>
         <div className="page-actions">
-          <button className="btn page-main" type="button" onClick={() => setAdding(true)}>
-            Add retainer
-          </button>
+          <AddButton label="Add retainer" onClick={() => setAdding(true)} />
         </div>
       </div>
 

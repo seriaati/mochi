@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { contactHandle } from '../clients/contactKinds.ts'
 import { KindLabel } from '../clients/KindLabel.tsx'
 import { useClient } from '../clients/queries.ts'
+import { AddButton } from '../components/AddButton.tsx'
 import { Avatar } from '../components/Avatar.tsx'
 import { formatDay, formatNTD, formatNumber, initials, plural, todayISO } from '../format.ts'
 import { monthChip, scheduleText } from '../maintenance/labels.ts'
@@ -101,9 +102,7 @@ function ProjectTiles({ project }: { project: Project }) {
           >
             {confirmingDelete ? 'Delete with its payments?' : 'Delete'}
           </button>
-          <button className="btn page-main" type="button" onClick={() => setAddition(null)}>
-            Add addition
-          </button>
+          <AddButton label="Add addition" onClick={() => setAddition(null)} />
         </div>
       </div>
       {remove.error && <p className="form-error project-delete-error">{remove.error.message}</p>}
