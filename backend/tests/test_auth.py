@@ -51,8 +51,8 @@ def browser(anon_client: TestClient) -> TestClient:
     return TestClient(app, base_url="https://testserver")
 
 
-def login(client: TestClient, password: str = TEST_PASSWORD, **kwargs: object):
-    return client.post("/api/auth/login", json={"password": password}, **kwargs)
+def login(client: TestClient, password: str = TEST_PASSWORD, headers: dict[str, str] | None = None):
+    return client.post("/api/auth/login", json={"password": password}, headers=headers)
 
 
 def logged_in(client: TestClient) -> bool:
@@ -103,7 +103,7 @@ def test_cli_prints_a_hash_that_verifies(
 
 def test_config_rejects_a_plain_password() -> None:
     with pytest.raises(ValueError, match="scrypt"):
-        type(settings)(auth_password_hash="hunter2")
+        type(settings).model_validate({"auth_password_hash": "hunter2"})
 
 
 # Logging in

@@ -77,7 +77,7 @@ def pay_retainer(client: TestClient, retainer: dict, period: str, amount: int, p
     assert response.status_code == 201, response.text
 
 
-def earnings(client: TestClient, **params: object) -> dict:
+def earnings(client: TestClient, **params: int) -> dict:
     response = client.get("/api/overview/earnings", params=params)
     assert response.status_code == 200, response.text
     return response.json()
@@ -203,5 +203,5 @@ def test_comparison_down_and_without_last_year(client: TestClient, owner: dict) 
 
 
 @pytest.mark.parametrize("year", [0, 1, 10_000, "soon"])
-def test_bad_years_are_rejected(client: TestClient, year: object) -> None:
+def test_bad_years_are_rejected(client: TestClient, year: int | str) -> None:
     assert client.get("/api/overview/earnings", params={"year": year}).status_code == 422

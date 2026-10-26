@@ -5,6 +5,7 @@ timezone) unless a test moves it. Reminders post through a recorder, never to Di
 
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -125,7 +126,7 @@ def owner(client: TestClient) -> dict:
     return make_client(client)
 
 
-def transient(**fields: object) -> Retainer:
+def transient(**fields: Any) -> Retainer:
     """A retainer that never touches the database, for the pure date logic."""
     payments = fields.pop("payments", [])
     started_on = fields.get("started_on", date(2026, 1, 1))

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://freelance:freelance@localhost:5433/freelance_test"
 )
-assert make_url(TEST_DATABASE_URL).database.endswith("_test"), (
+assert (make_url(TEST_DATABASE_URL).database or "").endswith("_test"), (
     "refusing to test against a non-test DB"
 )
 # Point the app (and Alembic) at the test database before anything imports app.config.

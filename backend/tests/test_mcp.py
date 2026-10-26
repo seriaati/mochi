@@ -7,6 +7,7 @@ import secrets
 from collections.abc import Iterator
 from contextlib import nullcontext
 from datetime import timedelta
+from typing import Any, cast
 from urllib.parse import parse_qs, urlsplit
 
 import jsonschema
@@ -118,9 +119,11 @@ def refresh(anon_client: TestClient, sign_in: SignIn, refresh_token: str):
     return anon_client.post("/token", data=form)
 
 
-def connect(client: TestClient, anon_client: TestClient, **kwargs: object) -> tuple[SignIn, dict]:
+def connect(
+    client: TestClient, anon_client: TestClient, client_info: dict | None = None
+) -> tuple[SignIn, dict]:
     """Signs a new MCP client in all the way, returning its tokens."""
-    sign_in = start(anon_client, **kwargs)
+    sign_in = start(anon_client, client_info)
     response = exchange(anon_client, sign_in, approve(client, sign_in))
     assert response.status_code == 200, response.text
     return sign_in, response.json()
@@ -192,7 +195,7 @@ def test_sign_in_and_use_the_tools(
             "Accept": "application/json, text/event-stream",
         }
 
-        def rpc(method: str, params: dict, request_id: int | None = 1) -> dict | None:
+        def rpc(method: str, params: dict, request_id: int | None = 1) -> Any:
             message = {"jsonrpc": "2.0", "method": method, "params": params}
             if request_id is not None:
                 message["id"] = request_id
@@ -356,9 +359,16 @@ def test_csrf_check_leaves_oauth_alone(anon_client: TestClient) -> None:
 # Tools
 
 
-def call(name: str, **arguments: object) -> object:
-    _, structured = asyncio.run(mcp.call_tool(name, arguments))
-    return structured.get("result", structured)
+def structured(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """A tool's structured output. call_tool returns (content, structured), whatever its type
+    says."""
+    result = asyncio.run(mcp.call_tool(name, arguments))
+    return cast(tuple[object, dict[str, Any]], result)[1]
+
+
+def call(name: str, **arguments: object) -> Any:
+    output = structured(name, arguments)
+    return output.get("result", output)
 
 
 def test_update_changes_only_the_fields_given() -> None:
@@ -470,8 +480,9 @@ def test_discord_ids_match_the_output_schemas() -> None:
     )
     tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
     for name in ("list_clients", "list_retainers"):
-        _, structured = asyncio.run(mcp.call_tool(name, {}))
-        jsonschema.validate(structured, tools[name].outputSchema)
+        schema = tools[name].outputSchema
+        assert schema is not None
+        jsonschema.validate(structured(name, {}), schema)
     assert contact["discord_user_id"] == "1207716883264966748"
 
 

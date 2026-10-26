@@ -6,6 +6,7 @@ The clock is pinned to 23 October 2026, 10:00 in Asia/Taipei."""
 from collections.abc import Iterator
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx2 as httpx
 import pytest
@@ -486,7 +487,7 @@ def test_avatars_on_projects_and_retainers(client: TestClient, fake: FakeDiscord
 def test_mention_profile(
     client: TestClient, fake: FakeDiscord, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def mention() -> dict | None:
+    def mention() -> Any:
         return client.get("/api/maintenance").json()["reminders"]["mention"]
 
     assert mention() is None  # no mention user
@@ -644,5 +645,5 @@ def test_bad_bot_tokens_are_rejected(
 
 def test_encryption_key_must_be_long() -> None:
     with pytest.raises(ValidationError):
-        type(settings)(encryption_key="too short")
-    assert type(settings)(encryption_key=KEY).encryption_key == SecretStr(KEY)
+        type(settings).model_validate({"encryption_key": "too short"})
+    assert type(settings).model_validate({"encryption_key": KEY}).encryption_key == SecretStr(KEY)
