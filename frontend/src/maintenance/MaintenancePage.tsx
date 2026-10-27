@@ -443,9 +443,15 @@ function OverdueListTile({ data }: { data: Maintenance }) {
                 />
               </Link>
               <div className="mt-owed-name">
-                <b>{retainer.client.name}</b>
+                <b>
+                  <Link to={`/clients/${retainer.client.id}`}>{retainer.client.name}</Link>
+                </b>
                 <small>
-                  {retainer.project && `${retainer.project.name} · `}
+                  {retainer.project && (
+                    <>
+                      <Link to={`/projects/${retainer.project.id}`}>{retainer.project.name}</Link> ·{' '}
+                    </>
+                  )}
                   {monthList(months.map((o) => o.period))}
                 </small>
               </div>

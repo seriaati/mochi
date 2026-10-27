@@ -254,11 +254,17 @@ button.mt-day:active { transform: scale(0.94); }
 .mt-name small a {
   position: relative;
   z-index: 1;
+}
+
+/* Names that link somewhere underline on hover: the project here, client and project when overdue. */
+.mt-name small a:hover,
+.mt-owed-name a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.mt-name small a:hover {
+.mt-name small a:hover,
+.mt-owed-name small a:hover {
   color: var(--ink);
 }
 
