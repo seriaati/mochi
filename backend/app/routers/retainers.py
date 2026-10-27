@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import Select, select
@@ -29,6 +29,7 @@ from app.schemas.maintenance import (
     RetainerPaymentIn,
     RetainerPaymentOut,
     RetainerProject,
+    RetainerSwitchIn,
     RetainerWaiverIn,
     RetainerWaiverOut,
 )
@@ -322,6 +323,59 @@ def delete_pause(retainer_id: int, pause_id: int, session: SessionDep) -> None:
     """As if it was never paused then: the months that fell due in it are billed again."""
     session.delete(_get_pause_or_404(session, retainer_id, pause_id))
     session.commit()
+
+
+@router.post("/{retainer_id}/switch-to-auto")
+def switch_to_auto(
+    retainer_id: int, body: RetainerSwitchIn, session: SessionDep, today: TodayDep
+) -> RetainerOut:
+    """For a client who moved from being asked to paying by auto transfer. Months before
+    body.period stay as they were, with their payments and reminders: this retainer ends there
+    and a new auto transfer one, otherwise the same, carries on from body.period. From its first
+    tracked month, it just becomes auto transfer. Returns the retainer that is auto transfer."""
+    retainer = _get_retainer_or_404(session, retainer_id)
+    if retainer.collection != Collection.ASK:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This retainer is already auto transfer")
+    month = body.period.strftime("%B %Y")
+    paid = [period for p in retainer.payments for period in maintenance.covered(p)]
+    if any(period >= body.period for period in paid):
+        later = min(period for period in paid if period >= body.period).strftime("%B %Y")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"A payment is recorded for {later}; switch from a later month",
+        )
+    if body.period <= retainer.tracked_from:
+        retainer.collection = Collection.AUTO_TRANSFER
+        retainer.ask_via_id = None
+        session.commit()
+        return _read(session, retainer_id, today)
+
+    ended_on = body.period - timedelta(days=1)
+    if retainer.ended_on is not None and retainer.ended_on < maintenance.due_on(
+        body.period, retainer.due_day
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"This retainer ends before {month}")
+    if any((p.resumed_on or date.max) > body.period for p in retainer.pauses):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"It's paused in or after {month}; resume it or switch from a later month",
+        )
+    auto = Retainer(
+        client_id=retainer.client_id,
+        project_id=retainer.project_id,
+        amount=retainer.amount,
+        due_day=retainer.due_day,
+        collection=Collection.AUTO_TRANSFER,
+        started_on=body.period,
+        ended_on=retainer.ended_on,
+    )
+    session.add(auto)
+    retainer.ended_on = ended_on
+    for waiver in list(retainer.waivers):
+        if waiver.period >= body.period:
+            waiver.retainer = auto
+    session.commit()
+    return _read(session, auto.id, today)
 
 
 @router.post("/{retainer_id}/payments", status_code=status.HTTP_201_CREATED)

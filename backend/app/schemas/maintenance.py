@@ -40,6 +40,10 @@ class RetainerIn(BaseModel):
         return self
 
 
+class RetainerSwitchIn(BaseModel):
+    period: Period  # the first month paid by auto transfer
+
+
 class RetainerPaymentIn(BaseModel):
     period: Period  # the first month paid for
     months: Annotated[int, Field(ge=1, le=12)] = 1  # in a row from period, when paid ahead

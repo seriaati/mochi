@@ -12,6 +12,7 @@ import {
   usePauseRetainer,
   useResumeRetainer,
   useSaveRetainer,
+  useSwitchToAuto,
   type Collection,
   type Retainer,
 } from './queries.ts'
@@ -46,6 +47,7 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const remove = useDeleteRetainer()
   const pause = usePauseRetainer(retainer?.id ?? 0)
   const resume = useResumeRetainer(retainer?.id ?? 0)
+  const switchToAuto = useSwitchToAuto(retainer?.id ?? 0)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [owner, setOwner] = useState<number | undefined>(retainer?.client_id ?? clientId)
   const [project, setProject] = useState(retainer ? retainer.project_id : (projectId ?? null))
@@ -55,8 +57,12 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const [startedOn, setStartedOn] = useState(retainer?.started_on ?? todayISO())
   // YYYY-MM; undefined until picked, then a past start date defaults to tracking this month.
   const [trackedFrom, setTrackedFrom] = useState(retainer?.tracked_from.slice(0, 7))
-  const error = save.error ?? remove.error ?? pause.error ?? resume.error
+  const error = save.error ?? switchToAuto.error ?? remove.error ?? pause.error ?? resume.error
   const ended = !!retainer?.ended_on && retainer.ended_on < todayISO()
+  // An "ask" retainer moving to auto transfer keeps the months before switchFrom as they were.
+  const switching = retainer?.collection === 'ask' && !ended && collection === 'auto_transfer'
+  // YYYY-MM; defaults to the next month due, so months already owed stay owed.
+  const [switchFrom, setSwitchFrom] = useState((retainer?.next_due_on ?? todayISO()).slice(0, 7))
 
   const client = clients.find((c) => c.id === owner)
   const contactId = askVia === undefined ? defaultContact(client) : askVia
@@ -78,13 +84,15 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
         project_id: project,
         amount: Number(form.get('amount')),
         due_day: Number(form.get('due_day')),
-        collection,
-        ask_via_id: collection === 'ask' ? contactId : null,
+        collection: switching ? 'ask' : collection,
+        ask_via_id: collection === 'ask' || switching ? contactId : null,
         started_on: startedOn,
         ended_on: (form.get('ended_on') as string) || null,
         tracked_from: `${tracked}-01`,
       },
-      { onSuccess: close },
+      {
+        onSuccess: () => (switching ? switchToAuto.mutate(`${switchFrom}-01`, { onSuccess: close }) : close()),
+      },
     )
   }
 
@@ -163,6 +171,17 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
               : 'Counts as paid on the due date. No reminders.'}
           </small>
         </div>
+        {switching && (
+          <label className="field">
+            Auto transfer from
+            <DatePicker month required min={tracked} value={switchFrom} onChange={setSwitchFrom} />
+            <small>
+              {switchFrom > tracked
+                ? 'Earlier months stay as they are, with their payments, and are still reminded about if unpaid. From this month it carries on as a new retainer.'
+                : 'Every tracked month counts as paid on its due date.'}
+            </small>
+          </label>
+        )}
         {collection === 'ask' && (
           <label className="field">
             Ask on
@@ -233,7 +252,7 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
         )}
         {error && <p className="form-error">{error.message}</p>}
         <div className="form-actions">
-          <button className="btn" type="submit" disabled={save.isPending}>
+          <button className="btn" type="submit" disabled={save.isPending || switchToAuto.isPending}>
             {retainer ? 'Save' : 'Add retainer'}
           </button>
           <button className="btn secondary push" type="button" onClick={close}>

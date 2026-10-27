@@ -556,6 +556,102 @@ def test_edits_must_keep_recorded_payments_valid(client: TestClient, owner: dict
     assert put_retainer(client, retainer, amount=300, ended_on="2026-12-31").status_code == 200
 
 
+# Switching to auto transfer
+
+
+def switch(client: TestClient, retainer_id: int, period: str):
+    return client.post(f"/api/retainers/{retainer_id}/switch-to-auto", json={"period": period})
+
+
+def test_switching_to_auto_keeps_what_was_asked_for(client: TestClient, owner: dict) -> None:
+    asked = make_retainer(client, owner, due_day=10, started_on="2026-07-01")
+    pay(client, asked["id"], "2026-07-01")
+    pay(client, asked["id"], "2026-08-01")
+    waive(client, asked["id"], "2026-12-01")
+
+    response = switch(client, asked["id"], "2026-11-15")
+    assert response.status_code == 200, response.text
+    auto = response.json()
+    assert auto["id"] != asked["id"]
+    assert (auto["collection"], auto["ask_via_id"]) == ("auto_transfer", None)
+    assert (auto["started_on"], auto["ended_on"], auto["tracked_from"]) == (
+        "2026-11-01",
+        None,
+        "2026-11-01",
+    )
+    assert [w["period"] for w in auto["waivers"]] == ["2026-12-01"]
+    assert auto["next_due_on"] == "2026-11-10"
+
+    # Earlier months stay asked for: paid ones keep their payments, unpaid ones stay owed.
+    old = get(client, asked["id"])
+    assert (old["collection"], old["ended_on"], old["waivers"]) == ("ask", "2026-10-31", [])
+    assert [(m["period"], m["status"]) for m in old["months"]] == [
+        ("2026-07-01", "paid"),
+        ("2026-08-01", "paid"),
+        ("2026-09-01", "overdue"),
+        ("2026-10-01", "overdue"),
+    ]
+    assert len(client.get("/api/retainers", params={"client_id": owner["id"]}).json()) == 2
+
+
+def test_switching_from_a_past_month(client: TestClient, owner: dict) -> None:
+    asked = make_retainer(client, owner, due_day=10, started_on="2026-07-01")
+    pay(client, asked["id"], "2026-07-01")
+    auto = switch(client, asked["id"], "2026-08-01").json()
+    assert [(m["period"], m["status"]) for m in auto["months"]] == [
+        ("2026-08-01", "paid"),
+        ("2026-09-01", "paid"),
+        ("2026-10-01", "paid"),
+        ("2026-11-01", "upcoming"),
+    ]
+    assert get(client, asked["id"])["overdue"] == []
+
+
+@pytest.mark.parametrize(
+    ("started_on", "tracked_from", "period"),
+    [("2026-10-01", "2026-10-01", "2026-10-01"), ("2025-01-01", "2026-09-01", "2026-08-01")],
+)
+def test_switching_from_the_first_tracked_month_changes_it_in_place(
+    client: TestClient, owner: dict, started_on: str, tracked_from: str, period: str
+) -> None:
+    asked = make_retainer(client, owner, started_on=started_on, tracked_from=tracked_from)
+    auto = switch(client, asked["id"], period).json()
+    assert (auto["id"], auto["collection"], auto["ask_via_id"]) == (
+        asked["id"],
+        "auto_transfer",
+        None,
+    )
+    assert (auto["started_on"], auto["ended_on"]) == (started_on, None)
+    assert len(client.get("/api/retainers").json()) == 1
+
+
+def test_switch_rules(client: TestClient, owner: dict, pin) -> None:
+    auto = make_retainer(client, owner, collection="auto_transfer")
+    response = switch(client, auto["id"], "2026-11-01")
+    assert response.json()["detail"] == "This retainer is already auto transfer"
+    assert switch(client, 999999, "2026-11-01").status_code == 404
+
+    ahead = make_retainer(client, owner)
+    pay(client, ahead["id"], "2026-11-01", months=2, amount=500)
+    response = switch(client, ahead["id"], "2026-12-01")
+    assert response.status_code == 409
+    detail = "A payment is recorded for December 2026; switch from a later month"
+    assert response.json()["detail"] == detail
+    assert switch(client, ahead["id"], "2027-01-01").status_code == 200
+
+    ending = make_retainer(client, owner, due_day=25, ended_on="2026-12-20")
+    response = switch(client, ending["id"], "2026-12-01")
+    assert response.json()["detail"] == "This retainer ends before December 2026"
+    assert switch(client, ending["id"], "2026-11-01").json()["ended_on"] == "2026-12-20"
+
+    paused = make_retainer(client, owner, started_on="2026-08-01")
+    pause(client, paused["id"])
+    response = switch(client, paused["id"], "2026-11-01")
+    detail = "It's paused in or after November 2026; resume it or switch from a later month"
+    assert response.json()["detail"] == detail
+    assert get(client, paused["id"])["ended_on"] is None  # unchanged
+
+
 # Paying several months ahead
 
 

@@ -486,6 +486,25 @@ def test_discord_ids_match_the_output_schemas() -> None:
     assert contact["discord_user_id"] == "1207716883264966748"
 
 
+def test_switch_retainer_to_auto_tool() -> None:
+    client_id = call("create_client", client={"name": "Northwind"})["id"]
+    retainer = call(
+        "create_retainer",
+        retainer={
+            "client_id": client_id,
+            "amount": 3000,
+            "due_day": 5,
+            "collection": "ask",
+            "started_on": "2025-01-01",
+        },
+    )
+    auto = call(
+        "switch_retainer_to_auto", retainer_id=retainer["id"], switch={"period": "2025-06-20"}
+    )
+    assert (auto["collection"], auto["started_on"]) == ("auto_transfer", "2025-06-01")
+    assert call("get_retainer", retainer_id=retainer["id"])["ended_on"] == "2025-05-31"
+
+
 def test_past_pause_and_waiver_tools() -> None:
     client_id = call("create_client", client={"name": "Northwind"})["id"]
     retainer = call(

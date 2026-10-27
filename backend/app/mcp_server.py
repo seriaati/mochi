@@ -35,6 +35,7 @@ from app.schemas.maintenance import (
     RetainerPauseIn,
     RetainerPaymentIn,
     RetainerPaymentOut,
+    RetainerSwitchIn,
     RetainerWaiverIn,
     RetainerWaiverOut,
 )
@@ -381,6 +382,18 @@ async def delete_retainer_pause(retainer_id: int, pause_id: int) -> str:
     it are billed again."""
     await _run(lambda s, c: retainers.delete_pause(retainer_id, pause_id, session=s))
     return f"Deleted pause {pause_id}"
+
+
+@mcp.tool(annotations=_ann("Switch retainer to auto transfer"))
+async def switch_retainer_to_auto(retainer_id: int, switch: RetainerSwitchIn) -> RetainerOut:
+    """Switches an "ask" monthly maintenance fee to auto transfer from a month on (period, any
+    date in it), e.g. when the client set up a standing bank transfer. Earlier months keep their
+    payments and stay owed if unpaid: the retainer ends before period and a new auto transfer
+    one carries on from it. From its first tracked month, it is changed in place instead.
+    Returns the auto transfer retainer."""
+    return await _run(
+        lambda s, c: retainers.switch_to_auto(retainer_id, switch, session=s, today=c.today)
+    )
 
 
 @mcp.tool(annotations=_ann("Record retainer payment"))

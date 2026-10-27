@@ -211,6 +211,13 @@ export function useResumeRetainer(id: number) {
   return useMaintenanceMutation(() => api.post<Retainer>(`/retainers/${id}/resume`, {}))
 }
 
+/** Auto transfer from period on: the months before stay asked for, on this retainer. Returns the auto one. */
+export function useSwitchToAuto(id: number) {
+  return useMaintenanceMutation((period: string) =>
+    api.post<Retainer>(`/retainers/${id}/switch-to-auto`, { period }),
+  )
+}
+
 export function useDeleteRetainer() {
   return useMaintenanceMutation((id: number) => api.delete(`/retainers/${id}`))
 }
