@@ -7,6 +7,7 @@ import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, todayISO } from '../format.ts'
 import { useProjects } from '../projects/queries.ts'
+import { monthName } from './labels.ts'
 import {
   useDeleteRetainer,
   usePauseRetainer,
@@ -38,6 +39,11 @@ function defaultContact(client: Client | undefined): number | null {
   return pick?.id ?? null
 }
 
+/** "Aug 2026" from YYYY-MM. */
+function shortMonth(month: string): string {
+  return `${monthName(`${month}-01`)} ${month.slice(0, 4)}`
+}
+
 export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
@@ -48,13 +54,16 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const pause = usePauseRetainer(retainer?.id ?? 0)
   const resume = useResumeRetainer(retainer?.id ?? 0)
   const switchToAuto = useSwitchToAuto(retainer?.id ?? 0)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // Pause and Delete each confirm on a second press, with what they do spelled out below.
+  const [confirming, setConfirming] = useState<'pause' | 'delete'>()
   const [owner, setOwner] = useState<number | undefined>(retainer?.client_id ?? clientId)
   const [project, setProject] = useState(retainer ? retainer.project_id : (projectId ?? null))
+  const [dueDay, setDueDay] = useState(String(retainer?.due_day ?? 25))
   const [collection, setCollection] = useState<Collection>(retainer?.collection ?? 'ask')
   // undefined until picked: falls back to the client's default contact.
   const [askVia, setAskVia] = useState<number | null | undefined>(retainer?.ask_via_id)
   const [startedOn, setStartedOn] = useState(retainer?.started_on ?? todayISO())
+  const [endedOn, setEndedOn] = useState(retainer?.ended_on ?? '')
   // YYYY-MM; undefined until picked, then a past start date defaults to tracking this month.
   const [trackedFrom, setTrackedFrom] = useState(retainer?.tracked_from.slice(0, 7))
   const error = save.error ?? switchToAuto.error ?? remove.error ?? pause.error ?? resume.error
@@ -69,6 +78,11 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
   const startMonth = startedOn.slice(0, 7)
   const thisMonth = todayISO().slice(0, 7)
   const tracked = trackedFrom ?? (startMonth < thisMonth ? thisMonth : startMonth)
+  const dates = [
+    `Since ${formatDay(startedOn, { year: true })}`,
+    endedOn ? `until ${formatDay(endedOn, { year: true })}` : 'no end date',
+    ...(tracked > startMonth ? [`tracked from ${shortMonth(tracked)}`] : []),
+  ].join(' · ')
 
   function pickClient(value: string) {
     setOwner(Number(value))
@@ -83,11 +97,11 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
         client_id: Number(form.get('client_id')),
         project_id: project,
         amount: Number(form.get('amount')),
-        due_day: Number(form.get('due_day')),
+        due_day: Number(dueDay),
         collection: switching ? 'ask' : collection,
         ask_via_id: collection === 'ask' || switching ? contactId : null,
         started_on: startedOn,
-        ended_on: (form.get('ended_on') as string) || null,
+        ended_on: endedOn || null,
         tracked_from: `${tracked}-01`,
       },
       {
@@ -98,157 +112,140 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
 
   return (
     <Dialog title={retainer ? 'Edit retainer' : 'Add retainer'} ref={dialog} onClose={onClose}>
-      <form className="form" onSubmit={submit}>
-        <label className="field">
-          Client
-          <Select
-            name="client_id"
-            required
-            value={String(owner ?? '')}
-            onChange={pickClient}
-            placeholder="Choose a client"
-            options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
-          />
-        </label>
-        <label className="field">
-          Project
-          <Select
-            value={String(project ?? '')}
-            onChange={(value) => setProject(value ? Number(value) : null)}
-            options={[
-              { value: '', label: 'No project' },
-              ...projects.map((p) => ({ value: String(p.id), label: p.name })),
-            ]}
-          />
-          <small>What the fee is for. Several clients can pay for the same project.</small>
-        </label>
-        <div className="form-row">
+      <form className="form rd-form" onSubmit={submit}>
+        <div className="rd-group">
           <label className="field">
-            Per month (NT$)
-            <input
-              name="amount"
-              type="number"
-              inputMode="numeric"
-              required
-              min={1}
-              step={1}
-              defaultValue={retainer?.amount}
-              autoFocus
-            />
-          </label>
-          <label className="field">
-            Due on day
-            <input
-              name="due_day"
-              type="number"
-              inputMode="numeric"
-              required
-              min={1}
-              max={31}
-              step={1}
-              defaultValue={retainer?.due_day ?? 25}
-            />
-            <small>Shorter months fall due on their last day</small>
-          </label>
-        </div>
-        <div className="field">
-          <span id="collection-label">How it's paid</span>
-          <Segmented role="group" aria-labelledby="collection-label">
-            <button type="button" aria-pressed={collection === 'ask'} onClick={() => setCollection('ask')}>
-              I ask for it
-            </button>
-            <button
-              type="button"
-              aria-pressed={collection === 'auto_transfer'}
-              onClick={() => setCollection('auto_transfer')}
-            >
-              Auto transfer
-            </button>
-          </Segmented>
-          <small>
-            {collection === 'ask'
-              ? 'You get a Discord reminder at 09:00 on the due date and record each payment.'
-              : 'Counts as paid on the due date. No reminders.'}
-          </small>
-        </div>
-        {switching && (
-          <label className="field">
-            Auto transfer from
-            <DatePicker month required min={tracked} value={switchFrom} onChange={setSwitchFrom} />
-            <small>
-              {switchFrom > tracked
-                ? 'Earlier months stay as they are, with their payments, and are still reminded about if unpaid. From this month it carries on as a new retainer.'
-                : 'Every tracked month counts as paid on its due date.'}
-            </small>
-          </label>
-        )}
-        {collection === 'ask' && (
-          <label className="field">
-            Ask on
+            Client
             <Select
-              value={String(contactId ?? '')}
-              onChange={(value) => setAskVia(value ? Number(value) : null)}
+              name="client_id"
+              required
+              value={String(owner ?? '')}
+              onChange={pickClient}
+              placeholder="Choose a client"
+              options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
+            />
+          </label>
+          <label className="field">
+            Project
+            <Select
+              value={String(project ?? '')}
+              onChange={(value) => setProject(value ? Number(value) : null)}
               options={[
-                ...(client?.contacts ?? []).map((c) => ({
-                  value: String(c.id),
-                  label: `${contactKinds[c.kind].label} · ${contactHandle(c)}`,
-                })),
-                { value: '', label: 'No contact' },
+                { value: '', label: 'No project' },
+                ...projects.map((p) => ({ value: String(p.id), label: p.name })),
               ]}
             />
           </label>
-        )}
-        <div className="form-row">
-          <label className="field">
-            Started on
-            <DatePicker required value={startedOn} onChange={setStartedOn} />
-          </label>
-          <label className="field">
-            Ended on (optional)
-            <DatePicker name="ended_on" defaultValue={retainer?.ended_on ?? ''} />
-          </label>
-        </div>
-        <label className="field">
-          Track from
-          <DatePicker month required min={startMonth} value={tracked} onChange={setTrackedFrom} />
-          <small>
-            Earlier months count as settled: never overdue or reminded, and left out of totals. The start
-            date stays as a record of when the work began.
-          </small>
-        </label>
-        {retainer?.paused_on ? (
-          <div className="field">
-            Paused
-            <div className="rd-pause">
-              <small>Since {formatDay(retainer.paused_on)}. No months are billed and no reminders go out.</small>
-              <button
-                className="btn secondary"
-                type="button"
-                disabled={resume.isPending}
-                onClick={() => resume.mutate(undefined, { onSuccess: close })}
-              >
-                Resume
-              </button>
-            </div>
+          <div className="form-row">
+            <label className="field">
+              Per month (NT$)
+              <input
+                name="amount"
+                type="number"
+                inputMode="numeric"
+                required
+                min={1}
+                step={1}
+                defaultValue={retainer?.amount}
+                autoFocus
+              />
+            </label>
+            <label className="field">
+              Due on day
+              <input
+                type="number"
+                inputMode="numeric"
+                required
+                min={1}
+                max={31}
+                step={1}
+                value={dueDay}
+                onChange={(event) => setDueDay(event.target.value)}
+              />
+              {Number(dueDay) > 28 && <small>Shorter months fall due on their last day</small>}
+            </label>
           </div>
-        ) : (
-          retainer &&
-          !ended && (
-            <div className="field">
-              Stopped paying?
-              <div className="rd-pause">
-                <small>Pausing stops billing and reminders from today. What they owe stays on record.</small>
-                <button
-                  className="btn secondary"
-                  type="button"
-                  disabled={pause.isPending}
-                  onClick={() => pause.mutate(undefined, { onSuccess: close })}
-                >
-                  Pause
-                </button>
-              </div>
+        </div>
+
+        <div className="rd-group">
+          <div className="field">
+            <span id="collection-label">How it's paid</span>
+            <Segmented className="rd-collection" role="group" aria-labelledby="collection-label">
+              <button type="button" aria-pressed={collection === 'ask'} onClick={() => setCollection('ask')}>
+                I ask for it
+              </button>
+              <button
+                type="button"
+                aria-pressed={collection === 'auto_transfer'}
+                onClick={() => setCollection('auto_transfer')}
+              >
+                Auto transfer
+              </button>
+            </Segmented>
+          </div>
+          {collection === 'ask' ? (
+            <label className="field">
+              Ask on
+              <Select
+                value={String(contactId ?? '')}
+                onChange={(value) => setAskVia(value ? Number(value) : null)}
+                options={[
+                  ...(client?.contacts ?? []).map((c) => ({
+                    value: String(c.id),
+                    label: `${contactKinds[c.kind].label} · ${contactHandle(c)}`,
+                  })),
+                  { value: '', label: 'No contact' },
+                ]}
+              />
+              <small>You're reminded at 09:00 on the due date until you record the payment.</small>
+            </label>
+          ) : switching ? (
+            <label className="field">
+              Auto transfer from
+              <DatePicker month required min={tracked} value={switchFrom} onChange={setSwitchFrom} />
+              <small>
+                {switchFrom > tracked
+                  ? 'Earlier months stay asked for, with their payments. From this month it carries on as a new retainer.'
+                  : 'Every tracked month counts as paid on its due date.'}
+              </small>
+            </label>
+          ) : (
+            <p className="rd-note">Counts as paid on the due date, with no reminders.</p>
+          )}
+        </div>
+
+        {/* Set once and rarely changed, so folded away when editing. */}
+        <details className="rd-dates" open={!retainer}>
+          <summary>
+            <span className="rd-dates-label">Dates</span>
+            <span className="rd-dates-value">{dates}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="rd-dates-body">
+            <div className="form-row">
+              <label className="field">
+                Started on
+                <DatePicker required value={startedOn} onChange={setStartedOn} />
+              </label>
+              <label className="field">
+                Ends on
+                <DatePicker value={endedOn} onChange={setEndedOn} placeholder="No end date" />
+              </label>
             </div>
-          )
+            <label className="field">
+              Track from
+              <DatePicker month required min={startMonth} value={tracked} onChange={setTrackedFrom} />
+              <small>Earlier months count as settled: never overdue or reminded, and left out of totals.</small>
+            </label>
+          </div>
+        </details>
+
+        {retainer?.paused_on && (
+          <p className="rd-note">
+            Paused since {formatDay(retainer.paused_on)}: no months are billed and no reminders go out.
+          </p>
         )}
         {error && <p className="form-error">{error.message}</p>}
         <div className="form-actions">
@@ -258,23 +255,54 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
           <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
-          {retainer && (
-            <button
-              className="btn danger"
-              type="button"
-              disabled={remove.isPending}
-              onClick={() =>
-                confirmingDelete
-                  ? remove.mutate(retainer.id, { onSuccess: close })
-                  : setConfirmingDelete(true)
-              }
-            >
-              {confirmingDelete ? 'Confirm delete' : 'Delete'}
-            </button>
-          )}
+          {/* Wraps onto its own line as one, rather than splitting Pause from Delete. */}
+          <div className="rd-lifecycle">
+            {retainer?.paused_on ? (
+              <button
+                className="btn secondary"
+                type="button"
+                disabled={resume.isPending}
+                onClick={() => resume.mutate(undefined, { onSuccess: close })}
+              >
+                Resume
+              </button>
+            ) : (
+              retainer &&
+              !ended && (
+                <button
+                  className="btn secondary"
+                  type="button"
+                  disabled={pause.isPending}
+                  onClick={() =>
+                    confirming === 'pause' ? pause.mutate(undefined, { onSuccess: close }) : setConfirming('pause')
+                  }
+                >
+                  {confirming === 'pause' ? 'Confirm pause' : 'Pause'}
+                </button>
+              )
+            )}
+            {retainer && (
+              <button
+                className="btn danger"
+                type="button"
+                disabled={remove.isPending}
+                onClick={() =>
+                  confirming === 'delete' ? remove.mutate(retainer.id, { onSuccess: close }) : setConfirming('delete')
+                }
+              >
+                {confirming === 'delete' ? 'Confirm delete' : 'Delete'}
+              </button>
+            )}
+          </div>
         </div>
-        {confirmingDelete && !remove.error && (
-          <p className="field">This also removes its recorded payments and reminder history.</p>
+        {confirming === 'pause' && !pause.error && (
+          <p className="rd-note">
+            For a client who stopped paying: billing and reminders stop from today, and what they owe stays on
+            record.
+          </p>
+        )}
+        {confirming === 'delete' && !remove.error && (
+          <p className="rd-note">This also removes its recorded payments and reminder history.</p>
         )}
       </form>
     </Dialog>
