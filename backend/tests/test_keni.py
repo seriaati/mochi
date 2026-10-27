@@ -379,7 +379,7 @@ def test_new_payment_is_recorded_as_income(
         "type": "income",
         "category_id": CATEGORY,
         "amount": 24000,
-        "date": "2026-10-20T00:00:00+08:00",
+        "date": "2026-10-20T00:00:00+00:00",
         "description": "Northwind Coffee · Online ordering site (Bank transfer)",
         "wallet_id": WALLET,
     }
@@ -401,10 +401,27 @@ def test_addition_payment_names_the_addition(
     assert fake.recorded == [
         (
             500,
-            "2026-10-20T00:00:00+08:00",
+            "2026-10-20T00:00:00+00:00",
             "Northwind Coffee · Online ordering site · Giveaway feature",
         )
     ]
+
+
+def test_rows_sent_before_dates_moved_to_utc_are_sent_again(
+    client: TestClient, session: Session, fake: FakeKeni
+) -> None:
+    connect(client)
+    pay(client, make_project(client)["id"], 24000)
+    sync(session)
+    [transaction] = fake.transactions.values()
+    transaction["date"] = "2026-10-20T00:00:00+08:00"  # as sent before
+    # What the migration does: forget each synced row's date.
+    for link in session.scalars(select(KeniLink)):
+        link.paid_on = None
+    session.commit()
+
+    assert sync(session) == 1
+    assert transaction["date"] == "2026-10-20T00:00:00+00:00"
 
 
 def test_edits_and_deletes_are_mirrored(
@@ -421,7 +438,7 @@ def test_edits_and_deletes_are_mirrored(
     ).raise_for_status()
     assert sync(session) == 1
     assert fake.recorded == [
-        (20000, "2026-10-21T00:00:00+08:00", "Northwind Coffee · Online ordering site")
+        (20000, "2026-10-21T00:00:00+00:00", "Northwind Coffee · Online ordering site")
     ]
 
     client.delete(f"/api/projects/{project['id']}/payments/{payment['id']}").raise_for_status()
@@ -509,7 +526,7 @@ def test_ask_retainer_payments_are_mirrored(
     )
     assert response.status_code == 201, response.text
     sync(session)
-    assert fake.recorded == [(2500, "2026-10-06T00:00:00+08:00", "Lumen Yoga · Maintenance")]
+    assert fake.recorded == [(2500, "2026-10-06T00:00:00+00:00", "Lumen Yoga · Maintenance")]
 
     payment_id = response.json()["id"]
     client.delete(f"/api/retainers/{retainer['id']}/payments/{payment_id}").raise_for_status()
@@ -529,7 +546,7 @@ def test_months_paid_ahead_are_one_transaction(
     assert response.status_code == 201, response.text
     sync(session)
     assert fake.recorded == [
-        (7500, "2026-10-20T00:00:00+08:00", "Lumen Yoga · Maintenance (Nov 2026–Jan 2027)")
+        (7500, "2026-10-20T00:00:00+00:00", "Lumen Yoga · Maintenance (Nov 2026–Jan 2027)")
     ]
 
 
@@ -541,7 +558,7 @@ def test_auto_transfers_count_once_due_after_connecting(
     assert sync(session) == 0
 
     assert sync(session, datetime(2026, 11, 4, 16, 0, tzinfo=UTC)) == 1  # 5 Nov 00:00 local
-    assert fake.recorded == [(2500, "2026-11-05T00:00:00+08:00", "Lumen Yoga · Maintenance")]
+    assert fake.recorded == [(2500, "2026-11-05T00:00:00+00:00", "Lumen Yoga · Maintenance")]
 
     # A new amount applies to every month the dashboard counts, so Keni follows.
     client.put(

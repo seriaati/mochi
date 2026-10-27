@@ -18,8 +18,7 @@ A transaction deleted in Keni is kept out from then on too.
 
 import logging
 from dataclasses import asdict, astuple, dataclass
-from datetime import date, datetime, time
-from zoneinfo import ZoneInfo
+from datetime import UTC, date, datetime, time
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
@@ -168,8 +167,10 @@ def saved_account(row: AppSettings) -> keni.Account | None:
     return keni.Account(row.keni_url, token) if token is not None else None
 
 
-def _at(day: date, tz: ZoneInfo) -> datetime:
-    return datetime.combine(day, time(), tz)  # Keni records a time; midnight in the timezone
+def _at(day: date) -> datetime:
+    # Keni records a time. Its own date picker sends midnight UTC, and it reads the date back
+    # from that, so midnight in another timezone can show as the day before.
+    return datetime.combine(day, time(), UTC)
 
 
 def sync(session: Session, now: datetime) -> int:
@@ -197,7 +198,7 @@ def sync(session: Session, now: datetime) -> int:
             session.commit()
         for link, entry in todo.update:
             assert link.wallet_id is not None and link.keni_id is not None
-            when = _at(entry.paid_on, clock.tz)
+            when = _at(entry.paid_on)
             args = (account, link.wallet_id, link.keni_id, entry.amount, when, entry.description)
             if keni.update(*args):
                 link.amount, link.paid_on, link.description = (
@@ -210,7 +211,7 @@ def sync(session: Session, now: datetime) -> int:
                 link.amount = link.paid_on = link.description = None
             session.commit()
         for source, entry in todo.create:
-            when = _at(entry.paid_on, clock.tz)
+            when = _at(entry.paid_on)
             wallet, category = row.keni_wallet_id, row.keni_category_id
             keni_id = keni.create(account, wallet, category, entry.amount, when, entry.description)
             session.add(KeniLink(source=source, keni_id=keni_id, wallet_id=wallet, **asdict(entry)))
