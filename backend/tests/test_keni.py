@@ -311,7 +311,7 @@ def test_changing_wallet_and_category_applies_to_new_income(
         "JPY",
         "Salary",
     )
-    pay(client, project["id"], 4000)
+    second = pay(client, project["id"], 4000)
     sync(session)
     placed = sorted(
         (t["amount"], t["wallet_id"], t["category_id"]) for t in fake.transactions.values()
@@ -323,8 +323,10 @@ def test_changing_wallet_and_category_applies_to_new_income(
         f"/api/projects/{project['id']}/payments/{first['id']}",
         json={"amount": 20000, "paid_on": "2026-10-20", "note": None},
     ).raise_for_status()
-    assert sync(session) == 1
+    assert sync(session) == 2  # the second payment now falls within the deposit too
     assert sorted(t["amount"] for t in fake.transactions.values()) == [4000, 20000]
+    ids = f"project #{project['id']}, payment #{second['id']}"
+    assert f"Deposit · {ids}" in fake.recorded[1][2]
     client.delete(f"/api/projects/{project['id']}/payments/{first['id']}").raise_for_status()
     assert sync(session) == 1
     assert [t["wallet_id"] for t in fake.transactions.values()] == ["other"]
@@ -370,7 +372,7 @@ def test_new_payment_is_recorded_as_income(
 ) -> None:
     connect(client)
     project = make_project(client)
-    pay(client, project["id"], 24000, note="Bank transfer")
+    payment = pay(client, project["id"], 24000, note="Bank transfer")
     assert status(client)["pending"] == 1
 
     assert sync(session) == 1
@@ -380,7 +382,8 @@ def test_new_payment_is_recorded_as_income(
         "category_id": CATEGORY,
         "amount": 24000,
         "date": "2026-10-20T00:00:00+00:00",
-        "description": "Northwind Coffee · Online ordering site (Bank transfer)",
+        "description": "Northwind Coffee · Online ordering site · Deposit · "
+        f"project #{project['id']}, payment #{payment['id']} (Bank transfer)",
         "wallet_id": WALLET,
     }
     assert status(client)["pending"] == 0
@@ -396,13 +399,16 @@ def test_addition_payment_names_the_addition(
         f"/api/projects/{project['id']}/additions",
         json={"name": "Giveaway feature", "price": 500, "agreed_on": "2026-10-01"},
     ).json()
-    pay(client, project["id"], 500, addition_id=addition["id"])
+    payment = pay(client, project["id"], 500, addition_id=addition["id"])
     sync(session)
     assert fake.recorded == [
         (
             500,
             "2026-10-20T00:00:00+00:00",
-            "Northwind Coffee · Online ordering site · Giveaway feature",
+            (
+                "Northwind Coffee · Online ordering site · Giveaway feature (addition) · Payment · "
+                f"project #{project['id']}, payment #{payment['id']}"
+            ),
         )
     ]
 
@@ -437,8 +443,13 @@ def test_edits_and_deletes_are_mirrored(
         json={"amount": 20000, "paid_on": "2026-10-21", "note": None},
     ).raise_for_status()
     assert sync(session) == 1
+    ids = f"project #{project['id']}, payment #{payment['id']}"
     assert fake.recorded == [
-        (20000, "2026-10-21T00:00:00+00:00", "Northwind Coffee · Online ordering site")
+        (
+            20000,
+            "2026-10-21T00:00:00+00:00",
+            f"Northwind Coffee · Online ordering site · Deposit · {ids}",
+        )
     ]
 
     client.delete(f"/api/projects/{project['id']}/payments/{payment['id']}").raise_for_status()
@@ -459,7 +470,7 @@ def test_renaming_a_client_updates_the_description(
     )
     assert response.status_code == 200, response.text
     assert sync(session) == 1
-    assert fake.recorded[0][2] == "Northwind Roasters · Online ordering site"
+    assert fake.recorded[0][2].startswith("Northwind Roasters · Online ordering site · ")
 
 
 def test_deleting_a_project_deletes_its_payments_in_keni(
@@ -525,13 +536,29 @@ def test_ask_retainer_payments_are_mirrored(
         json={"period": "2026-10-01", "amount": 2500, "paid_on": "2026-10-06"},
     )
     assert response.status_code == 201, response.text
-    sync(session)
-    assert fake.recorded == [(2500, "2026-10-06T00:00:00+00:00", "Lumen Yoga · Maintenance")]
-
     payment_id = response.json()["id"]
+    sync(session)
+    ids = f"retainer #{retainer['id']}, payment #{payment_id}"
+    assert fake.recorded == [
+        (2500, "2026-10-06T00:00:00+00:00", f"Lumen Yoga · Maintenance Oct 2026 · {ids}")
+    ]
+
     client.delete(f"/api/retainers/{retainer['id']}/payments/{payment_id}").raise_for_status()
     sync(session)
     assert fake.transactions == {}
+
+
+def test_maintenance_names_the_retainers_project(
+    client: TestClient, session: Session, fake: FakeKeni
+) -> None:
+    connect(client)
+    project = make_project(client)
+    retainer = make_retainer(client, project_id=project["id"])
+    sync(session, datetime(2026, 11, 4, 16, 0, tzinfo=UTC))
+    assert fake.recorded[0][2] == (
+        "Lumen Yoga · Maintenance Nov 2026 · Online ordering site · auto transfer · "
+        f"retainer #{retainer['id']}"
+    )
 
 
 def test_months_paid_ahead_are_one_transaction(
@@ -545,8 +572,9 @@ def test_months_paid_ahead_are_one_transaction(
     )
     assert response.status_code == 201, response.text
     sync(session)
+    ids = f"retainer #{retainer['id']}, payment #{response.json()['id']}"
     assert fake.recorded == [
-        (7500, "2026-10-20T00:00:00+00:00", "Lumen Yoga · Maintenance (Nov 2026–Jan 2027)")
+        (7500, "2026-10-20T00:00:00+00:00", f"Lumen Yoga · Maintenance Nov 2026–Jan 2027 · {ids}")
     ]
 
 
@@ -558,7 +586,8 @@ def test_auto_transfers_count_once_due_after_connecting(
     assert sync(session) == 0
 
     assert sync(session, datetime(2026, 11, 4, 16, 0, tzinfo=UTC)) == 1  # 5 Nov 00:00 local
-    assert fake.recorded == [(2500, "2026-11-05T00:00:00+00:00", "Lumen Yoga · Maintenance")]
+    description = f"Lumen Yoga · Maintenance Nov 2026 · auto transfer · retainer #{retainer['id']}"
+    assert fake.recorded == [(2500, "2026-11-05T00:00:00+00:00", description)]
 
     # A new amount applies to every month the dashboard counts, so Keni follows.
     client.put(

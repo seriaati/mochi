@@ -28,6 +28,7 @@ from app.clock import clock_for, utc_now
 from app.db import SessionLocal
 from app.maintenance import billed_periods, due_on, month_range, month_start
 from app.models import Addition, AppSettings, Collection, KeniLink, Project, Retainer
+from app.routers.projects import _payments_out
 
 log = logging.getLogger(__name__)
 
@@ -52,13 +53,23 @@ def _retainers(session: Session, collection: Collection) -> list[Retainer]:
     query = select(Retainer).where(Retainer.collection == collection)
     return list(
         session.scalars(
-            query.options(selectinload(Retainer.client), selectinload(Retainer.payments))
+            query.options(
+                selectinload(Retainer.client),
+                selectinload(Retainer.project),
+                selectinload(Retainer.payments),
+            )
         )
     )
 
 
+def _maintenance(retainer: Retainer, months: str) -> list[str]:
+    parts = [retainer.client.name, f"Maintenance {months}"]
+    return [*parts, retainer.project.name] if retainer.project else parts
+
+
 def _recorded(session: Session) -> dict[str, Entry]:
-    """Recorded payments: on projects, their additions and "ask" retainers."""
+    """Recorded payments: on projects, their additions and "ask" retainers. Descriptions name
+    what each was for and the Mochi IDs to trace it back by."""
     entries = {}
     projects = session.scalars(
         select(Project).options(
@@ -68,21 +79,23 @@ def _recorded(session: Session) -> dict[str, Entry]:
         )
     )
     for project in projects:
-        for payment in project.payments:
-            description = _describe(project.client.name, project.name, note=payment.note)
-            entries[f"payment:{payment.id}"] = Entry(payment.amount, payment.paid_on, description)
+        names = [project.client.name, project.name]
+        for out in _payments_out(project.payments, project.price, project.deposit_percent):
+            ids = f"project #{project.id}, payment #{out.id}"
+            description = _describe(*names, out.kind.capitalize(), ids, note=out.note)
+            entries[f"payment:{out.id}"] = Entry(out.amount, out.paid_on, description)
         for addition in project.additions:
-            for payment in addition.payments:
+            payments = _payments_out(addition.payments, addition.price, addition.deposit_percent)
+            for out in payments:
+                ids = f"project #{project.id}, payment #{out.id}"
                 description = _describe(
-                    project.client.name, project.name, addition.name, note=payment.note
+                    *names, f"{addition.name} (addition)", out.kind.capitalize(), ids, note=out.note
                 )
-                entries[f"payment:{payment.id}"] = Entry(
-                    payment.amount, payment.paid_on, description
-                )
+                entries[f"payment:{out.id}"] = Entry(out.amount, out.paid_on, description)
     for retainer in _retainers(session, Collection.ASK):
         for payment in retainer.payments:
-            note = month_range(payment) if payment.months > 1 else None
-            description = _describe(retainer.client.name, "Maintenance", note=note)
+            ids = f"retainer #{retainer.id}, payment #{payment.id}"
+            description = _describe(*_maintenance(retainer, month_range(payment)), ids)
             entries[f"retainer_payment:{payment.id}"] = Entry(
                 payment.amount, payment.paid_on, description
             )
@@ -96,7 +109,8 @@ def _auto_transfers(session: Session, after: date, today: date) -> dict[str, Ent
         for period in billed_periods(retainer, month_start(today)):
             due = due_on(period, retainer.due_day)
             if after < due <= today:
-                description = _describe(retainer.client.name, "Maintenance")
+                parts = _maintenance(retainer, f"{period:%b %Y}")
+                description = _describe(*parts, "auto transfer", f"retainer #{retainer.id}")
                 entries[f"retainer:{retainer.id}:{period:%Y-%m}"] = Entry(
                     retainer.amount, due, description
                 )
