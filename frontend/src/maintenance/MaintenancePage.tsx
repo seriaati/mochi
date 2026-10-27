@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { contactHandle, contactKinds, contactUrl } from '../clients/contactKinds.ts'
 import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
@@ -16,6 +16,7 @@ import {
   type CalendarDay,
   type Maintenance,
   type Month,
+  type Overdue,
   type Retainer,
 } from './queries.ts'
 import { RetainerDialog } from './RetainerDialog.tsx'
@@ -39,6 +40,13 @@ export function MaintenancePage() {
   const [adding, setAdding] = useState(false)
   const data = maintenance.data
   const linked = useLinkedMonth(data)
+  const { hash } = useLocation()
+  const loaded = data !== undefined
+
+  // Links such as /maintenance#overdue land on their tile once it renders.
+  useEffect(() => {
+    if (loaded && hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [loaded, hash])
 
   return (
     <>
@@ -65,14 +73,18 @@ export function MaintenancePage() {
           <NextReminderTile data={data} />
           <CollectedTile data={data} />
           <AutomaticTile data={data} />
-          <CalendarTile
-            data={data}
-            onMonth={(count) => {
-              const next = shiftMonth(data.month, count)
-              setMonth(next === data.today.slice(0, 7) ? null : next)
-            }}
-            onToday={() => setMonth(null)}
-          />
+          {/* The calendar and, under it, the overdue list share the left column. */}
+          <div className="span-5 mt-side">
+            <CalendarTile
+              data={data}
+              onMonth={(count) => {
+                const next = shiftMonth(data.month, count)
+                setMonth(next === data.today.slice(0, 7) ? null : next)
+              }}
+              onToday={() => setMonth(null)}
+            />
+            <OverdueListTile data={data} />
+          </div>
           <RetainersTile data={data} />
           <RemindersTile data={data} />
         </div>
@@ -260,7 +272,7 @@ function CalendarTile({ data, onMonth, onToday }: CalendarProps) {
   const [opened, setOpened] = useState<Opened>()
 
   return (
-    <section className="tile span-5">
+    <section className="tile">
       <div className="tile-head">
         <div className="mt-cal-nav">
           <button className="mt-arrow" type="button" aria-label="Previous month" onClick={() => onMonth(-1)}>
@@ -405,6 +417,63 @@ function DayDialog({ day, items, today, onPick, onClose }: DayProps) {
         })}
       </ul>
     </Dialog>
+  )
+}
+
+/** Every retainer with months unpaid past the grace days, from any month, longest overdue first. */
+function OverdueListTile({ data }: { data: Maintenance }) {
+  const [dialog, record] = useRecordPayment()
+  // Kept while the last payment's dialog closes.
+  if (!data.overdue.length) return dialog || null
+
+  const byRetainer = new Map<number, Overdue[]>()
+  for (const o of data.overdue) byRetainer.set(o.retainer_id, [...(byRetainer.get(o.retainer_id) ?? []), o])
+  const total = data.overdue.reduce((sum, o) => sum + o.amount, 0)
+
+  return (
+    <section className="tile" id="overdue">
+      <div className="tile-head">
+        <h2 className="mt-title">Overdue</h2>
+        <span className="tile-label">
+          {plural(data.overdue.length, 'month')} · {formatNTD(total)}
+        </span>
+      </div>
+      <ul className="mt-rows">
+        {[...byRetainer].map(([id, months]) => {
+          const retainer = data.retainers.find((r) => r.id === id)
+          if (!retainer) return null
+          const [oldest] = months
+          return (
+            <li key={id} className="mt-row mt-owed">
+              <Link className="mt-avatar-link" to={`/clients/${retainer.client.id}`} aria-label={`Open ${retainer.client.name}`}>
+                <Avatar
+                  className={`mt-avatar ${tintClass(retainer.client.id)}`}
+                  src={retainer.client.avatar_url}
+                  fallback={initials(retainer.client.name)}
+                />
+              </Link>
+              <div className="mt-owed-name">
+                <b>{retainer.client.name}</b>
+                <small>
+                  {retainer.project && `${retainer.project.name} · `}
+                  {monthList(months.map((o) => o.period))}
+                </small>
+              </div>
+              <span className="mt-amount">{formatNTD(months.reduce((sum, o) => sum + o.amount, 0))}</span>
+              <button
+                className="chip mt-status late"
+                type="button"
+                title="Record payment"
+                onClick={() => record(retainer, oldest.period)}
+              >
+                Overdue {oldest.days}d
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      {dialog}
+    </section>
   )
 }
 

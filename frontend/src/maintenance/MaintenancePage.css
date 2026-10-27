@@ -181,6 +181,17 @@ button.mt-day:active { transform: scale(0.94); }
 .mt-legend .overdue { background: light-dark(var(--peach), var(--warn)); }
 .mt-legend .upcoming { background: var(--hero); }
 
+/* The calendar and the overdue list stack in the left column; the last one fills it. */
+.mt-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mt-side > section:last-of-type {
+  flex: 1;
+}
+
 /* Retainers list */
 .mt-rows {
   display: flex;
@@ -334,6 +345,26 @@ button.mt-status {
 button.mt-status:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Overdue list: rows like the retainers list, without the contact column */
+.mt-owed {
+  grid-template-columns: 40px minmax(0, 1fr) auto 110px;
+}
+
+.mt-owed-name {
+  min-width: 0;
+}
+
+.mt-owed-name b {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mt-owed-name small {
+  font-size: 12.5px;
+  color: var(--dim);
 }
 
 /* Picking one of several months due on a calendar day */

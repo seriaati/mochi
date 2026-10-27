@@ -154,7 +154,7 @@ function GreetingTile({ data, asks, open, clients, timezone, userName }: Greetin
         ) : (
           <>
             {overdue > 0 && (
-              <Link className="chip warn" to="/maintenance">
+              <Link className="chip warn" to="/maintenance#overdue">
                 {overdue} overdue
               </Link>
             )}
