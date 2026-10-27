@@ -15,21 +15,28 @@ export function ProjectCard({ project }: { project: Project }) {
   const unpaid = done ? project.additions.filter((a) => a.outstanding > 0) : []
 
   return (
-    <Link className="tile span-6 project-card" to={`/projects/${project.id}`}>
+    // The name's link covers the card, so a click anywhere opens the project; the client links above it.
+    <article className="tile span-6 project-card">
       <div className="project-card-head">
-        <Avatar
-          className={`project-avatar ${tintClass(project.client.id)}`}
-          src={project.client.avatar_url}
-          fallback={initials(project.client.name)}
-        />
-        <div className="project-card-client">
-          <b>{project.client.name}</b>
-          {project.client.contact_person}
-        </div>
+        <Link className="project-card-client-link" to={`/clients/${project.client.id}`}>
+          <Avatar
+            className={`project-avatar ${tintClass(project.client.id)}`}
+            src={project.client.avatar_url}
+            fallback={initials(project.client.name)}
+          />
+          <div className="project-card-client">
+            <b>{project.client.name}</b>
+            {project.client.contact_person}
+          </div>
+        </Link>
         <span className={`chip ${chip.tone}`}>{chip.label}</span>
       </div>
 
-      <h2 className={`project-card-name${muted}`}>{project.name}</h2>
+      <h2 className={`project-card-name${muted}`}>
+        <Link className="project-card-link" to={`/projects/${project.id}`}>
+          {project.name}
+        </Link>
+      </h2>
       <div className={`project-card-track${muted}`}>
         <Track project={project} />
       </div>
@@ -75,7 +82,7 @@ export function ProjectCard({ project }: { project: Project }) {
           {addition.name} · {formatNTD(addition.outstanding)} unpaid
         </p>
       ))}
-    </Link>
+    </article>
   )
 }
 

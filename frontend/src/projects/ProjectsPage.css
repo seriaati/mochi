@@ -44,12 +44,43 @@
 }
 
 .project-card {
+  position: relative;
   color: var(--ink);
   transition: transform 0.15s ease;
 }
 
 .project-card:hover {
   transform: translateY(-2px);
+}
+
+.project-card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* The ring goes round the card, not just the name. */
+.project-card-link:focus-visible {
+  outline: none;
+}
+
+.project-card:has(.project-card-link:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.project-card-client-link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.project-card-client-link:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .project-card-head {
