@@ -12,6 +12,7 @@ from app.maintenance import REMINDER_TIME, REPEAT_DAYS, MonthStatus, slot_at
 from app.models import Collection, Retainer
 from app.routers.retainers import (
     client_out,
+    month_out,
     retainer_client,
     retainer_out,
     sort_key,
@@ -26,6 +27,7 @@ from app.schemas.maintenance import (
     NextReminderOut,
     OverdueOut,
     ReminderConfigOut,
+    RetainerOut,
     SentOut,
 )
 
@@ -130,13 +132,23 @@ def overview(
     current = [m for r in retainers if (m := maintenance.this_month(r, today))]
     paid = [m for m in current if m.status == MonthStatus.PAID]
     automatic = [r for r in active if r.collection == Collection.AUTO_TRANSFER]
+    shown = {
+        r.id: maintenance.month(r, period, today)
+        for r in retainers
+        if maintenance.is_billed(r, period)
+    }
+
+    def overdue_first(retainer: RetainerOut) -> tuple:
+        month = shown.get(retainer.id)
+        return (month is None or month.status != MonthStatus.OVERDUE, *sort_key(retainer))
 
     return MaintenanceOut(
         today=today,
         month=period,
         active_count=len(active),
         monthly_total=sum(r.amount for r in active),
-        retainers=sorted((retainer_out(r, today) for r in retainers), key=sort_key),
+        retainers=sorted((retainer_out(r, today) for r in retainers), key=overdue_first),
+        months={retainer_id: month_out(m) for retainer_id, m in shown.items()},
         overdue=_overdue(session, retainers, clock),
         next_reminder=_next_reminder(session, clock),
         collected=CollectedOut(

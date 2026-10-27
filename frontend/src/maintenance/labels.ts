@@ -59,6 +59,29 @@ export function monthChip(retainer: Retainer, today: string): { label: string; t
   return monthStatusChip(month, retainer, today)
 }
 
+/** A month's due date: `dueDay`, or the month's last day when it's shorter. */
+function dueOn(period: string, dueDay: number): string {
+  const first = parseDate(period)
+  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
+  return `${period.slice(0, 8)}${String(Math.min(dueDay, last)).padStart(2, '0')}`
+}
+
+/** The chip for the calendar's month on the retainers list: its status, or why it isn't billed. */
+export function periodChip(
+  retainer: Retainer,
+  month: Month | undefined,
+  period: string,
+  today: string,
+): { label: string; tone: Tone } {
+  if (period === `${today.slice(0, 8)}01`) return monthChip(retainer, today)
+  if (month) return monthStatusChip(month, retainer, today)
+  const due = dueOn(period, retainer.due_day)
+  if (retainer.ended_on && due > retainer.ended_on) return { label: 'Ended', tone: '' }
+  if (due < retainer.started_on) return { label: `From ${formatDay(retainer.started_on)}`, tone: '' }
+  if (period < retainer.tracked_from) return { label: 'Settled', tone: '' }
+  return { label: 'Paused', tone: '' }
+}
+
 export function monthStatusChip(month: Month, retainer: Retainer, today: string): { label: string; tone: Tone } {
   if (month.status === 'paid') return { label: `Paid ${formatDay(month.paid_on ?? month.due_on)}`, tone: 'ok' }
   if (month.status === 'overdue') return { label: `Overdue ${month.days_late}d`, tone: 'late' }

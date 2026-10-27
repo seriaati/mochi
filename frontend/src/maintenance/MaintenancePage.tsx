@@ -9,7 +9,7 @@ import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { daysBetween, formatDay, formatNTD, formatNumber, initials, parseDate, plural } from '../format.ts'
 import { tintClass } from '../tint.ts'
-import { findMonth, monthChip, monthName, monthStatusChip, ordinal, scheduleText } from './labels.ts'
+import { findMonth, monthName, monthStatusChip, ordinal, periodChip, scheduleText } from './labels.ts'
 import {
   useMaintenance,
   useSendTest,
@@ -327,12 +327,20 @@ function CalendarTile({ data, onMonth, onToday }: CalendarProps) {
 /** The "ask" months due on a calendar day, each opening its payment. Auto transfers need nothing. */
 function dueMonths(entry: CalendarDay | undefined, data: Maintenance): Opened[] {
   if (!entry) return []
-  const period = `${entry.day.slice(0, 8)}01`
   return entry.entries.flatMap((e) => {
     const retainer = data.retainers.find((r) => r.id === e.retainer_id)
-    const month = retainer?.collection === 'ask' ? findMonth(retainer, period) : undefined
-    return retainer && month ? [{ retainer, month }] : []
+    const month = data.months[e.retainer_id]
+    return retainer && month && canOpen(retainer, month) ? [{ retainer, month }] : []
   })
+}
+
+/**
+ * Whether a month opens its payment: "ask" retainers only. A paid month shows its payment; an
+ * unpaid one opens Record payment, which can only offer the months it knows.
+ */
+function canOpen(retainer: Retainer, month: Month): boolean {
+  if (retainer.collection !== 'ask') return false
+  return month.status === 'paid' || findMonth(retainer, month.period) !== undefined
 }
 
 type CellProps = { day: string; entry?: CalendarDay; today: boolean; onOpen?: () => void }
@@ -403,12 +411,17 @@ function DayDialog({ day, items, today, onPick, onClose }: DayProps) {
 function RetainersTile({ data }: { data: Maintenance }) {
   const [editing, setEditing] = useState<Retainer>()
   const [opened, setOpened] = useState<Opened>()
+  const thisMonth = data.today.slice(0, 7) === data.month.slice(0, 7)
 
   return (
     <section className="tile span-7">
       <div className="tile-head">
         <h2 className="mt-title">Retainers</h2>
-        <span className="tile-label">This month</span>
+        <span className="tile-label">
+          {thisMonth
+            ? 'This month'
+            : parseDate(data.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </span>
       </div>
       {data.retainers.length === 0 && (
         <p className="empty-note">No retainers yet. Add one for a client's monthly maintenance.</p>
@@ -418,6 +431,8 @@ function RetainersTile({ data }: { data: Maintenance }) {
           <RetainerRow
             key={retainer.id}
             retainer={retainer}
+            month={data.months[retainer.id]}
+            period={data.month}
             today={data.today}
             onEdit={() => setEditing(retainer)}
             onMonth={(month) => setOpened({ retainer, month })}
@@ -430,12 +445,19 @@ function RetainersTile({ data }: { data: Maintenance }) {
   )
 }
 
-type RowProps = { retainer: Retainer; today: string; onEdit: () => void; onMonth: (month: Month) => void }
+type RowProps = {
+  retainer: Retainer
+  /** In the calendar's month, if billed then. */
+  month?: Month
+  period: string
+  today: string
+  onEdit: () => void
+  onMonth: (month: Month) => void
+}
 
-function RetainerRow({ retainer, today, onEdit, onMonth }: RowProps) {
-  const chip = monthChip(retainer, today)
-  const month = retainer.this_month
-  const actionable = retainer.collection === 'ask' && month !== null
+function RetainerRow({ retainer, month, period, today, onEdit, onMonth }: RowProps) {
+  const chip = periodChip(retainer, month, period, today)
+  const actionable = month !== undefined && canOpen(retainer, month)
   const contact = retainer.ask_via
   const url = contact && contactUrl(contact)
 

@@ -827,7 +827,7 @@ def test_overview(client: TestClient, pin) -> None:
     make_retainer(client, northwind, started_on="2026-05-01")
     pf = make_retainer(client, pixel, amount=120, due_day=20, started_on="2026-09-01")
     pay(client, pf["id"], "2026-09-01")
-    make_retainer(client, kenji, amount=180, due_day=1, collection="auto_transfer")
+    kj = make_retainer(client, kenji, amount=180, due_day=1, collection="auto_transfer")
     au = make_retainer(client, aurora, amount=200, due_day=5, started_on="2026-06-01")
     for month in ("06", "07", "08", "09", "10"):
         pay(client, au["id"], f"2026-{month}-01", amount=200, paid_on=f"2026-{month}-06")
@@ -870,7 +870,17 @@ def test_overview(client: TestClient, pin) -> None:
     # The tiny paid retainer shares the 25th; the day shows the more urgent status.
     assert [e["status"] for e in days["2026-10-25"]["entries"]] == ["upcoming", "paid"]
 
-    assert data["retainers"][0]["client"]["name"] == "Aurora Studio"
+    # Pixelforge's October is overdue, so it comes first; then active ones by name.
+    assert [r["client"]["name"] for r in data["retainers"]] == [
+        "Pixelforge",
+        "Aurora Studio",
+        "Kenji Tanaka",
+        "Lumen Clinic",
+        "Northwind Coffee",
+        "Northwind Coffee",
+    ]
+    assert data["months"][str(pf["id"])]["status"] == "overdue"
+    assert data["months"][str(au["id"])]["paid_on"] == "2026-10-06"
     assert data["reminders"] == {
         "enabled": False,
         "mention_user_id": None,
@@ -882,6 +892,12 @@ def test_overview(client: TestClient, pin) -> None:
     # The oldest unsent slot comes first: Northwind's May reminder is waiting to go out.
     assert data["next_reminder"]["client"]["name"] == "Northwind Coffee"
     assert data["next_reminder"]["pending"] is True
+
+    # The rows follow the calendar: in September, Northwind's month is the overdue one.
+    september = overview(client, month="2026-09")
+    assert september["retainers"][0]["client"]["name"] == "Northwind Coffee"
+    assert september["months"][str(pf["id"])]["status"] == "paid"
+    assert str(kj["id"]) not in september["months"]  # Kenji started in October
 
     november = overview(client, month="2026-11")
     assert november["month"] == "2026-11-01"

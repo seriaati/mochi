@@ -115,8 +115,10 @@ export type Maintenance = {
   month: string
   active_count: number
   monthly_total: number
-  /** Active first, then by client name. */
+  /** Overdue in the calendar's month first, then active ones, then by client name. */
   retainers: Retainer[]
+  /** Each retainer's calendar month, by retainer ID; only those billed then. */
+  months: Record<number, Month>
   /** Oldest first. */
   overdue: Overdue[]
   next_reminder: NextReminder | null

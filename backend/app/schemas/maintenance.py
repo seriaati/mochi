@@ -157,7 +157,9 @@ class MaintenanceOut(BaseModel):
     month: date  # the calendar's month
     active_count: int
     monthly_total: int  # active retainers, NTD
-    retainers: list[RetainerOut]  # active first, then by client name
+    # Overdue in the calendar's month first, then active ones, then by client name.
+    retainers: list[RetainerOut]
+    months: dict[int, MonthOut]  # each retainer's calendar month, by ID; only those billed then
     overdue: list[OverdueOut]  # oldest first
     next_reminder: NextReminderOut | None
     collected: CollectedOut
