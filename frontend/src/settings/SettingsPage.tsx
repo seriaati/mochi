@@ -202,6 +202,7 @@ function DiscordTile({ settings }: { settings: Settings }) {
   const saveToken = useSaveBotToken()
   const test = useSendTest()
   const [replacing, setReplacing] = useState(false)
+  const [removing, setRemoving] = useState(false)
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -314,20 +315,33 @@ function DiscordTile({ settings }: { settings: Settings }) {
               </div>
             </form>
           ) : (
-            <div className="settings-token">
-              <span className="chip good">Bot token saved</span>
-              <button className="link-btn" type="button" onClick={() => setReplacing(true)}>
-                Replace
-              </button>
-              <button
-                className="link-btn"
-                type="button"
-                disabled={saveToken.isPending}
-                onClick={() => saveToken.mutate(null)}
-              >
-                Remove
-              </button>
-            </div>
+            <>
+              <div className="settings-token">
+                <span className="chip good">Bot token saved</span>
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn secondary"
+                  type="button"
+                  onClick={() => {
+                    setRemoving(false)
+                    setReplacing(true)
+                  }}
+                >
+                  Replace
+                </button>
+                <button
+                  className="btn danger"
+                  type="button"
+                  disabled={saveToken.isPending}
+                  onClick={() =>
+                    removing ? saveToken.mutate(null, { onSuccess: () => setRemoving(false) }) : setRemoving(true)
+                  }
+                >
+                  {removing ? 'Confirm remove' : 'Remove'}
+                </button>
+              </div>
+            </>
           )}
           {saveToken.error && <p className="form-error">{saveToken.error.message}</p>}
         </div>
