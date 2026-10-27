@@ -9,6 +9,15 @@
   color: var(--muted);
 }
 
+/* Wrapped under the title, the toolbar spans the row with + at its far end. */
+.project-actions {
+  flex: 1;
+}
+
+.project-actions .add-btn {
+  margin-left: auto;
+}
+
 .project-sort {
   min-width: 210px;
 }

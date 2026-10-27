@@ -45,7 +45,7 @@ const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 export function ProjectsPage() {
   const projects = useProjects()
   const [filter, setFilter] = useState<Filter>('all')
-  const [sort, setSort] = useState<Sort>('due')
+  const [sort, setSort] = useState<Sort>('start')
   // By the year a project started; 'all' shows every year.
   const [startYear, setStartYear] = useState('all')
   const [query, setQuery] = useState('')
@@ -77,7 +77,7 @@ export function ProjectsPage() {
             </p>
           )}
         </div>
-        <div className="page-actions">
+        <div className="page-actions project-actions">
           <Segmented role="group" aria-label="Filter projects">
             {(Object.keys(filters) as Filter[]).map((key) => (
               <button
