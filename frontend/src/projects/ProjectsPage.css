@@ -13,9 +13,34 @@
   min-width: 210px;
 }
 
-/* --field matches the page ground, so sit on the filter's ground instead. */
-.project-sort .select-field {
+.project-year {
+  min-width: 140px;
+}
+
+/* --field matches the page ground, so sit on the filter's ground instead, at its text size. */
+.project-select .select-field,
+.project-search {
   background: var(--nav-bg);
+}
+
+.project-select .select-field {
+  font-size: 13px;
+}
+
+.project-search {
+  width: 220px;
+}
+
+/* A summary tile that filters the list, e.g. Waiting to be paid. */
+.summary-button {
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.summary-button:hover {
+  transform: translateY(-2px);
 }
 
 .project-card {

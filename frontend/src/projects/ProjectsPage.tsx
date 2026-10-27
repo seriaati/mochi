@@ -12,10 +12,14 @@ import './ProjectsPage.css'
 const filters = {
   all: { label: 'All', test: () => true },
   open: { label: 'In progress', test: (p: Project) => p.status !== 'done' },
+  unpaid: { label: 'Unpaid', test: (p: Project) => p.total_outstanding > 0 },
   done: { label: 'Done', test: (p: Project) => p.status === 'done' },
 }
 
 type Filter = keyof typeof filters
+
+const matches = (project: Project, query: string) =>
+  [project.name, project.client.name].some((text) => text.toLowerCase().includes(query))
 
 // Unfinished projects come first under either order. ISO dates compare as strings.
 const sorts = {
@@ -42,11 +46,20 @@ export function ProjectsPage() {
   const projects = useProjects()
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('due')
+  // By the year a project started; 'all' shows every year.
+  const [startYear, setStartYear] = useState('all')
+  const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
   const navigate = useNavigate()
 
   const all = projects.data ?? []
-  const shown = all
+  const years = [...new Set(all.map((p) => p.started_on.slice(0, 4)))].sort().reverse()
+  const q = query.trim().toLowerCase()
+  // The year and search narrow the list; the counts beside each filter follow them.
+  const narrowed = all.filter(
+    (p) => (startYear === 'all' || p.started_on.startsWith(startYear)) && matches(p, q),
+  )
+  const shown = narrowed
     .filter(filters[filter].test)
     .sort((a, b) => byDone(a, b) || sorts[sort].compare(a, b))
   const year = todayISO().slice(0, 4)
@@ -74,11 +87,22 @@ export function ProjectsPage() {
                 onClick={() => setFilter(key)}
               >
                 {filters[key].label}
-                <span>{all.filter(filters[key].test).length}</span>
+                <span>{narrowed.filter(filters[key].test).length}</span>
               </button>
             ))}
           </Segmented>
-          <div className="project-sort">
+          <div className="project-select project-year">
+            <Select
+              aria-label="Filter projects by start year"
+              value={startYear}
+              onChange={setStartYear}
+              options={[
+                { value: 'all', label: 'All years' },
+                ...years.map((year) => ({ value: year, label: year })),
+              ]}
+            />
+          </div>
+          <div className="project-select project-sort">
             <Select
               aria-label="Sort projects"
               value={sort}
@@ -89,6 +113,19 @@ export function ProjectsPage() {
               }))}
             />
           </div>
+          <label className="search project-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="search"
+              placeholder="Search projects"
+              aria-label="Search projects"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
           <AddButton label="New project" onClick={() => setAdding(true)} />
         </div>
       </div>
@@ -98,12 +135,16 @@ export function ProjectsPage() {
 
       {projects.data && (
         <div className="bento">
-          <Summary projects={all} year={year} />
+          <Summary projects={all} year={year} onUnpaid={() => setFilter('unpaid')} />
           {all.length === 0 && (
             <section className="tile span-12">No projects yet. Start one with New project.</section>
           )}
           {all.length > 0 && shown.length === 0 && (
-            <p className="status span-12">No {filters[filter].label.toLowerCase()} projects.</p>
+            <p className="status span-12">
+              No {filter === 'all' ? '' : `${filters[filter].label.toLowerCase()} `}projects
+              {startYear === 'all' ? '' : ` started in ${startYear}`}
+              {q ? ` match “${query.trim()}”` : ''}.
+            </p>
           )}
           {shown.map((project) => (
             <ProjectCard key={project.id} project={project} />
@@ -121,7 +162,9 @@ export function ProjectsPage() {
   )
 }
 
-function Summary({ projects, year }: { projects: Project[]; year: string }) {
+type SummaryProps = { projects: Project[]; year: string; onUnpaid: () => void }
+
+function Summary({ projects, year, onUnpaid }: SummaryProps) {
   const open = projects.filter(filters.open.test)
   const additions = projects.flatMap((p) => p.additions.filter((a) => a.agreed_on.startsWith(year)))
   const withAdditions = new Set(additions.map((a) => a.project_id)).size
@@ -135,6 +178,7 @@ function Summary({ projects, year }: { projects: Project[]; year: string }) {
         tint="peach"
         label="Waiting to be paid"
         amount={sum(projects.map((p) => p.total_outstanding))}
+        onClick={onUnpaid}
       >
         Final payments and unpaid additions
       </SummaryTile>
@@ -151,17 +195,31 @@ function Summary({ projects, year }: { projects: Project[]; year: string }) {
   )
 }
 
-type SummaryTileProps = { tint: string; label: string; amount: number; children: ReactNode }
+type SummaryTileProps = {
+  tint: string
+  label: string
+  amount: number
+  children: ReactNode
+  /** Makes the whole tile a button, e.g. to filter the list to what it counts. */
+  onClick?: () => void
+}
 
-function SummaryTile({ tint, label, amount, children }: SummaryTileProps) {
-  return (
-    <section className={`tile span-4 summary-tile tint-${tint}`}>
+function SummaryTile({ tint, label, amount, children, onClick }: SummaryTileProps) {
+  const body = (
+    <>
       <h2 className="tile-label">{label}</h2>
       <p className="big-number">
         <small>NT$</small>
         {formatNumber(amount)}
       </p>
       <p className="summary-meta">{children}</p>
-    </section>
+    </>
+  )
+  const className = `tile span-4 summary-tile tint-${tint}`
+  if (!onClick) return <section className={className}>{body}</section>
+  return (
+    <button className={`${className} summary-button`} type="button" onClick={onClick}>
+      {body}
+    </button>
   )
 }
