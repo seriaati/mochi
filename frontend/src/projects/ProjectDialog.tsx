@@ -10,7 +10,7 @@ import { useSaveProject, type Project } from './queries.ts'
 type Props = {
   /** The project to edit; omit to start a new one. */
   project?: Project
-  /** Preselects the client for a new project. */
+  /** The client of a new project, e.g. on their page; the dialog then doesn't ask. */
   clientId?: number
   onClose: () => void
   onSaved?: (project: Project) => void
@@ -29,7 +29,7 @@ export function ProjectDialog({ project, clientId, onClose, onSaved }: Props) {
     const text = (name: string) => ((form.get(name) as string | null) ?? '').trim() || null
     save.mutate(
       {
-        client_id: Number(form.get('client_id')),
+        client_id: Number(owner),
         name: text('name') ?? '',
         description: text('description'),
         price: Number(form.get('price')),
@@ -65,17 +65,19 @@ export function ProjectDialog({ project, clientId, onClose, onSaved }: Props) {
   return (
     <Dialog title={project ? 'Edit project' : 'New project'} ref={dialog} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        <label className="field">
-          Client
-          <Select
-            name="client_id"
-            required
-            value={owner}
-            onChange={setOwner}
-            placeholder={clients.isPending ? 'Loading clients…' : 'Choose a client'}
-            options={(clients.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
-          />
-        </label>
+        {(project || clientId === undefined) && (
+          <label className="field">
+            Client
+            <Select
+              name="client_id"
+              required
+              value={owner}
+              onChange={setOwner}
+              placeholder={clients.isPending ? 'Loading clients…' : 'Choose a client'}
+              options={(clients.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+            />
+          </label>
+        )}
         <label className="field">
           Name
           <input name="name" required maxLength={200} defaultValue={project?.name} autoFocus />
