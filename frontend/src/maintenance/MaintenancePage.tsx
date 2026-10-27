@@ -529,13 +529,19 @@ function RetainerRow({ retainer, month, period, today, onEdit, onMonth }: RowPro
           fallback={initials(retainer.client.name)}
         />
       </Link>
-      <button className="mt-name" type="button" onClick={onEdit} aria-label={`Edit ${retainer.client.name} retainer`}>
-        <b>{retainer.client.name}</b>
+      <div className="mt-name">
+        <button type="button" onClick={onEdit} aria-label={`Edit ${retainer.client.name} retainer`}>
+          <b>{retainer.client.name}</b>
+        </button>
         <small>
-          {retainer.project && `${retainer.project.name} · `}
+          {retainer.project && (
+            <>
+              <Link to={`/projects/${retainer.project.id}`}>{retainer.project.name}</Link> ·{' '}
+            </>
+          )}
           {scheduleText(retainer, { contact: false })}
         </small>
-      </button>
+      </div>
       <span className="mt-amount">{formatNTD(retainer.amount)}</span>
       {retainer.collection === 'auto_transfer' ? (
         <span className="chip good mt-contact">Auto transfer</span>

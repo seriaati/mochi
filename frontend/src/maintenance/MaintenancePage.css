@@ -230,12 +230,36 @@ button.mt-day:active { transform: scale(0.94); }
   transform: translateY(-2px);
 }
 
+/* The name edits the retainer, and so does the rest of the block; the project link sits above. */
 .mt-name {
+  position: relative;
   min-width: 0;
+}
+
+.mt-name button {
+  display: block;
+  padding: 0;
   border: 0;
   background: none;
   text-align: left;
   cursor: pointer;
+}
+
+.mt-name button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.mt-name small a {
+  position: relative;
+  z-index: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mt-name small a:hover {
+  color: var(--ink);
 }
 
 .mt-name b {
@@ -249,7 +273,7 @@ button.mt-day:active { transform: scale(0.94); }
   color: var(--dim);
 }
 
-.mt-name:hover b {
+.mt-name button:hover b {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
