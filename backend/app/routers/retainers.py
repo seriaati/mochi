@@ -16,6 +16,7 @@ from app.models import (
     RetainerPause,
     RetainerPayment,
     RetainerWaiver,
+    WaiverKind,
 )
 from app.routers.clients import contact_out
 from app.schemas.maintenance import (
@@ -185,8 +186,10 @@ def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
 def _check_open(retainer: Retainer, period: date) -> None:
     """A payment or waiver can only be recorded for a billed month not yet paid or waived."""
     month = period.strftime("%B %Y")
-    if maintenance.is_waived(retainer, period):
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already waived")
+    waiver = next((w for w in retainer.waivers if w.period == period), None)
+    if waiver is not None:
+        done = "given up" if waiver.kind == WaiverKind.GIVEN_UP else "waived"
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already {done}")
     if not maintenance.is_billed(retainer, period):
         if maintenance.month_start(retainer.started_on) <= period < retainer.tracked_from:
             detail = f"{month} is before tracking starts, so it counts as settled"

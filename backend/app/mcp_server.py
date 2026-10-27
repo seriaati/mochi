@@ -397,8 +397,10 @@ async def record_retainer_payment(
 async def waive_retainer_month(retainer_id: int, waiver: RetainerWaiverIn) -> RetainerWaiverOut:
     """Lets one month of a monthly maintenance fee off, e.g. a month the client wasn't charged:
     it counts as settled at NT$0, never owed, reminded or received. period is any date in that
-    month; note says why. Works for "ask" and "auto_transfer" fees, for past or future months
-    not already paid. The retainer's waived months are listed in `waivers`."""
+    month; note says why. kind "given_up" instead writes off a month that was owed, e.g. one too
+    old to ask for; it is settled the same way. Works for "ask" and "auto_transfer" fees, for
+    past or future months not already paid. The retainer's waived months are listed in
+    `waivers`."""
     return await _run(lambda s, c: retainers.waive_month(retainer_id, waiver, session=s))
 
 

@@ -925,6 +925,26 @@ def test_a_waived_month_is_settled(
     assert get(client, retainer["id"])["overdue"][0]["period"] == "2026-08-01"
 
 
+def test_a_given_up_month_is_settled(
+    client: TestClient, owner: dict, session: Session, webhook: list[str]
+) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-08-01")
+    body = {"period": "2026-08-01", "kind": "given_up"}
+    response = client.post(f"/api/retainers/{retainer['id']}/waivers", json=body)
+    assert response.status_code == 201, response.text
+    assert response.json()["kind"] == "given_up"
+
+    # Not owed, reminded or received, like a waived month.
+    assert [m["period"] for m in get(client, retainer["id"])["overdue"]] == [
+        "2026-09-01",
+        "2026-10-01",
+    ]
+    assert reminders.send_due(session, at("2026-10-23", 9)) == 1
+    assert "(September, October)" in webhook[0]
+    response = pay(client, retainer["id"], "2026-08-01")
+    assert response.json()["detail"] == "August 2026 is already given up"
+
+
 def test_waiver_rules(client: TestClient, owner: dict) -> None:
     retainer = make_retainer(client, owner, due_day=10, started_on="2026-08-01")
     waive(client, retainer["id"], "2026-08-01")

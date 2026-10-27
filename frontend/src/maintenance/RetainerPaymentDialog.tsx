@@ -6,6 +6,7 @@ import { formatDay, formatNTD, todayISO } from '../format.ts'
 import { monthName, monthRange, openMonths } from './labels.ts'
 import {
   useDeleteRetainerPayment,
+  useGiveUpMonth,
   useRecordRetainerPayment,
   type Month,
   type Retainer,
@@ -17,13 +18,19 @@ type RecordProps = { retainer: Retainer; period?: string; onClose: () => void }
 const monthLabel = (month: Month) =>
   `${monthName(month.period, true)} ${month.period.slice(0, 4)} · due ${formatDay(month.due_on)}`
 
-/** Marks one month of an "ask" retainer as paid, or several in a row when the client pays ahead. */
+/**
+ * Marks one month of an "ask" retainer as paid, or several in a row when the client pays ahead.
+ * An overdue month can be given up instead, e.g. one too old to ask for.
+ */
 export function RecordRetainerPaymentDialog({ retainer, period, onClose }: RecordProps) {
   const dialog = useRef<DialogHandle>(null)
   const close = () => dialog.current?.close()
   const record = useRecordRetainerPayment(retainer.id)
+  const giveUp = useGiveUpMonth(retainer.id)
   const months = openMonths(retainer)
   const [picked, setPicked] = useState(period ?? months[0]?.period ?? '')
+  const [givingUp, setGivingUp] = useState(false)
+  const overdue = months.find((m) => m.period === picked)?.status === 'overdue'
   const [count, setCount] = useState(1)
   // Undefined until typed: follows the fee times the months covered.
   const [amount, setAmount] = useState<string>()
@@ -49,7 +56,10 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
           For
           <Select
             value={picked}
-            onChange={setPicked}
+            onChange={(next) => {
+              setPicked(next)
+              setGivingUp(false)
+            }}
             options={months.map((m) => {
               const flag = m.status === 'overdue' ? ' · overdue' : m.status === 'due' ? ' · due' : ''
               return { value: m.period, label: monthLabel(m) + flag }
@@ -91,13 +101,30 @@ export function RecordRetainerPaymentDialog({ retainer, period, onClose }: Recor
           <DatePicker name="paid_on" required defaultValue={todayISO()} autoFocus />
         </label>
         {record.error && <p className="form-error">{record.error.message}</p>}
+        {giveUp.error && <p className="form-error">{giveUp.error.message}</p>}
+        {givingUp && !giveUp.error && (
+          <p className="field">
+            {monthName(picked, true)} won&rsquo;t be overdue or reminded any more, and isn&rsquo;t counted as
+            received.
+          </p>
+        )}
         <div className="form-actions">
           <button className="btn" type="submit" disabled={record.isPending || !picked}>
             Record payment
           </button>
-          <button className="btn secondary" type="button" onClick={close}>
+          <button className="btn secondary push" type="button" onClick={close}>
             Cancel
           </button>
+          {overdue && (
+            <button
+              className="btn danger"
+              type="button"
+              disabled={giveUp.isPending}
+              onClick={() => (givingUp ? giveUp.mutate(picked, { onSuccess: close }) : setGivingUp(true))}
+            >
+              {givingUp ? 'Confirm give up' : 'Give up'}
+            </button>
+          )}
         </div>
       </form>
     </Dialog>

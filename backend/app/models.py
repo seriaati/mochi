@@ -41,6 +41,13 @@ class Collection(enum.StrEnum):
     ASK = "ask"  # needs a reminder and a recorded payment
 
 
+class WaiverKind(enum.StrEnum):
+    """Why a month isn't billed. Either way it counts as settled."""
+
+    WAIVED = "waived"  # let off the fee, e.g. a bot that wasn't charged that month
+    GIVEN_UP = "given_up"  # owed, but written off, e.g. too old to ask for any more
+
+
 class SyncStatus(enum.StrEnum):
     """How the last Discord profile lookup went."""
 
@@ -234,6 +241,9 @@ class RetainerWaiver(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     retainer_id: Mapped[int] = mapped_column(ForeignKey("retainers.id", ondelete="CASCADE"))
     period: Mapped[date]  # first day of the month
+    kind: Mapped[WaiverKind] = mapped_column(
+        _enum(WaiverKind), default=WaiverKind.WAIVED, server_default=WaiverKind.WAIVED.value
+    )
     note: Mapped[str | None] = mapped_column(String(200))
 
     retainer: Mapped[Retainer] = relationship(back_populates="waivers")

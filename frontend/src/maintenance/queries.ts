@@ -74,7 +74,14 @@ export type Retainer = RetainerInput & {
 }
 
 /** period: the first day of the month let off. */
-export type RetainerWaiver = { id: number; retainer_id: number; period: string; note: string | null }
+export type RetainerWaiver = {
+  id: number
+  retainer_id: number
+  period: string
+  /** given_up: owed, but written off. Either way the month counts as settled. */
+  kind: 'waived' | 'given_up'
+  note: string | null
+}
 
 /** period: the first month paid for. months: how many in a row, when paid ahead. amount: for all of them. */
 export type RetainerPaymentInput = { period: string; months: number; amount: number; paid_on: string }
@@ -211,6 +218,13 @@ export function useDeleteRetainer() {
 export function useRecordRetainerPayment(retainerId: number) {
   return useMaintenanceMutation((input: RetainerPaymentInput) =>
     api.post<RetainerPayment>(`/retainers/${retainerId}/payments`, input),
+  )
+}
+
+/** Writes off an owed month: settled, so no longer overdue, reminded or counted as received. */
+export function useGiveUpMonth(retainerId: number) {
+  return useMaintenanceMutation((period: string) =>
+    api.post<RetainerWaiver>(`/retainers/${retainerId}/waivers`, { period, kind: 'given_up' }),
   )
 }
 

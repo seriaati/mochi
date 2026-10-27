@@ -4,7 +4,7 @@ from typing import Annotated, Self
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 
 from app.maintenance import MonthStatus
-from app.models import Collection
+from app.models import Collection, WaiverKind
 from app.schemas.clients import ContactOut, DiscordProfileOut
 from app.schemas.common import OptionalName, PositiveNTD
 
@@ -69,6 +69,7 @@ class RetainerPauseOut(RetainerPauseIn):
 
 class RetainerWaiverIn(BaseModel):
     period: Period  # the month let off
+    kind: WaiverKind = WaiverKind.WAIVED  # given_up: owed, but written off
     note: OptionalName = None
 
 

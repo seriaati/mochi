@@ -53,15 +53,19 @@ export function monthChip(retainer: Retainer, today: string): { label: string; t
   if (retainer.paused_on) return { label: 'Paused', tone: '' }
   const month = retainer.this_month
   if (!month) {
-    if (isWaived(retainer, `${today.slice(0, 8)}01`)) return { label: 'Waived', tone: '' }
+    const waived = waiverLabel(retainer, `${today.slice(0, 8)}01`)
+    if (waived) return { label: waived, tone: '' }
     if (retainer.next_due_on) return { label: `From ${formatDay(retainer.next_due_on)}`, tone: '' }
     return { label: 'Ended', tone: '' }
   }
   return monthStatusChip(month, retainer, today)
 }
 
-function isWaived(retainer: Retainer, period: string): boolean {
-  return retainer.waivers.some((w) => w.period === period)
+/** "Waived" or "Given up" for a month that isn't billed for either reason, else null. */
+function waiverLabel(retainer: Retainer, period: string): string | null {
+  const waiver = retainer.waivers.find((w) => w.period === period)
+  if (!waiver) return null
+  return waiver.kind === 'given_up' ? 'Given up' : 'Waived'
 }
 
 /** A month's due date: `dueDay`, or the month's last day when it's shorter. */
@@ -84,7 +88,8 @@ export function periodChip(
   if (retainer.ended_on && due > retainer.ended_on) return { label: 'Ended', tone: '' }
   if (due < retainer.started_on) return { label: `From ${formatDay(retainer.started_on)}`, tone: '' }
   if (period < retainer.tracked_from) return { label: 'Settled', tone: '' }
-  if (isWaived(retainer, period)) return { label: 'Waived', tone: '' }
+  const waived = waiverLabel(retainer, period)
+  if (waived) return { label: waived, tone: '' }
   return { label: 'Paused', tone: '' }
 }
 
