@@ -156,7 +156,7 @@ function OverdueTile({ data }: { data: Maintenance }) {
       </p>
       <p className="mt-meta">{meta}</p>
       {worst && retainer && (
-        <div className="mt-action">
+        <div className="tile-actions">
           <button className="btn" type="button" onClick={() => record(retainer, worst.period)}>
             Record payment
           </button>
@@ -200,7 +200,7 @@ function NextReminderTile({ data }: { data: Maintenance }) {
         {next?.pending && !data.reminders.enabled && ' · reminders are off'}
       </p>
       {next && retainer && (
-        <div className="mt-action">
+        <div className="tile-actions">
           <button className="btn" type="button" onClick={() => record(retainer, next.periods[0])}>
             Record payment
           </button>

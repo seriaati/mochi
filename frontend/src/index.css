@@ -326,6 +326,23 @@ a.nav-icon.active svg {
 }
 
 /* Marks a tile that a later area will fill in. */
+/* A summary tile's buttons, e.g. Record payment and Message on Discord, at the foot of the tile. */
+.tile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+/* Message on Discord is a link; centre its text like the buttons'. */
+.tile-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+}
+
 .empty-note {
   margin-top: 12px;
   font-size: 13.5px;

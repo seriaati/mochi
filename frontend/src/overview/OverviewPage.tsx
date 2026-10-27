@@ -202,7 +202,7 @@ function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
         <p className="ov-meta">
           {hasAsks ? 'No fee you ask for is coming up.' : 'Monthly fees you ask clients for show up here.'}
         </p>
-        <div className="ov-action">
+        <div className="tile-actions">
           <Link className="btn" to="/maintenance">
             {hasAsks ? 'Open retainers' : 'Add a retainer'}
           </Link>
@@ -233,7 +233,7 @@ function NextTile({ data, next }: { data: Maintenance; next?: Ask }) {
         {formatNumber(month.amount)}
       </p>
       <p className="ov-meta">Due {formatDay(month.due_on, { weekday: true })}</p>
-      <div className="ov-action">
+      <div className="tile-actions">
         <button className="btn" type="button" onClick={() => record(retainer, month.period)}>
           Record payment
         </button>
@@ -278,7 +278,7 @@ function OverdueTile({ data }: { data: Maintenance }) {
         {reminded ? `Reminded ${formatDay(reminded)}` : 'Not reminded yet'}
         {others > 0 && ` · ${plural(others, 'more client')} overdue`}
       </p>
-      <div className="ov-action">
+      <div className="tile-actions">
         <button className="btn" type="button" onClick={() => record(retainer, worst.period)}>
           Record payment
         </button>
@@ -491,7 +491,7 @@ function ClientsTile({ clients }: { clients: Client[] }) {
       {clients.length === 0 ? (
         <>
           <p className="ov-empty">Everyone you work with, and how to reach them.</p>
-          <div className="ov-action">
+          <div className="tile-actions">
             <Link className="btn secondary" to="/clients">
               Add a client
             </Link>

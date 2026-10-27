@@ -16,21 +16,6 @@
 
 .tile.ink .mt-meta { color: var(--hero-dim); }
 
-.mt-action {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 20px;
-}
-
-.mt-action .btn {
-  display: inline-flex;
-  align-items: center;
-  height: 40px;
-}
-
 .mt-bar {
   margin-top: auto;
   background: var(--chip);
