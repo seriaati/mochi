@@ -4,7 +4,7 @@ import { Avatar } from '../components/Avatar.tsx'
 import { formatMonth, initials, timeAgo } from '../format.ts'
 import { ClientMaintenanceTile } from '../maintenance/ClientMaintenanceTile.tsx'
 import { ClientMoneyTile, ClientProjectsTile } from '../projects/ClientProjectTiles.tsx'
-import { tintClass } from '../tint.ts'
+import { useAvatarTint } from '../tint.ts'
 import { ClientDialog } from './ClientDialog.tsx'
 import { ContactDialog } from './ContactDialog.tsx'
 import { KindLabel } from './KindLabel.tsx'
@@ -56,9 +56,10 @@ function HeroTile({ client, onEdit }: { client: Client; onEdit: () => void }) {
   const remove = useDeleteClient(client.id)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const navigate = useNavigate()
+  const tint = useAvatarTint(client.id, client.avatar_url)
 
   return (
-    <section className={`tile span-8 client-hero ${tintClass(client.id)}`}>
+    <section className={`tile span-8 client-hero ${tint}`}>
       <div className="client-hero-head">
         <Avatar className="client-hero-avatar" src={client.avatar_url} fallback={initials(client.name)} />
         <div>

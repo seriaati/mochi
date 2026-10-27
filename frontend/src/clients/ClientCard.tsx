@@ -3,7 +3,7 @@ import { Avatar } from '../components/Avatar.tsx'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { formatNTD, initials } from '../format.ts'
 import { dueLabel } from '../maintenance/labels.ts'
-import { tintClass } from '../tint.ts'
+import { useAvatarTint } from '../tint.ts'
 import { contactHandle } from './contactKinds.ts'
 import { KindLabel } from './KindLabel.tsx'
 import type { Client } from './queries.ts'
@@ -11,9 +11,10 @@ import type { Client } from './queries.ts'
 export function ClientCard({ client }: { client: Client }) {
   const hasDiscord = client.contacts.some((c) => c.kind === 'discord')
   const projects = client.project_count
+  const tint = useAvatarTint(client.id, client.avatar_url)
 
   return (
-    <Link className={`client-card ${tintClass(client.id)}`} to={`/clients/${client.id}`}>
+    <Link className={`client-card ${tint}`} to={`/clients/${client.id}`}>
       <div className="client-card-head">
         <Avatar className="client-avatar" src={client.avatar_url} fallback={initials(client.name)}>
           {hasDiscord && (

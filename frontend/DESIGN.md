@@ -60,7 +60,7 @@ Keep these meanings consistent across pages:
 - **Lavender**: people and relationships: clients, a project's client, a client's maintenance.
 - **Blue**: system and integration information, e.g. reminders and Discord setup.
 - **Yellow, teal**: further variety, mostly per-record tints.
-- **Per-record tints**: give a record such as a client a stable tint with `tintClass(id)` from `src/tint.ts`, so the same client always has the same colour.
+- **Per-record tints**: give a record such as a client a stable tint with `tintClass(id)` from `src/tint.ts`, so the same client always has the same colour. A client's own tiles (card, hero) use `useAvatarTint`, the palette tint closest to their avatar's colour, falling back to `tintClass` without one. Never derive a colour outside the palette.
 
 ## Typography
 
