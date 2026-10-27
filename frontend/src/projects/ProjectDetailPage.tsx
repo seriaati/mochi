@@ -5,6 +5,7 @@ import { KindLabel } from '../clients/KindLabel.tsx'
 import { useClient } from '../clients/queries.ts'
 import { AddButton } from '../components/AddButton.tsx'
 import { Avatar } from '../components/Avatar.tsx'
+import { Skeleton } from '../components/Skeleton.tsx'
 import { formatDay, formatNTD, formatNumber, initials, plural, todayISO } from '../format.ts'
 import { monthChip, scheduleText } from '../maintenance/labels.ts'
 import { useProjectRetainers, type Month, type Retainer } from '../maintenance/queries.ts'
@@ -40,7 +41,19 @@ export function ProjectDetailPage() {
       <Link className="back" to="/projects">
         ← Projects
       </Link>
-      {project.isPending && <p className="status">Loading project…</p>}
+      {project.isPending && (
+        <Skeleton
+          label="Loading project"
+          tiles={[
+            { span: 'span-5', height: 220 },
+            { span: 'span-4', height: 220 },
+            { span: 'span-3', height: 220 },
+            { span: 'span-7', height: 300 },
+            { span: 'span-5', height: 300 },
+            { span: 'span-12', height: 160 },
+          ]}
+        />
+      )}
       {project.error && <p className="status">Couldn't load this project: {project.error.message}</p>}
       {project.data && <ProjectTiles project={project.data} />}
     </>

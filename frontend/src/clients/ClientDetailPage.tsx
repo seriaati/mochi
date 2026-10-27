@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar.tsx'
+import { Skeleton } from '../components/Skeleton.tsx'
 import { formatMonth, initials, timeAgo } from '../format.ts'
 import { ClientMaintenanceTile } from '../maintenance/ClientMaintenanceTile.tsx'
 import { ClientMoneyTile, ClientProjectsTile } from '../projects/ClientProjectTiles.tsx'
@@ -22,7 +23,18 @@ export function ClientDetailPage() {
       <Link className="back" to="/clients">
         ← Clients
       </Link>
-      {client.isPending && <p className="status">Loading client…</p>}
+      {client.isPending && (
+        <Skeleton
+          label="Loading client"
+          tiles={[
+            { span: 'span-8', height: 230 },
+            { span: 'span-4', height: 230 },
+            { span: 'span-8', height: 260 },
+            { span: 'span-4', height: 260 },
+            { span: 'span-12', height: 160 },
+          ]}
+        />
+      )}
       {client.error && <p className="status">Couldn't load this client: {client.error.message}</p>}
       {client.data && <ClientTiles client={client.data} />}
     </>

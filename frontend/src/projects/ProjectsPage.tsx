@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { AddButton } from '../components/AddButton.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
+import { Skeleton, type Bone } from '../components/Skeleton.tsx'
 import { formatNumber, formatNTD, plural, todayISO } from '../format.ts'
 import { ProjectCard } from './ProjectCard.tsx'
 import { ProjectDialog } from './ProjectDialog.tsx'
@@ -130,7 +131,15 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      {projects.isPending && <p className="status">Loading projects…</p>}
+      {projects.isPending && (
+        <Skeleton
+          label="Loading projects"
+          tiles={[
+            ...Array<Bone>(3).fill({ span: 'span-4', height: 132 }),
+            ...Array<Bone>(4).fill({ span: 'span-6', height: 300 }),
+          ]}
+        />
+      )}
       {projects.error && <p className="status">Couldn't load projects: {projects.error.message}</p>}
 
       {projects.data && (

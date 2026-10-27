@@ -3,6 +3,7 @@ import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
 import { useClients, type Client, type ContactKind } from '../clients/queries.ts'
 import { Avatar } from '../components/Avatar.tsx'
+import { Skeleton } from '../components/Skeleton.tsx'
 import {
   daysBetween,
   formatDay,
@@ -33,7 +34,20 @@ export function OverviewPage() {
 
   if (error) return <p className="status">Couldn't load the overview: {error.message}</p>
   if (!maintenance.data || !projects.data || !clients.data || !settings.data || !earnings.data) {
-    return <p className="status">Loading overview…</p>
+    return (
+      <Skeleton
+        label="Loading overview"
+        tiles={[
+          { span: 'span-5', height: 220 },
+          { span: 'span-4', height: 220 },
+          { span: 'span-3', height: 220 },
+          { span: 'span-7', height: 300 },
+          { span: 'span-5', height: 300 },
+          { span: 'span-8', height: 260 },
+          { span: 'span-4', height: 260 },
+        ]}
+      />
+    )
   }
 
   const data = maintenance.data

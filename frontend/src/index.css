@@ -527,6 +527,32 @@ svg.email-icon {
   color: var(--dim);
 }
 
+/* Loading placeholders (Skeleton.tsx): tiles that pulse in place instead of rising in. */
+@keyframes skeleton-pulse {
+  50% { opacity: 0.55; }
+}
+
+.tile.skeleton {
+  gap: 12px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-bar {
+  display: block;
+  width: min(30%, 110px);
+  height: 12px;
+  border-radius: 6px;
+  background: var(--field);
+}
+
+.skeleton-bar.big {
+  width: min(45%, 170px);
+  height: 32px;
+  border-radius: 10px;
+}
+
+.skeleton-bar.wide { width: min(65%, 240px); }
+
 /* Controls */
 button,
 input,

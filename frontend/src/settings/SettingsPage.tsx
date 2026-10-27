@@ -3,6 +3,7 @@ import { useLocation } from 'react-router'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
+import { Skeleton } from '../components/Skeleton.tsx'
 import { formatDay, plural } from '../format.ts'
 import { useSendTest } from '../maintenance/queries.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
@@ -53,7 +54,17 @@ export function SettingsPage() {
           <p className="page-sub">Preferences for this dashboard</p>
         </div>
       </div>
-      {settings.isPending && <p className="status">Loading settings…</p>}
+      {settings.isPending && (
+        <Skeleton
+          label="Loading settings"
+          tiles={[
+            { span: 'span-7', height: 240 },
+            { span: 'span-5', height: 240 },
+            { span: 'span-12', height: 280 },
+            { span: 'span-12', height: 420 },
+          ]}
+        />
+      )}
       {settings.error && <p className="status">Couldn't load settings: {settings.error.message}</p>}
       {settings.data && (
         <div className="bento">

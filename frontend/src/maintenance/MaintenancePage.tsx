@@ -6,6 +6,7 @@ import { MessageLink } from '../clients/MessageLink.tsx'
 import { AddButton } from '../components/AddButton.tsx'
 import { Avatar } from '../components/Avatar.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
+import { Skeleton, type Bone } from '../components/Skeleton.tsx'
 import { daysBetween, formatDay, formatNTD, formatNumber, initials, parseDate, plural } from '../format.ts'
 import { tintClass } from '../tint.ts'
 import { findMonth, monthName, monthStatusChip, ordinal, periodChip, scheduleText } from './labels.ts'
@@ -62,7 +63,16 @@ export function MaintenancePage() {
         </div>
       </div>
 
-      {maintenance.isPending && <p className="status">Loading retainers…</p>}
+      {maintenance.isPending && (
+        <Skeleton
+          label="Loading retainers"
+          tiles={[
+            ...Array<Bone>(4).fill({ span: 'span-3', height: 280 }),
+            { span: 'span-5', height: 520 },
+            { span: 'span-7', height: 520 },
+          ]}
+        />
+      )}
       {maintenance.error && <p className="status">Couldn't load retainers: {maintenance.error.message}</p>}
 
       {data && (

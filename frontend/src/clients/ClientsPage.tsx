@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { AddButton } from '../components/AddButton.tsx'
+import { Skeleton, type Bone } from '../components/Skeleton.tsx'
 import { ClientCard } from './ClientCard.tsx'
 import { ClientDialog } from './ClientDialog.tsx'
 import { contactHandle } from './contactKinds.ts'
@@ -55,7 +56,9 @@ export function ClientsPage() {
         </div>
       </div>
 
-      {clients.isPending && <p className="status">Loading clients…</p>}
+      {clients.isPending && (
+        <Skeleton className="client-grid" label="Loading clients" tiles={Array<Bone>(6).fill({ height: 168 })} />
+      )}
       {clients.error && <p className="status">Couldn't load clients: {clients.error.message}</p>}
       {clients.data && all.length === 0 && (
         <section className="tile">No clients yet. Add your first one to get started.</section>
