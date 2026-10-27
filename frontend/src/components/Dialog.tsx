@@ -1,4 +1,14 @@
-import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref, type RefObject } from 'react'
+import {
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+} from 'react'
 
 /** Closes the dialog with its exit animation, then calls onClose. */
 export type DialogHandle = { close: () => void }
@@ -13,6 +23,8 @@ export function Dialog({ title, onClose, children, ref }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const [closing, setClosing] = useState(false)
+  // A press that starts inside, e.g. selecting text, and ends on the backdrop shouldn't close it.
+  const pressedBackdrop = useRef(false)
 
   useImperativeHandle(ref, () => ({ close: () => setClosing(true) }), [])
 
@@ -33,6 +45,12 @@ export function Dialog({ title, onClose, children, ref }: Props) {
         setClosing(true)
       }}
       onClose={onClose}
+      onPointerDown={(event) => {
+        pressedBackdrop.current = onBackdrop(event)
+      }}
+      onClick={(event) => {
+        if (pressedBackdrop.current && onBackdrop(event)) setClosing(true)
+      }}
       onAnimationEnd={(event) => {
         // sheet-out on phones, where the dialog is a bottom sheet.
         if (event.animationName === 'dialog-out' || event.animationName === 'sheet-out') onClose()
@@ -42,6 +60,14 @@ export function Dialog({ title, onClose, children, ref }: Props) {
       {children}
     </dialog>
   )
+}
+
+/** The backdrop targets the dialog too, so tell them apart by where the pointer is. */
+function onBackdrop(event: MouseEvent<HTMLDialogElement>) {
+  if (event.target !== event.currentTarget) return false
+  const rect = event.currentTarget.getBoundingClientRect()
+  const { clientX: x, clientY: y } = event
+  return x < rect.left || x > rect.right || y < rect.top || y > rect.bottom
 }
 
 // Where the dialog is a bottom sheet; matches the phone query in index.css.
