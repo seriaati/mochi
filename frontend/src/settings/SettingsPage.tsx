@@ -4,6 +4,7 @@ import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { formatDay, plural } from '../format.ts'
+import { useSendTest } from '../maintenance/queries.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
 import {
   useChooseKeniDestination,
@@ -199,6 +200,7 @@ function TimezoneTile({ settings }: { settings: Settings }) {
 function DiscordTile({ settings }: { settings: Settings }) {
   const save = useSaveSettings()
   const saveToken = useSaveBotToken()
+  const test = useSendTest()
   const [replacing, setReplacing] = useState(false)
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -269,9 +271,20 @@ function DiscordTile({ settings }: { settings: Settings }) {
             <button className="btn" type="submit" disabled={save.isPending}>
               Save
             </button>
+            {/* Posts to the saved webhook, not what's typed. */}
+            <button
+              className="btn secondary"
+              type="button"
+              disabled={!settings.discord_webhook_url || test.isPending}
+              onClick={() => test.mutate()}
+            >
+              Send test
+            </button>
           </div>
           {save.error && <p className="form-error">{save.error.message}</p>}
           {save.isSuccess && !save.isPending && <p className="settings-saved">Saved</p>}
+          {test.error && <p className="form-error">{test.error.message}</p>}
+          {test.isSuccess && <p className="settings-saved">Sent to Discord</p>}
         </form>
 
         <div className="form">

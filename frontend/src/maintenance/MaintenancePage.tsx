@@ -5,14 +5,12 @@ import { KindLabel } from '../clients/KindLabel.tsx'
 import { MessageLink } from '../clients/MessageLink.tsx'
 import { AddButton } from '../components/AddButton.tsx'
 import { Avatar } from '../components/Avatar.tsx'
-import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { daysBetween, formatDay, formatNTD, formatNumber, initials, parseDate, plural } from '../format.ts'
 import { tintClass } from '../tint.ts'
 import { findMonth, monthName, monthStatusChip, ordinal, periodChip, scheduleText } from './labels.ts'
 import {
   useMaintenance,
-  useSendTest,
   type CalendarDay,
   type Maintenance,
   type Month,
@@ -86,7 +84,6 @@ export function MaintenancePage() {
             <OverdueListTile data={data} />
           </div>
           <RetainersTile data={data} />
-          <RemindersTile data={data} />
         </div>
       )}
 
@@ -120,13 +117,6 @@ function useLinkedMonth(data: Maintenance | undefined) {
   }, [params, setParams])
 
   return { opened, close: () => setOpened(undefined) }
-}
-
-/** The note under a reminder button: what was sent, or why it failed. */
-export function SendResult({ mutation }: { mutation: { error: Error | null; isSuccess: boolean } }) {
-  if (mutation.error) return <p className="mt-sent error">{mutation.error.message}</p>
-  if (mutation.isSuccess) return <p className="mt-sent">Sent to Discord</p>
-  return null
 }
 
 /** "Aug, Sep, Oct" */
@@ -584,66 +574,5 @@ function RetainerRow({ retainer, month, period, today, onEdit, onMonth }: RowPro
         <span className={`chip mt-status ${chip.tone}`}>{chip.label}</span>
       )}
     </li>
-  )
-}
-
-function RemindersTile({ data }: { data: Maintenance }) {
-  const test = useSendTest()
-  const { enabled, mention_user_id, mention, time, repeat_days, timezone } = data.reminders
-  const me = mention?.display_name
-
-  return (
-    <section className="tile span-12 tint-blue">
-      <div className="mt-hook">
-        <div>
-          <h2 className="tile-label">Reminders</h2>
-          <p className="mt-hook-title">
-            <DiscordLogo aria-hidden="true" /> {enabled ? 'Discord webhook' : 'Discord webhook · not set up'}
-          </p>
-        </div>
-        <ul className="mt-facts">
-          <li>
-            <b>{time}</b>
-            on the due date, <Link to="/settings">{timezone}</Link>
-          </li>
-          <li>
-            <b>Every {repeat_days} days</b>
-            while unpaid
-          </li>
-          <li title={mention_user_id ? `Discord user ID ${mention_user_id}` : undefined}>
-            {me ? (
-              <b className="mt-me">
-                <Avatar className="mt-me-avatar" src={mention?.avatar_url} fallback={initials(me)} />
-                {me}
-              </b>
-            ) : (
-              <b>{mention_user_id ? '@you' : 'No mention'}</b>
-            )}
-            {mention_user_id ? 'mentioned in each ping' : <Link to="/settings#discord">set your Discord ID</Link>}
-          </li>
-        </ul>
-        <div className="mt-hook-action">
-          <div className="mt-hook-buttons">
-            <Link className="btn secondary" to="/settings#discord">
-              Edit in Settings
-            </Link>
-            <button
-              className="btn secondary"
-              type="button"
-              disabled={!enabled || test.isPending}
-              onClick={() => test.mutate()}
-            >
-              Send test
-            </button>
-          </div>
-          <SendResult mutation={test} />
-        </div>
-      </div>
-      {!enabled && (
-        <p className="mt-hook-note">
-          Reminders are off. Add a Discord webhook URL in <Link to="/settings#discord">Settings</Link>.
-        </p>
-      )}
-    </section>
   )
 }

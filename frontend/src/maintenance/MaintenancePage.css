@@ -31,16 +31,6 @@
   height: 40px;
 }
 
-.mt-sent {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--good);
-}
-
-.tile.ink .mt-sent { color: var(--hero-good); }
-.mt-sent.error { color: var(--warn); }
-.tile.ink .mt-sent.error { color: var(--hero-warn); }
-
 .mt-bar {
   margin-top: auto;
   background: var(--chip);
@@ -395,98 +385,6 @@ button.mt-status:hover {
 .mt-day-row b {
   font-weight: 600;
   overflow-wrap: anywhere;
-}
-
-/* Reminders */
-.mt-hook {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px 40px;
-}
-
-.mt-hook-title {
-  margin-top: 2px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.mt-facts {
-  display: flex;
-  flex: 1 1 360px;
-  flex-wrap: wrap;
-  gap: 8px;
-  list-style: none;
-}
-
-.mt-facts li {
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--chip);
-  font-size: 13px;
-}
-
-.mt-facts b {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.mt-facts a {
-  font-weight: 600;
-  color: var(--tint-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* Your synced Discord name and avatar in the mention fact. */
-.mt-facts .mt-me {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mt-me-avatar {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--solid);
-  color: var(--tint-ink);
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.mt-hook-action {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.mt-hook-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.mt-hook-buttons .btn {
-  display: inline-flex;
-  align-items: center;
-}
-
-.mt-hook-note {
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.mt-hook-note code {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink);
 }
 
 @media (max-width: 1000px) {
