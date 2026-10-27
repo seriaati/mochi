@@ -84,6 +84,7 @@ def _owed(session: Session, today: date) -> list[_Owed]:
             selectinload(Retainer.ask_via),
             selectinload(Retainer.payments),
             selectinload(Retainer.pauses),
+            selectinload(Retainer.waivers),
         )
         .execution_options(populate_existing=True)
     )

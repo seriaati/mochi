@@ -6,7 +6,7 @@ from pydantic import AfterValidator, BaseModel, Field, model_validator
 from app.maintenance import MonthStatus
 from app.models import Collection
 from app.schemas.clients import ContactOut, DiscordProfileOut
-from app.schemas.common import PositiveNTD
+from app.schemas.common import OptionalName, PositiveNTD
 
 # A month is sent as any date in it and stored as its first day.
 Period = Annotated[date, AfterValidator(lambda d: d.replace(day=1))]
@@ -67,6 +67,16 @@ class RetainerPauseOut(RetainerPauseIn):
     id: int
 
 
+class RetainerWaiverIn(BaseModel):
+    period: Period  # the month let off
+    note: OptionalName = None
+
+
+class RetainerWaiverOut(RetainerWaiverIn):
+    id: int
+    retainer_id: int
+
+
 class MonthOut(BaseModel):
     period: date  # first day of the month
     due_on: date
@@ -106,6 +116,7 @@ class RetainerOut(RetainerIn):
     overdue: list[MonthOut]  # oldest first
     received: int  # all time, NTD
     pauses: list[RetainerPauseOut]  # oldest first
+    waivers: list[RetainerWaiverOut]  # months let off the fee, oldest first
 
 
 class OverdueOut(BaseModel):

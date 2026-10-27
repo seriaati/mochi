@@ -35,6 +35,8 @@ from app.schemas.maintenance import (
     RetainerPauseIn,
     RetainerPaymentIn,
     RetainerPaymentOut,
+    RetainerWaiverIn,
+    RetainerWaiverOut,
 )
 from app.schemas.overview import EarningsOut
 from app.schemas.projects import (
@@ -389,6 +391,22 @@ async def record_retainer_payment(
     client pays several months ahead in one go, period is the first of them, months how many,
     and amount the total."""
     return await _run(lambda s, c: retainers.record_payment(retainer_id, payment, session=s))
+
+
+@mcp.tool(annotations=_ann("Waive retainer month"))
+async def waive_retainer_month(retainer_id: int, waiver: RetainerWaiverIn) -> RetainerWaiverOut:
+    """Lets one month of a monthly maintenance fee off, e.g. a month the client wasn't charged:
+    it counts as settled at NT$0, never owed, reminded or received. period is any date in that
+    month; note says why. Works for "ask" and "auto_transfer" fees, for past or future months
+    not already paid. The retainer's waived months are listed in `waivers`."""
+    return await _run(lambda s, c: retainers.waive_month(retainer_id, waiver, session=s))
+
+
+@mcp.tool(annotations=_ann("Delete retainer waiver", destructive=True))
+async def delete_retainer_waiver(retainer_id: int, waiver_id: int) -> str:
+    """Deletes a waiver, so the month it let off is billed again."""
+    await _run(lambda s, c: retainers.delete_waiver(retainer_id, waiver_id, session=s))
+    return f"Deleted waiver {waiver_id}"
 
 
 @mcp.tool(annotations=_ann("Delete retainer payment", destructive=True))

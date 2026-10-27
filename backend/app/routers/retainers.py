@@ -15,6 +15,7 @@ from app.models import (
     Retainer,
     RetainerPause,
     RetainerPayment,
+    RetainerWaiver,
 )
 from app.routers.clients import contact_out
 from app.schemas.maintenance import (
@@ -27,6 +28,8 @@ from app.schemas.maintenance import (
     RetainerPaymentIn,
     RetainerPaymentOut,
     RetainerProject,
+    RetainerWaiverIn,
+    RetainerWaiverOut,
 )
 
 router = APIRouter(prefix="/api/retainers", tags=["maintenance"])
@@ -82,6 +85,9 @@ def retainer_out(retainer: Retainer, today: date) -> RetainerOut:
         overdue=[month_out(m) for m in maintenance.overdue(retainer, today)],
         received=maintenance.received(retainer, today),
         pauses=[RetainerPauseOut.model_validate(p, from_attributes=True) for p in retainer.pauses],
+        waivers=[
+            RetainerWaiverOut.model_validate(w, from_attributes=True) for w in retainer.waivers
+        ],
     )
 
 
@@ -98,6 +104,7 @@ def with_children() -> Select[Retainer]:
             selectinload(Retainer.ask_via),
             selectinload(Retainer.payments),
             selectinload(Retainer.pauses),
+            selectinload(Retainer.waivers),
         )
         .execution_options(populate_existing=True)
     )
@@ -129,6 +136,13 @@ def _get_pause_or_404(session: Session, retainer_id: int, pause_id: int) -> Reta
     if pause is None or pause.retainer_id != retainer_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pause not found")
     return pause
+
+
+def _get_waiver_or_404(session: Session, retainer_id: int, waiver_id: int) -> RetainerWaiver:
+    waiver = session.get(RetainerWaiver, waiver_id)
+    if waiver is None or waiver.retainer_id != retainer_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Waiver not found")
+    return waiver
 
 
 def _check_refs(session: Session, body: RetainerIn) -> None:
@@ -166,6 +180,21 @@ def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
             status.HTTP_409_CONFLICT,
             f"A payment is recorded for {month}, which these dates no longer cover",
         )
+
+
+def _check_open(retainer: Retainer, period: date) -> None:
+    """A payment or waiver can only be recorded for a billed month not yet paid or waived."""
+    month = period.strftime("%B %Y")
+    if maintenance.is_waived(retainer, period):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already waived")
+    if not maintenance.is_billed(retainer, period):
+        if maintenance.month_start(retainer.started_on) <= period < retainer.tracked_from:
+            detail = f"{month} is before tracking starts, so it counts as settled"
+        else:
+            detail = f"This retainer doesn't bill {month}"
+        raise HTTPException(status.HTTP_409_CONFLICT, detail)
+    if maintenance.payment_for(retainer, period) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already recorded as paid")
 
 
 def _check_unpaid_while_paused(retainer: Retainer, pause: RetainerPauseIn) -> None:
@@ -304,15 +333,7 @@ def record_payment(
         )
     payment = RetainerPayment(retainer_id=retainer_id, **body.model_dump())
     for period in maintenance.covered(payment):
-        month = period.strftime("%B %Y")
-        if not maintenance.is_billed(retainer, period):
-            if maintenance.month_start(retainer.started_on) <= period < retainer.tracked_from:
-                detail = f"{month} is before tracking starts, so it counts as settled"
-            else:
-                detail = f"This retainer doesn't bill {month}"
-            raise HTTPException(status.HTTP_409_CONFLICT, detail)
-        if maintenance.payment_for(retainer, period) is not None:
-            raise HTTPException(status.HTTP_409_CONFLICT, f"{month} is already recorded as paid")
+        _check_open(retainer, period)
     session.add(payment)
     session.commit()
     return RetainerPaymentOut.model_validate(payment, from_attributes=True)
@@ -321,4 +342,21 @@ def record_payment(
 @router.delete("/{retainer_id}/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_payment(retainer_id: int, payment_id: int, session: SessionDep) -> None:
     session.delete(_get_payment_or_404(session, retainer_id, payment_id))
+    session.commit()
+
+
+@router.post("/{retainer_id}/waivers", status_code=status.HTTP_201_CREATED)
+def waive_month(retainer_id: int, body: RetainerWaiverIn, session: SessionDep) -> RetainerWaiverOut:
+    """Lets one month off the fee: it counts as settled at NT$0, never owed or reminded."""
+    _check_open(_get_retainer_or_404(session, retainer_id), body.period)
+    waiver = RetainerWaiver(retainer_id=retainer_id, **body.model_dump())
+    session.add(waiver)
+    session.commit()
+    return RetainerWaiverOut.model_validate(waiver, from_attributes=True)
+
+
+@router.delete("/{retainer_id}/waivers/{waiver_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_waiver(retainer_id: int, waiver_id: int, session: SessionDep) -> None:
+    """The month is billed again."""
+    session.delete(_get_waiver_or_404(session, retainer_id, waiver_id))
     session.commit()

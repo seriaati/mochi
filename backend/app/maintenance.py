@@ -3,8 +3,8 @@
 A retainer bills one fee per calendar month (its "period", stored as the month's first day).
 The fee falls due on `due_day`, or on the month's last day when the month is shorter. A month
 is billed when its due date falls between `started_on` and `ended_on` (inclusive), outside
-any pause, and it is not before `tracked_from`. Earlier months count as settled and appear
-nowhere.
+any pause, and it is not before `tracked_from` or waived. Earlier and waived months count as
+settled and appear nowhere.
 
 Status of a billed month, as of `today` (a date in the saved timezone):
 - auto transfer: paid once the due date is reached, upcoming before that;
@@ -118,10 +118,14 @@ def is_paused(retainer: Retainer, day: date) -> bool:
     )
 
 
+def is_waived(retainer: Retainer, period: date) -> bool:
+    return any(w.period == period for w in retainer.waivers)
+
+
 def is_billed(retainer: Retainer, period: date) -> bool:
-    """Whether a month counts: due between the start and end dates, outside any pause, and
-    tracked."""
-    if period < retainer.tracked_from:
+    """Whether a month counts: due between the start and end dates, outside any pause, tracked
+    and not waived."""
+    if period < retainer.tracked_from or is_waived(retainer, period):
         return False
     due = due_on(period, retainer.due_day)
     return (

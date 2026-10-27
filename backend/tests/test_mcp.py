@@ -486,7 +486,7 @@ def test_discord_ids_match_the_output_schemas() -> None:
     assert contact["discord_user_id"] == "1207716883264966748"
 
 
-def test_past_pause_tools() -> None:
+def test_past_pause_and_waiver_tools() -> None:
     client_id = call("create_client", client={"name": "Northwind"})["id"]
     retainer = call(
         "create_retainer",
@@ -505,13 +505,20 @@ def test_past_pause_tools() -> None:
         pause={"paused_on": "2025-07-01", "resumed_on": "2025-08-01"},
     )
     [pause] = paused["pauses"]
+    waiver = call(
+        "waive_retainer_month",
+        retainer_id=retainer["id"],
+        waiver={"period": "2025-03-01", "note": "Not charged"},
+    )
+    assert (waiver["period"], waiver["note"]) == ("2025-03-01", "Not charged")
     overdue = call("get_retainer", retainer_id=retainer["id"])["overdue"]
     # August to December. Not July, nor January to June: left unpaid when it was paused.
     assert len(overdue) == 5
 
     call("delete_retainer_pause", retainer_id=retainer["id"], pause_id=pause["id"])
+    call("delete_retainer_waiver", retainer_id=retainer["id"], waiver_id=waiver["id"])
     restored = call("get_retainer", retainer_id=retainer["id"])
-    assert (restored["pauses"], len(restored["overdue"])) == ([], 12)
+    assert (restored["pauses"], restored["waivers"], len(restored["overdue"])) == ([], [], 12)
 
 
 def test_settings_tools() -> None:

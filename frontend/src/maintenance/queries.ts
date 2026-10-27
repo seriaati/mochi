@@ -69,7 +69,12 @@ export type Retainer = RetainerInput & {
   overdue: Month[]
   /** NTD received all time. */
   received: number
+  /** Months let off the fee, which count as settled. Oldest first. */
+  waivers: RetainerWaiver[]
 }
+
+/** period: the first day of the month let off. */
+export type RetainerWaiver = { id: number; retainer_id: number; period: string; note: string | null }
 
 /** period: the first month paid for. months: how many in a row, when paid ahead. amount: for all of them. */
 export type RetainerPaymentInput = { period: string; months: number; amount: number; paid_on: string }

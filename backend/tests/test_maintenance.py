@@ -889,6 +889,77 @@ def test_past_pause_rules(client: TestClient, owner: dict) -> None:
     assert response.status_code == 404
 
 
+# Waived months
+
+
+def waive(client: TestClient, retainer_id: int, period: str, note: str | None = None):
+    body = {"period": period, "note": note}
+    return client.post(f"/api/retainers/{retainer_id}/waivers", json=body)
+
+
+def test_a_waived_month_is_settled(
+    client: TestClient, owner: dict, session: Session, webhook: list[str]
+) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-08-01")
+    response = waive(client, retainer["id"], "2026-08-15", "Not charged this month")
+    assert response.status_code == 201, response.text
+    waiver = response.json()
+    assert (waiver["period"], waiver["note"]) == ("2026-08-01", "Not charged this month")
+
+    waived = get(client, retainer["id"])
+    assert waived["waivers"] == [waiver]
+    assert [m["period"] for m in waived["overdue"]] == ["2026-09-01", "2026-10-01"]
+    assert [m["period"] for m in waived["months"]] == ["2026-09-01", "2026-10-01", "2026-11-01"]
+    assert overview(client, month="2026-08")["calendar"] == []
+    assert reminders.send_due(session, at("2026-10-23", 9)) == 1
+    assert "(September, October)" in webhook[0]
+
+    # The rest of this month's fee is still expected; a waived one isn't.
+    assert waive(client, retainer["id"], "2026-10-01").status_code == 201
+    collected = overview(client)["collected"]
+    assert (collected["expected"], collected["count"]) == (0, 0)
+
+    # Deleting the waiver bills the month again.
+    deleted = client.delete(f"/api/retainers/{retainer['id']}/waivers/{waiver['id']}")
+    assert deleted.status_code == 204
+    assert get(client, retainer["id"])["overdue"][0]["period"] == "2026-08-01"
+
+
+def test_waiver_rules(client: TestClient, owner: dict) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-08-01")
+    waive(client, retainer["id"], "2026-08-01")
+    for response in (
+        waive(client, retainer["id"], "2026-08-01"),
+        pay(client, retainer["id"], "2026-08-01"),
+    ):
+        assert response.status_code == 409
+        assert response.json()["detail"] == "August 2026 is already waived"
+    # A payment can't cover it either, even as one of several months.
+    response = pay(client, retainer["id"], "2026-07-01", months=2, amount=500)
+    assert response.json()["detail"] == "This retainer doesn't bill July 2026"
+
+    pay(client, retainer["id"], "2026-09-01")
+    response = waive(client, retainer["id"], "2026-09-01")
+    assert response.json()["detail"] == "September 2026 is already recorded as paid"
+    response = waive(client, retainer["id"], "2026-07-01")
+    assert response.json()["detail"] == "This retainer doesn't bill July 2026"
+
+    # A future month can be let off too; the next one due skips it.
+    assert waive(client, retainer["id"], "2026-11-01").status_code == 201
+    assert get(client, retainer["id"])["next_due_on"] == "2026-12-10"
+
+
+def test_waived_auto_transfers_are_not_received(client: TestClient, owner: dict) -> None:
+    auto = make_retainer(
+        client, owner, collection="auto_transfer", amount=300, due_day=10, started_on="2026-08-01"
+    )
+    assert auto["received"] == 900
+    assert waive(client, auto["id"], "2026-09-01").status_code == 201
+    assert get(client, auto["id"])["received"] == 600
+    earnings = client.get("/api/overview/earnings").json()
+    assert earnings["months"][7:10] == [300, 0, 300]  # August to October
+
+
 def test_overview(client: TestClient, pin) -> None:
     northwind = make_client(client)
     pixel = make_client(client, "Pixelforge", contacts=(("discord", "@sora.px"),))

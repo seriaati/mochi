@@ -201,6 +201,9 @@ class Retainer(Base):
     pauses: Mapped[list[RetainerPause]] = relationship(
         back_populates="retainer", cascade="all, delete-orphan", order_by="RetainerPause.paused_on"
     )
+    waivers: Mapped[list[RetainerWaiver]] = relationship(
+        back_populates="retainer", cascade="all, delete-orphan", order_by="RetainerWaiver.period"
+    )
 
 
 class RetainerPause(Base):
@@ -219,6 +222,21 @@ class RetainerPause(Base):
     resumed_on: Mapped[date | None]  # None while still paused
 
     retainer: Mapped[Retainer] = relationship(back_populates="pauses")
+
+
+class RetainerWaiver(Base):
+    """A month let off the fee, e.g. a bot that wasn't charged that month. It counts as
+    settled, like a month before tracked_from: not billed, owed or received."""
+
+    __tablename__ = "retainer_waivers"
+    __table_args__ = (UniqueConstraint("retainer_id", "period"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    retainer_id: Mapped[int] = mapped_column(ForeignKey("retainers.id", ondelete="CASCADE"))
+    period: Mapped[date]  # first day of the month
+    note: Mapped[str | None] = mapped_column(String(200))
+
+    retainer: Mapped[Retainer] = relationship(back_populates="waivers")
 
 
 class RetainerPayment(Base):
