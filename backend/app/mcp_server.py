@@ -32,6 +32,7 @@ from app.schemas.maintenance import (
     MaintenanceOut,
     RetainerIn,
     RetainerOut,
+    RetainerPauseIn,
     RetainerPaymentIn,
     RetainerPaymentOut,
 )
@@ -358,6 +359,26 @@ async def resume_retainer(retainer_id: int) -> RetainerOut:
     """Resumes a paused monthly maintenance fee: months bill again from today. Months that fell
     due while it was paused are never billed."""
     return await _run(lambda s, c: retainers.resume_retainer(retainer_id, session=s, today=c.today))
+
+
+@mcp.tool(annotations=_ann("Add past retainer pause"))
+async def add_retainer_pause(retainer_id: int, pause: RetainerPauseIn) -> RetainerOut:
+    """Records a stretch when a monthly maintenance fee was paused, from a past day: months
+    falling due from paused_on up to (not including) resumed_on are never billed. Leave out
+    resumed_on when it's still paused; resume_retainer then ends it. Months already unpaid
+    when it was paused are never overdue or reminded about, though a payment can still be
+    recorded for them. The retainer's pauses are listed in `pauses`."""
+    return await _run(
+        lambda s, c: retainers.add_pause(retainer_id, pause, session=s, today=c.today)
+    )
+
+
+@mcp.tool(annotations=_ann("Delete retainer pause", destructive=True))
+async def delete_retainer_pause(retainer_id: int, pause_id: int) -> str:
+    """Deletes a pause, as if the retainer was never paused then: the months that fell due in
+    it are billed again."""
+    await _run(lambda s, c: retainers.delete_pause(retainer_id, pause_id, session=s))
+    return f"Deleted pause {pause_id}"
 
 
 @mcp.tool(annotations=_ann("Record retainer payment"))

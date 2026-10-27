@@ -22,6 +22,8 @@ from app.schemas.maintenance import (
     RetainerClient,
     RetainerIn,
     RetainerOut,
+    RetainerPauseIn,
+    RetainerPauseOut,
     RetainerPaymentIn,
     RetainerPaymentOut,
     RetainerProject,
@@ -79,6 +81,7 @@ def retainer_out(retainer: Retainer, today: date) -> RetainerOut:
         months=[month_out(m) for m in maintenance.recent(retainer, today)],
         overdue=[month_out(m) for m in maintenance.overdue(retainer, today)],
         received=maintenance.received(retainer, today),
+        pauses=[RetainerPauseOut.model_validate(p, from_attributes=True) for p in retainer.pauses],
     )
 
 
@@ -121,6 +124,13 @@ def _get_payment_or_404(session: Session, retainer_id: int, payment_id: int) -> 
     return payment
 
 
+def _get_pause_or_404(session: Session, retainer_id: int, pause_id: int) -> RetainerPause:
+    pause = session.get(RetainerPause, pause_id)
+    if pause is None or pause.retainer_id != retainer_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pause not found")
+    return pause
+
+
 def _check_refs(session: Session, body: RetainerIn) -> None:
     if session.get(Client, body.client_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
@@ -155,6 +165,23 @@ def _check_payments_still_fit(retainer: Retainer, body: RetainerIn) -> None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             f"A payment is recorded for {month}, which these dates no longer cover",
+        )
+
+
+def _check_unpaid_while_paused(retainer: Retainer, pause: RetainerPauseIn) -> None:
+    """Months falling due in a pause aren't billed, so none of them may have a payment."""
+    end = pause.resumed_on or date.max
+    paid = [
+        period
+        for p in retainer.payments
+        for period in maintenance.covered(p)
+        if pause.paused_on <= maintenance.due_on(period, retainer.due_day) < end
+    ]
+    if paid:
+        month = min(paid).strftime("%B %Y")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"A payment covers {month}; remove it before pausing",
         )
 
 
@@ -216,18 +243,7 @@ def pause_retainer(retainer_id: int, session: SessionDep, today: TodayDep) -> Re
         raise HTTPException(status.HTTP_409_CONFLICT, "This retainer is already paused")
     if retainer.ended_on is not None and retainer.ended_on < today:
         raise HTTPException(status.HTTP_409_CONFLICT, "This retainer has already ended")
-    paid_ahead = [
-        period
-        for p in retainer.payments
-        for period in maintenance.covered(p)
-        if maintenance.due_on(period, retainer.due_day) >= today
-    ]
-    if paid_ahead:
-        month = min(paid_ahead).strftime("%B %Y")
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            f"A payment covers {month}; remove it before pausing",
-        )
+    _check_unpaid_while_paused(retainer, RetainerPauseIn(paused_on=today))
     session.add(RetainerPause(retainer_id=retainer_id, paused_on=today))
     session.commit()
     return _read(session, retainer_id, today)
@@ -245,6 +261,35 @@ def resume_retainer(retainer_id: int, session: SessionDep, today: TodayDep) -> R
         pause.resumed_on = today
     session.commit()
     return _read(session, retainer_id, today)
+
+
+@router.post("/{retainer_id}/pauses", status_code=status.HTTP_201_CREATED)
+def add_pause(
+    retainer_id: int, body: RetainerPauseIn, session: SessionDep, today: TodayDep
+) -> RetainerOut:
+    """Records a pause from a past day, e.g. a bot that was offline for a while: months falling
+    due in it aren't billed, as with pausing from today. Without resumed_on it is still paused."""
+    retainer = _get_retainer_or_404(session, retainer_id)
+    if body.paused_on > today or (body.resumed_on is not None and body.resumed_on > today):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "A pause can't start or end after today"
+        )
+    end = body.resumed_on or date.max
+    if any(
+        p.paused_on < end and body.paused_on < (p.resumed_on or date.max) for p in retainer.pauses
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This overlaps another pause")
+    _check_unpaid_while_paused(retainer, body)
+    session.add(RetainerPause(retainer_id=retainer_id, **body.model_dump()))
+    session.commit()
+    return _read(session, retainer_id, today)
+
+
+@router.delete("/{retainer_id}/pauses/{pause_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pause(retainer_id: int, pause_id: int, session: SessionDep) -> None:
+    """As if it was never paused then: the months that fell due in it are billed again."""
+    session.delete(_get_pause_or_404(session, retainer_id, pause_id))
+    session.commit()
 
 
 @router.post("/{retainer_id}/payments", status_code=status.HTTP_201_CREATED)

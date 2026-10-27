@@ -817,6 +817,78 @@ def test_pause_rules(client: TestClient, owner: dict, pin) -> None:
     assert len(get(client, late["id"])["overdue"]) == 2
 
 
+def add_pause(client: TestClient, retainer_id: int, paused_on: str, resumed_on: str | None):
+    body = {"paused_on": paused_on, "resumed_on": resumed_on}
+    return client.post(f"/api/retainers/{retainer_id}/pauses", json=body)
+
+
+def test_a_past_pause_bills_nothing_inside_it(client: TestClient, owner: dict) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-05-01")
+    pay(client, retainer["id"], "2026-05-01", months=2, amount=500)
+
+    # Offline all of July, back in August.
+    response = add_pause(client, retainer["id"], "2026-07-01", "2026-08-01")
+    assert response.status_code == 201, response.text
+    paused = response.json()
+    assert [(p["paused_on"], p["resumed_on"]) for p in paused["pauses"]] == [
+        ("2026-07-01", "2026-08-01")
+    ]
+    assert paused["paused_on"] is None
+    assert paused["active"] is True
+    assert [m["period"] for m in paused["overdue"]] == ["2026-08-01", "2026-09-01", "2026-10-01"]
+    assert "2026-07-01" not in [m["period"] for m in paused["months"]]
+    assert pay(client, retainer["id"], "2026-07-01").status_code == 409
+
+    pause_id = paused["pauses"][0]["id"]
+    deleted = client.delete(f"/api/retainers/{retainer['id']}/pauses/{pause_id}")
+    assert deleted.status_code == 204
+    after = get(client, retainer["id"])
+    assert after["pauses"] == []
+    assert after["overdue"][0]["period"] == "2026-07-01"
+
+
+def test_a_past_pause_can_still_be_going(client: TestClient, owner: dict, pin) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-05-01")
+    paused = add_pause(client, retainer["id"], "2026-09-01", None).json()
+    assert paused["paused_on"] == "2026-09-01"
+    assert paused["active"] is False
+    # Unpaid when it was paused: July and August stay on record, quietly.
+    assert paused["overdue"] == []
+    pin(at("2026-11-02"))
+    resumed = resume(client, retainer["id"]).json()
+    assert resumed["pauses"][0]["resumed_on"] == "2026-11-02"
+    assert resumed["next_due_on"] == "2026-11-10"
+
+
+def test_past_pause_rules(client: TestClient, owner: dict) -> None:
+    retainer = make_retainer(client, owner, due_day=10, started_on="2026-05-01")
+    bad = [
+        ("2026-10-24", None),  # starts after today
+        ("2026-09-01", "2026-10-24"),  # ends after today
+        ("2026-09-01", "2026-09-01"),  # resumes the day it was paused
+    ]
+    for paused_on, resumed_on in bad:
+        response = add_pause(client, retainer["id"], paused_on, resumed_on)
+        assert response.status_code == 422, (paused_on, resumed_on)
+
+    assert add_pause(client, retainer["id"], "2026-06-01", "2026-07-01").status_code == 201
+    for paused_on, resumed_on in [("2026-06-15", "2026-08-01"), ("2026-05-01", None)]:
+        response = add_pause(client, retainer["id"], paused_on, resumed_on)
+        assert response.json()["detail"] == "This overlaps another pause"
+    # Touching ends don't overlap.
+    assert add_pause(client, retainer["id"], "2026-07-01", "2026-07-15").status_code == 201
+
+    pay(client, retainer["id"], "2026-08-01")
+    response = add_pause(client, retainer["id"], "2026-08-01", "2026-09-01")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "A payment covers August 2026; remove it before pausing"
+
+    other = make_retainer(client, owner)
+    pause_id = get(client, retainer["id"])["pauses"][0]["id"]
+    response = client.delete(f"/api/retainers/{other['id']}/pauses/{pause_id}")
+    assert response.status_code == 404
+
+
 def test_overview(client: TestClient, pin) -> None:
     northwind = make_client(client)
     pixel = make_client(client, "Pixelforge", contacts=(("discord", "@sora.px"),))

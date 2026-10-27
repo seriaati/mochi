@@ -486,6 +486,34 @@ def test_discord_ids_match_the_output_schemas() -> None:
     assert contact["discord_user_id"] == "1207716883264966748"
 
 
+def test_past_pause_tools() -> None:
+    client_id = call("create_client", client={"name": "Northwind"})["id"]
+    retainer = call(
+        "create_retainer",
+        retainer={
+            "client_id": client_id,
+            "amount": 3000,
+            "due_day": 5,
+            "collection": "ask",
+            "started_on": "2025-01-01",
+            "ended_on": "2025-12-31",
+        },
+    )
+    paused = call(
+        "add_retainer_pause",
+        retainer_id=retainer["id"],
+        pause={"paused_on": "2025-07-01", "resumed_on": "2025-08-01"},
+    )
+    [pause] = paused["pauses"]
+    overdue = call("get_retainer", retainer_id=retainer["id"])["overdue"]
+    # August to December. Not July, nor January to June: left unpaid when it was paused.
+    assert len(overdue) == 5
+
+    call("delete_retainer_pause", retainer_id=retainer["id"], pause_id=pause["id"])
+    restored = call("get_retainer", retainer_id=retainer["id"])
+    assert (restored["pauses"], len(restored["overdue"])) == ([], 12)
+
+
 def test_settings_tools() -> None:
     tokyo = {"timezone": "Asia/Tokyo", "user_name": None}
     assert call("update_settings", timezone="Asia/Tokyo") == tokyo

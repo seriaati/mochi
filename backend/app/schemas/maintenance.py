@@ -52,6 +52,21 @@ class RetainerPaymentOut(RetainerPaymentIn):
     retainer_id: int
 
 
+class RetainerPauseIn(BaseModel):
+    paused_on: date
+    resumed_on: date | None = None  # None: still paused
+
+    @model_validator(mode="after")
+    def _resumed_after(self) -> Self:
+        if self.resumed_on is not None and self.resumed_on <= self.paused_on:
+            raise ValueError("It must resume after the day it was paused")
+        return self
+
+
+class RetainerPauseOut(RetainerPauseIn):
+    id: int
+
+
 class MonthOut(BaseModel):
     period: date  # first day of the month
     due_on: date
@@ -90,6 +105,7 @@ class RetainerOut(RetainerIn):
     months: list[MonthOut]  # the last few billed months up to the next one due, oldest first
     overdue: list[MonthOut]  # oldest first
     received: int  # all time, NTD
+    pauses: list[RetainerPauseOut]  # oldest first
 
 
 class OverdueOut(BaseModel):
