@@ -9,35 +9,50 @@
   color: var(--muted);
 }
 
-/* Wrapped under the title, the toolbar spans the row with + at its far end. */
-.project-actions {
-  flex: 1;
+/* Under the header: what to show on the left, how to order it on the right. */
+.project-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0 4px 20px;
+  animation: rise-in 0.4s var(--ease-out) backwards;
 }
 
-.project-actions .add-btn {
+.project-year {
   margin-left: auto;
+  min-width: 140px;
 }
 
 .project-sort {
   min-width: 210px;
 }
 
-.project-year {
-  min-width: 140px;
-}
-
 /* --field matches the page ground, so sit on the filter's ground instead, at its text size. */
-.project-select .select-field,
-.project-search {
-  background: var(--nav-bg);
-}
-
 .project-select .select-field {
+  background: var(--nav-bg);
   font-size: 13px;
 }
 
-.project-search {
-  width: 220px;
+@media (max-width: 700px) {
+  .project-toolbar .segmented {
+    flex-basis: 100%;
+  }
+
+  .project-toolbar .segmented button {
+    flex: auto;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+
+  .project-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .project-year {
+    margin-left: 0;
+  }
 }
 
 /* A summary tile that filters the list, e.g. Waiting to be paid. */

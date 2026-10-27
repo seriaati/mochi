@@ -78,43 +78,8 @@ export function ProjectsPage() {
             </p>
           )}
         </div>
-        <div className="page-actions project-actions">
-          <Segmented role="group" aria-label="Filter projects">
-            {(Object.keys(filters) as Filter[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
-              >
-                {filters[key].label}
-                <span>{narrowed.filter(filters[key].test).length}</span>
-              </button>
-            ))}
-          </Segmented>
-          <div className="project-select project-year">
-            <Select
-              aria-label="Filter projects by start year"
-              value={startYear}
-              onChange={setStartYear}
-              options={[
-                { value: 'all', label: 'All years' },
-                ...years.map((year) => ({ value: year, label: year })),
-              ]}
-            />
-          </div>
-          <div className="project-select project-sort">
-            <Select
-              aria-label="Sort projects"
-              value={sort}
-              onChange={setSort}
-              options={(Object.keys(sorts) as Sort[]).map((key) => ({
-                value: key,
-                label: sorts[key].label,
-              }))}
-            />
-          </div>
-          <label className="search project-search">
+        <div className="page-actions">
+          <label className="search">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
@@ -128,6 +93,44 @@ export function ProjectsPage() {
             />
           </label>
           <AddButton label="New project" onClick={() => setAdding(true)} />
+        </div>
+      </div>
+
+      <div className="project-toolbar">
+        <Segmented role="group" aria-label="Filter projects">
+          {(Object.keys(filters) as Filter[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={filter === key}
+              onClick={() => setFilter(key)}
+            >
+              {filters[key].label}
+              <span>{narrowed.filter(filters[key].test).length}</span>
+            </button>
+          ))}
+        </Segmented>
+        <div className="project-select project-year">
+          <Select
+            aria-label="Filter projects by start year"
+            value={startYear}
+            onChange={setStartYear}
+            options={[
+              { value: 'all', label: 'All years' },
+              ...years.map((year) => ({ value: year, label: year })),
+            ]}
+          />
+        </div>
+        <div className="project-select project-sort">
+          <Select
+            aria-label="Sort projects"
+            value={sort}
+            onChange={setSort}
+            options={(Object.keys(sorts) as Sort[]).map((key) => ({
+              value: key,
+              label: sorts[key].label,
+            }))}
+          />
         </div>
       </div>
 
