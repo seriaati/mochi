@@ -18,7 +18,7 @@
 }
 
 .client-retainer-text {
-  margin-top: 4px;
+  margin-top: 10px;
   font-size: 13.5px;
   color: var(--muted);
 }
@@ -30,11 +30,8 @@
   text-underline-offset: 3px;
 }
 
-.client-retainer-text .link-btn {
-  margin-left: 4px;
-  color: var(--tint-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.client-retainer-edit {
+  margin-top: 16px;
 }
 
 .client-months {

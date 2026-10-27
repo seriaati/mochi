@@ -73,11 +73,11 @@ function RetainerSummary({ retainer, onEdit, onMonth }: SummaryProps) {
               For <Link to={`/projects/${retainer.project.id}`}>{retainer.project.name}</Link> ·{' '}
             </>
           )}
-          {describe(retainer)}{' '}
-          <button className="link-btn" type="button" onClick={onEdit}>
-            Edit
-          </button>
+          {describe(retainer)}
         </p>
+        <button className="btn secondary client-retainer-edit" type="button" onClick={onEdit}>
+          Edit
+        </button>
       </div>
       {retainer.months.length > 0 && (
         <ul className="client-months" aria-label="Recent months">
