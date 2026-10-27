@@ -371,6 +371,13 @@ svg.platform-logo {
   stroke: none;
 }
 
+/* "Message on <logo>": a gap, not a space, since a space looks too tight beside the logo. */
+.message-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
 svg.email-icon {
   fill: none;
   stroke: currentColor;
