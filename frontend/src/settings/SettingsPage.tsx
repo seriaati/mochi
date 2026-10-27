@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Segmented } from '../components/Segmented.tsx'
@@ -519,8 +519,7 @@ function KeniStatus({ keni }: { keni: Keni }) {
       ) : (
         <p className="settings-saved">Everything is in Keni</p>
       )}
-      <KeniChangeDestination keni={keni} />
-      <div className="form-actions">
+      <KeniChangeDestination keni={keni}>
         <button
           className="btn danger"
           type="button"
@@ -529,7 +528,7 @@ function KeniStatus({ keni }: { keni: Keni }) {
         >
           {confirming ? 'Confirm disconnect' : 'Disconnect'}
         </button>
-      </div>
+      </KeniChangeDestination>
       {confirming && !disconnect.error && (
         <p className="settings-text">
           What&rsquo;s in Keni stays there, but changes here stop following it. Connecting again starts afresh.
@@ -540,7 +539,8 @@ function KeniStatus({ keni }: { keni: Keni }) {
   )
 }
 
-function KeniChangeDestination({ keni }: { keni: Keni }) {
+/** The wallet and category to record in, with Save beside `children` (Disconnect). */
+function KeniChangeDestination({ keni, children }: { keni: Keni; children: ReactNode }) {
   const options = useKeniOptions()
   const choose = useChooseKeniDestination()
   const saved = { wallet_id: keni.wallet_id!, category_id: keni.category_id! }
@@ -552,9 +552,17 @@ function KeniChangeDestination({ keni }: { keni: Keni }) {
     choose.mutate(destination)
   }
 
-  if (options.isPending) return <p className="settings-text">Loading wallets and categories…</p>
-  if (options.error)
-    return <p className="form-error">Couldn&rsquo;t load wallets and categories: {options.error.message}</p>
+  if (options.isPending || options.error)
+    return (
+      <>
+        {options.error ? (
+          <p className="form-error">Couldn&rsquo;t load wallets and categories: {options.error.message}</p>
+        ) : (
+          <p className="settings-text">Loading wallets and categories…</p>
+        )}
+        <div className="form-actions">{children}</div>
+      </>
+    )
   return (
     <form className="form" onSubmit={submit}>
       <KeniDestinationFields options={options.data} value={destination} onChange={setDestination} />
@@ -565,6 +573,7 @@ function KeniChangeDestination({ keni }: { keni: Keni }) {
         <button className="btn" type="submit" disabled={!changed || choose.isPending}>
           Save
         </button>
+        {children}
       </div>
       {choose.error && <p className="form-error">{choose.error.message}</p>}
       {choose.isSuccess && !choose.isPending && !changed && <p className="settings-saved">Saved</p>}
