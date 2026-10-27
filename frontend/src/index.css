@@ -216,6 +216,15 @@ a.nav-icon.active svg {
   transform: rotate(60deg);
 }
 
+/* Log out's arrow steps out of the door on hover. */
+.nav-logout-arrow {
+  transition: transform 0.5s var(--ease-out);
+}
+
+.nav-button:hover:not(:disabled) .nav-logout-arrow {
+  transform: translateX(2px);
+}
+
 /* Page entrance: the page fades in, its tiles rise in one after another. */
 @keyframes page-in {
   from { opacity: 0; }
