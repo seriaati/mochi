@@ -80,8 +80,11 @@ export function DatePicker({
   const current = value ?? own
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<'days' | 'months'>(month ? 'months' : 'days')
-  // The highlighted day; the calendar shows its month. Always a whole ISO date, even with `month`.
+  // The highlighted day, always a whole ISO date, even with `month`.
   const [cursor, setCursor] = useState(todayISO())
+  // The first day of the month shown. The keys move it along with the cursor; hovering doesn't,
+  // so pointing at a day of the next month doesn't turn the page under the pointer.
+  const [page, setPage] = useState(`${todayISO().slice(0, 7)}-01`)
   // Space picks on keyup, through the button's click, so keydown just notes it.
   const spacePressed = useRef(false)
   const days = view === 'days'
@@ -107,7 +110,14 @@ export function DatePicker({
   }
 
   function moveTo(iso: string) {
-    setCursor(minDay && iso < minDay ? minDay : iso)
+    const next = minDay && iso < minDay ? minDay : iso
+    setCursor(next)
+    setPage(`${next.slice(0, 7)}-01`)
+  }
+
+  /** Months on from the highlighted day if it's on this page, so a hovered day of the next month isn't counted. */
+  function turn(months: number) {
+    moveTo(addMonths(cursor.slice(0, 7) === page.slice(0, 7) ? cursor : page, months))
   }
 
   function show() {
@@ -127,8 +137,7 @@ export function DatePicker({
       bottom: up ? `${window.innerHeight - rect.top + GAP}px` : '',
       maxHeight: `${up ? above : below}px`,
     })
-    const start = current ? (month ? `${current}-01` : current) : today
-    setCursor(minDay && start < minDay ? minDay : start)
+    moveTo(current ? (month ? `${current}-01` : current) : today)
     setView(month ? 'months' : 'days')
     setOpen(true)
   }
@@ -202,14 +211,14 @@ export function DatePicker({
     else if (key === 'ArrowRight') moveTo(days ? addDays(cursor, 1) : addMonths(cursor, 1))
     else if (key === 'ArrowUp') moveTo(days ? addDays(cursor, -row) : addMonths(cursor, -row))
     else if (key === 'ArrowDown') moveTo(days ? addDays(cursor, row) : addMonths(cursor, row))
-    else if (key === 'PageUp') moveTo(addMonths(cursor, days && !event.shiftKey ? -1 : -12))
-    else if (key === 'PageDown') moveTo(addMonths(cursor, days && !event.shiftKey ? 1 : 12))
+    else if (key === 'PageUp') turn(days && !event.shiftKey ? -1 : -12)
+    else if (key === 'PageDown') turn(days && !event.shiftKey ? 1 : 12)
     else return
     event.preventDefault()
   }
 
-  const step = (by: number) => moveTo(addMonths(cursor, days ? by : by * 12))
-  const year = cursor.slice(0, 4)
+  const step = (by: number) => turn(days ? by : by * 12)
+  const year = page.slice(0, 4)
   const label = current ? (month ? monthTitle(current) : formatDay(current, { weekday: true, year: true })) : ''
   const activeId = days ? `${id}-${cursor}` : `${id}-${cursor.slice(0, 7)}`
 
@@ -263,9 +272,13 @@ export function DatePicker({
             tabIndex={-1}
             aria-pressed={!days}
             disabled={month}
-            onClick={() => setView(days ? 'months' : 'days')}
+            onClick={() => {
+              // Back to days, a month only hovered in the picker doesn't stay highlighted off the page.
+              if (!days && cursor.slice(0, 7) !== page.slice(0, 7)) setCursor(page)
+              setView(days ? 'months' : 'days')
+            }}
           >
-            {days ? monthTitle(cursor) : year}
+            {days ? monthTitle(page) : year}
             {!month && (
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m6 9 6 6 6-6" />
@@ -296,7 +309,7 @@ export function DatePicker({
           </button>
         </div>
         {days ? (
-          <div className="date-grid" role="grid" aria-label={monthTitle(cursor)}>
+          <div className="date-grid" role="grid" aria-label={monthTitle(page)}>
             <div className="date-row" role="row">
               {WEEKDAYS.map((day) => (
                 <span key={day} className="date-weekday" role="columnheader">
@@ -304,7 +317,7 @@ export function DatePicker({
                 </span>
               ))}
             </div>
-            {weeks(cursor).map((week) => (
+            {weeks(page).map((week) => (
               <div key={week[0]} className="date-row" role="row">
                 {week.map((iso) => (
                   <button
@@ -317,7 +330,7 @@ export function DatePicker({
                       'date-day',
                       iso === cursor && 'active',
                       iso === today && 'today',
-                      iso.slice(0, 7) !== cursor.slice(0, 7) && 'outside',
+                      iso.slice(0, 7) !== page.slice(0, 7) && 'outside',
                     ]
                       .filter(Boolean)
                       .join(' ')}
@@ -358,7 +371,7 @@ export function DatePicker({
                       aria-label={monthTitle(iso)}
                       aria-selected={selected}
                       disabled={monthTooEarly(iso)}
-                      onPointerMove={() => ym !== cursor.slice(0, 7) && moveTo(iso)}
+                      onPointerMove={() => ym !== cursor.slice(0, 7) && !monthTooEarly(iso) && setCursor(iso)}
                       onClick={() => pickMonth(iso)}
                     >
                       {name}
