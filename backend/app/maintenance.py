@@ -315,20 +315,29 @@ def month_name(period: date, today: date) -> str:
     return name if period.year == today.year else f"{name} {period.year}"
 
 
+def _and(items: list[str]) -> str:
+    """ "A", "A and B", "A, B and C"."""
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
+
+
 def reminder_line(
     client_name: str,
     months: list[Month],
     contact: ContactMethod | None,
     today: date,
     record_url: str | None = None,
+    projects: Iterable[str] = (),
 ) -> str:
-    """Everything a client owes in one line, oldest month first, e.g.
-    "Ask Northwind Coffee for NT$750 (August, September, October) on Discord @danpark".
-    A Discord handle with a user ID links to their profile, one click from your DM, and
-    `record_url` adds a link that opens Record payment. Links are in <> so Discord doesn't
-    embed them."""
+    """Everything a client owes in one line, oldest month first, e.g. "Ask Northwind Coffee
+    for NT$750 for Menu bot (August, September, October) on Discord @danpark". `projects` are
+    what the fees are for, named once each. A Discord handle with a user ID links to their
+    profile, one click from your DM, and `record_url` adds a link that opens Record payment.
+    Links are in <> so Discord doesn't embed them."""
     names = list(dict.fromkeys(month_name(m.period, today) for m in months))
-    line = f"Ask {client_name} for NT${sum(m.amount for m in months):,} ({', '.join(names)})"
+    line = f"Ask {client_name} for NT${sum(m.amount for m in months):,}"
+    if projects := list(dict.fromkeys(projects)):
+        line += f" for {_and(projects)}"
+    line += f" ({', '.join(names)})"
     if contact is not None:
         handle = contact.value
         if contact.kind == ContactKind.DISCORD and contact.discord_user_id is not None:

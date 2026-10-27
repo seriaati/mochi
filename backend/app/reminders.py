@@ -49,6 +49,7 @@ class Reminder:
     contact: ContactMethod | None  # where to ask: the oldest covered month's retainer contact
     slot_on: date  # the local day it counts for
     retainer_id: int  # the oldest covered month's, which the message's Record payment opens
+    projects: list[str]  # what the covered retainers are for, oldest first; some have none
 
     @property
     def amount(self) -> int:
@@ -72,7 +73,8 @@ class _Owed:
         covered = [(r, m) for r, m in self.items if m.due_on <= cover]
         contact = next((r.ask_via for r, _ in covered if r.ask_via is not None), None)
         months = [m for _, m in covered]
-        return Reminder(self.client, months, contact, slot_on, covered[0][0].id)
+        projects = [r.project.name for r, _ in covered if r.project is not None]
+        return Reminder(self.client, months, contact, slot_on, covered[0][0].id, projects)
 
 
 def _owed(session: Session, today: date) -> list[_Owed]:
@@ -81,6 +83,7 @@ def _owed(session: Session, today: date) -> list[_Owed]:
         .where(Retainer.collection == Collection.ASK)
         .options(
             selectinload(Retainer.client),
+            selectinload(Retainer.project),
             selectinload(Retainer.ask_via),
             selectinload(Retainer.payments),
             selectinload(Retainer.pauses),
@@ -168,7 +171,7 @@ def record_url(reminder: Reminder) -> str:
 
 def content(reminders: list[Reminder], clock: Clock) -> str:
     lines = [
-        reminder_line(r.client.name, r.months, r.contact, clock.today, record_url(r))
+        reminder_line(r.client.name, r.months, r.contact, clock.today, record_url(r), r.projects)
         for r in reminders
     ]
     return message(lines, discord.config.mention_user_id)

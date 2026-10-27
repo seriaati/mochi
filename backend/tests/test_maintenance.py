@@ -1469,6 +1469,37 @@ def test_reminder_line_links() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("projects", "expected"),
+    [
+        (["Menu bot"], "for Menu bot"),
+        # Each project is named once, however many of its months are owed.
+        (["Menu bot", "Site", "Menu bot"], "for Menu bot and Site"),
+        (["Menu bot", "Site", "App"], "for Menu bot, Site and App"),
+    ],
+)
+def test_reminder_line_projects(projects: list[str], expected: str) -> None:
+    line = maintenance.reminder_line(
+        "Northwind Coffee", owed("2026-10-01"), None, TODAY, None, projects
+    )
+    assert line == f"Ask Northwind Coffee for NT$250 {expected} (October)"
+
+
+def test_reminder_names_the_projects(
+    client: TestClient, session: Session, webhook: list[str]
+) -> None:
+    owner = make_client(client)
+    body = {"client_id": owner["id"], "price": 6000, "started_on": "2026-09-01"}
+    bot = client.post("/api/projects", json=body | {"name": "Giveaway bot"}).json()
+    first = make_retainer(client, owner, project_id=bot["id"], due_day=21)
+    make_retainer(client, owner, amount=100, due_day=21)  # for no project
+    assert reminders.send_due(session, at("2026-10-21", 9)) == 1
+    assert webhook == [
+        f"<@{USER_ID}> Ask Northwind Coffee for NT$350 for Giveaway bot (October) "
+        "on Discord @danpark" + record(first, "2026-10")
+    ]
+
+
 def test_message_mention() -> None:
     assert maintenance.message(["Ask A"], USER_ID) == f"<@{USER_ID}> Ask A"
     assert maintenance.message(["Ask A"], None) == "Ask A"
