@@ -1,0 +1,531 @@
+/* Filters: one row above everything they scope. */
+.st-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0 4px 20px;
+  animation: rise-in 0.4s var(--ease-out) backwards;
+}
+
+.st-period { min-width: 170px; }
+.st-client { min-width: 200px; }
+
+/* --field matches the page ground, so sit on the filter's ground instead, at its text size. */
+.st-select .select-field {
+  background: var(--nav-bg);
+  font-size: 13px;
+}
+
+.st-meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+[class*='tint-'] .st-meta { color: var(--muted); }
+.tile.ink .st-meta { color: var(--hero-dim); }
+
+.st-link,
+.st-facts a,
+.st-table a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--dash);
+  text-underline-offset: 3px;
+}
+
+.st-table a { font-weight: inherit; }
+
+.st-link:hover,
+.st-facts a:hover,
+.st-table a:hover { text-decoration-color: currentColor; }
+
+/* Big figures read better in proportional digits. */
+.st .big-number { font-variant-numeric: proportional-nums; }
+
+.st-figure {
+  margin-top: 18px;
+  font-size: 36px;
+}
+
+.st-figure + .st-meta { margin-top: 8px; }
+
+/* Earned */
+.st-earned-head { align-items: flex-start; }
+
+.st-earned-head + .big-number {
+  margin-top: 18px;
+  font-size: 52px;
+}
+
+.st-earned-head + .big-number + .st-meta { margin-top: 10px; }
+.st-earned-before { margin-top: auto; padding-top: 20px; }
+
+.st-delta {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 99px;
+  background: var(--hero-inset);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.st-delta.up {
+  background: var(--hero-good-bg);
+  color: var(--hero-good);
+}
+
+/* A tile head holding a Segmented switch. */
+.st-head { flex-wrap: wrap; }
+
+.st-view button {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+
+.st-nodata { margin-top: 16px; }
+
+/* Charts */
+.st-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--dim);
+  list-style: none;
+}
+
+.st-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.st-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.st-legend i.line {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+/* Room on the left for the gridline amounts. */
+.st-chart {
+  margin-top: 20px;
+  padding-left: 44px;
+}
+
+.st-plot {
+  position: relative;
+  height: 220px;
+}
+
+.st-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.st-gridline {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid var(--track);
+}
+
+.st-gridline span {
+  position: absolute;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  font-size: 11.5px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.st-columns {
+  position: relative;
+  display: grid;
+  height: 100%;
+}
+
+/* The whole slot is the hover target, not just the bar. */
+.st-col {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  border-radius: 8px;
+  outline-offset: -2px;
+  transition: background-color 0.15s ease;
+}
+
+.st-col:hover,
+.st-col:focus-visible { background: color-mix(in srgb, var(--row) 70%, transparent); }
+
+.st-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(70%, 24px);
+  transform-origin: bottom;
+  animation: st-grow 0.6s var(--ease-out) 0.15s backwards;
+}
+
+@keyframes st-grow {
+  from { transform: scaleY(0); }
+}
+
+.st-stack i {
+  display: block;
+  flex-basis: 0;
+  min-height: 2px;
+}
+
+.st-stack i:first-child { border-radius: 4px 4px 0 0; }
+
+.st-xlabels {
+  display: grid;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.st-line-plot {
+  cursor: crosshair;
+  outline-offset: 4px;
+  touch-action: pan-y;
+}
+
+.st-line-plot svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.st-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.st-area { opacity: 0.08; }
+
+.st-crosshair {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--dash);
+  pointer-events: none;
+}
+
+.st-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--tile);
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+}
+
+/* The hover readout: inverted like the hero, floating, so it gets a soft shadow. */
+.st-tip {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  min-width: 150px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--hero);
+  color: var(--on-hero);
+  font-size: 12.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateX(16px);
+  animation: page-in 0.15s ease-out;
+}
+
+/* Beside the mark, never over it: to its left on the right half. */
+.st-tip.end { transform: translateX(calc(-100% - 16px)); }
+
+.st-tip p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-tip p + p { margin-top: 2px; }
+
+.st-tip-title {
+  margin-bottom: 4px;
+  color: var(--hero-dim);
+}
+
+.st-tip i {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.st-tip b { font-weight: 700; }
+.st-tip span { color: var(--hero-dim); }
+
+/* By client, by project */
+.st-shares {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  list-style: none;
+}
+
+.st-share-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+}
+
+.st-share-name > a,
+.st-share-name > span {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-share-name > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.st-share-name b {
+  margin-left: auto;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.st-share-name small {
+  width: 36px;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.st-share-avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  color: var(--tint-ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* A lavender avatar would vanish into the tile. */
+.st-share-avatar.tint-lavender {
+  background: var(--solid);
+  color: var(--lavender-ink);
+}
+
+.st-share-bar {
+  display: block;
+  height: 6px;
+  margin-top: 8px;
+  background: var(--chip);
+}
+
+.st-share-bar i { background: var(--lavender-ink); }
+
+.st-share-rest {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Projects, retainers: label over figure, in a grid of cells. */
+.st-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.st-facts > div {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--row);
+}
+
+.st-facts dt {
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.st-facts dd {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.st-facts small {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+/* Tables */
+.st-scroll {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.st-payments {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.st-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  background: var(--tile);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dim);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.st-table td {
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.st-table tbody tr:nth-child(odd) td { background: var(--row); }
+.st-table tbody tr td:first-child { border-radius: 12px 0 0 12px; }
+.st-table tbody tr td:last-child { border-radius: 0 12px 12px 0; }
+
+.st-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.st-table .strong { font-weight: 600; }
+.st-table .nowrap { white-space: nowrap; }
+
+.st-table small {
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.st-up { color: var(--good); font-weight: 600; }
+
+/* What a payment was for, keyed by its source's colour. */
+.st-for {
+  display: flex;
+  gap: 10px;
+}
+
+.st-for > i {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 3px;
+}
+
+.st-for small { display: block; }
+
+@media (max-width: 1000px) {
+  .st > .span-3 { grid-column: span 6; }
+}
+
+@media (max-width: 700px) {
+  .st > .span-3 { grid-column: 1 / -1; }
+
+  .st-select {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .st-toolbar .segmented { flex-basis: 100%; }
+
+  .st-toolbar .segmented button {
+    flex: auto;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+
+  .st-earned-head + .big-number { font-size: 44px; }
+
+  .st-chart { padding-left: 36px; }
+  .st-plot { height: 180px; }
+
+  /* Every other label, so they don't run together. */
+  .st-xlabels.dense span:nth-child(even) { visibility: hidden; }
+
+  /* Payments as cards: what for and how much, then who and when. */
+  .st-payments { margin-top: 10px; }
+  .st-payments thead { display: none; }
+
+  .st-payments tr {
+    display: grid;
+    grid-template-areas: 'for amount' 'client date';
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  .st-payments tbody tr:nth-child(odd) { background: var(--row); }
+  .st-payments .st-table tbody tr td {
+    padding: 0;
+    background: none;
+    border-radius: 0;
+  }
+
+  .st-pay-for { grid-area: for; }
+  .st-pay-amount { grid-area: amount; }
+
+  .st-pay-client,
+  .st-pay-date {
+    font-size: 12.5px;
+    color: var(--dim);
+  }
+
+  .st-payments .st-table .st-pay-client {
+    grid-area: client;
+    padding-left: 20px; /* under the name, past the source's square */
+  }
+
+  .st-pay-date { grid-area: date; text-align: right; }
+}

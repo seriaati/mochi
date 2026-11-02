@@ -57,6 +57,11 @@
 
   --lavender-dash: light-dark(#a7a2c9, #5d5888); /* "next month" outlines on lavender tiles */
   --ring-track: light-dark(#ffffff, #2c3a2a); /* the unfilled part of a ring chart on sage tiles */
+  /* Chart series on white tiles, where the pastels are too faint to read as marks. Validated as a
+     set for colour blindness in both themes; keep them in this order and pair them with a legend. */
+  --chart-projects: light-dark(#2a78d6, #3987e5);
+  --chart-additions: light-dark(#eda100, #c98500);
+  --chart-retainers: light-dark(#1baf7a, #199e70);
   --radius-tile: 24px;
   --radius-control: 12px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);

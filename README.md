@@ -12,6 +12,7 @@ Try it at [demo.mochi.seria.moe](https://demo.mochi.seria.moe) with the password
 - **Clients**: keep their contact methods (Discord, LINE, email) and message them in one click.
 - **Retainers**: monthly maintenance fees, with Discord reminders when it's time to collect.
 - **Overview**: what to collect next, what's overdue, and what you've earned this year.
+- **Stats**: charts, comparisons and tables of what you've earned, from whom, and how projects and retainers are going, by period, client and source.
 - **MCP**: let AI assistants like Claude use the dashboard.
 - **Keni sync**: record the money you receive as income in [Keni](https://keni.seria.moe).
 - **Installable**: works as an app on your phone, in light or dark mode.

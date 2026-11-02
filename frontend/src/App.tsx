@@ -10,12 +10,14 @@ import { MaintenancePage } from './maintenance/MaintenancePage.tsx'
 import { OverviewPage } from './overview/OverviewPage.tsx'
 import { ProjectsPage } from './projects/ProjectsPage.tsx'
 import { SettingsPage } from './settings/SettingsPage.tsx'
+import { StatsPage } from './stats/StatsPage.tsx'
 
 const pages = [
   { path: '/', label: 'Overview' },
   { path: '/projects', label: 'Projects' },
   { path: '/clients', label: 'Clients' },
   { path: '/maintenance', label: 'Retainers' },
+  { path: '/stats', label: 'Stats' },
 ]
 
 /** Where the sliding highlight sits: over the active link, following it on navigation and resize. */
@@ -112,6 +114,7 @@ export default function App() {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/clients/:id" element={<ClientDetailPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/stats" element={<StatsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

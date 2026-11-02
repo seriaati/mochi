@@ -47,6 +47,7 @@ All colours are CSS custom properties on `:root` in `src/index.css`, each writte
 | Status | `--good`, `--good-bg`, `--good-soft`; `--warn`, `--warn-bg` |
 | Controls | `--field`, `--row`, `--pill`, `--track`, `--dash`, `--nav-bg`, `--nav-on`, `--backdrop` |
 | Platforms | `--discord*`, `--line-*` |
+| Chart series | `--chart-projects`, `--chart-additions`, `--chart-retainers`: validated together for colour blindness in both themes; always shown with a legend and a table view |
 | Mochi's mark | `--mark-ground`, `--mark-mochi`, `--mark-outline`, `--mark-shadow`, `--mark-face`, `--mark-blush` |
 | Shape and motion | `--radius-tile` (24px), `--radius-control` (12px), `--ease-out`, `--ease-spring` |
 
@@ -134,7 +135,7 @@ Subtle and quick, built from what's in `index.css`:
 ## CSS organisation
 
 - Tokens and anything used by two or more pages go in `src/index.css`.
-- Page-specific styles go in a CSS file next to the page, imported by it, with a class prefix for that page, e.g. `ov-` (Overview), `mt-` (Retainers, under `src/maintenance/`), `client-`, `project-`, `settings-`.
+- Page-specific styles go in a CSS file next to the page, imported by it, with a class prefix for that page, e.g. `ov-` (Overview), `st-` (Stats), `mt-` (Retainers, under `src/maintenance/`), `client-`, `project-`, `settings-`.
 - No CSS frameworks or UI libraries.
 
 ## Accessibility
