@@ -23,6 +23,7 @@ from app.routers import (
     projects,
     retainers,
     settings,
+    stats,
 )
 
 
@@ -65,6 +66,7 @@ protected.include_router(maintenance.router)
 protected.include_router(settings.router)
 protected.include_router(keni.router)
 protected.include_router(overview.router)
+protected.include_router(stats.router)
 protected.include_router(oauth.router)
 app.include_router(protected)
 
