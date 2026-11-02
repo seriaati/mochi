@@ -1,10 +1,12 @@
-![Mochi](frontend/public/og-image.png)
+<img src="frontend/public/favicon.svg" alt="" width="72" height="72">
 
 # Mochi
 
 Mochi is a small personal dashboard I made for myself for freelance work.
 
 Try it at [demo.mochi.seria.moe](https://demo.mochi.seria.moe) with the password `mochi`. The demo's data is made up and resets every day, and Discord and Keni are off there.
+
+![Mochi](frontend/public/og-image.png)
 
 ## Features
 
