@@ -35,6 +35,8 @@ bun install
 bun run dev                          # app on localhost:5173, proxies /api to the backend
 ```
 
+Or run both servers with `./dev.sh`. `./dev.sh --demo` needs no setup beyond Docker, uv and bun: it starts the database and runs against a separate `mochi_demo` database, filled with fresh demo data on every run, with the password `mochi`.
+
 Tests: `cd backend && uv run pytest`. Lint and format the backend with `uv run ruff check .` and `uv run ruff format .` (settings in `backend/ruff.toml`), and type-check it with `uv run pyright`. Lint and type-check the frontend with `bun run lint` and `bun run build`.
 
 ## Login
