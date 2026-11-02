@@ -3,44 +3,19 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import maintenance
+from app import income
 from app.clock import TodayDep
 from app.db import SessionDep
-from app.models import Collection, Payment, Retainer, RetainerPayment
 from app.schemas.overview import EarningsOut
 
 router = APIRouter(prefix="/api/overview", tags=["overview"])
 
 
-def _auto_transfers(retainer: Retainer, first: date, last: date) -> Iterator[tuple[date, int]]:
-    """Auto-transfer months that fell due between `first` and `last`, on their due dates."""
-    for period in maintenance.billed_periods(retainer, maintenance.month_start(last)):
-        due = maintenance.due_on(period, retainer.due_day)
-        if first <= due <= last:
-            yield due, retainer.amount
-
-
 def _received(session: Session, first: date, last: date) -> Iterator[tuple[date, int]]:
-    """Money received between two local dates (inclusive), as (date, amount): project and
-    addition payments and "ask" retainer payments by the day paid, auto transfers by due date."""
-    yield from session.execute(
-        select(Payment.paid_on, Payment.amount).where(Payment.paid_on.between(first, last))
-    )
-    yield from session.execute(
-        select(RetainerPayment.paid_on, RetainerPayment.amount)
-        .join(RetainerPayment.retainer)
-        .where(
-            Retainer.collection == Collection.ASK,
-            RetainerPayment.period >= Retainer.tracked_from,  # earlier months count as settled
-            RetainerPayment.paid_on.between(first, last),
-        )
-    )
-    auto = session.scalars(select(Retainer).where(Retainer.collection == Collection.AUTO_TRANSFER))
-    for retainer in auto:
-        yield from _auto_transfers(retainer, first, last)
+    """Money received between two local dates (inclusive), as (date, amount)."""
+    return ((r.paid_on, r.amount) for r in income.received(session, first, last))
 
 
 def _year_before(day: date) -> date:
