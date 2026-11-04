@@ -22,7 +22,7 @@ import './RetainerDialog.css'
 type Props = {
   /** The retainer to edit; omit to add a new one. */
   retainer?: Retainer
-  /** Preselects the client when adding from a client page. */
+  /** Fixes the client when opened from a client page, hiding the client picker. */
   clientId?: number
   /** Preselects the project when adding from a project page. */
   projectId?: number
@@ -94,7 +94,7 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
     const form = new FormData(event.currentTarget)
     save.mutate(
       {
-        client_id: Number(form.get('client_id')),
+        client_id: Number(owner),
         project_id: project,
         amount: Number(form.get('amount')),
         due_day: Number(dueDay),
@@ -114,17 +114,19 @@ export function RetainerDialog({ retainer, clientId, projectId, onClose }: Props
     <Dialog title={retainer ? 'Edit retainer' : 'Add retainer'} ref={dialog} onClose={onClose}>
       <form className="form rd-form" onSubmit={submit}>
         <div className="rd-group">
-          <label className="field">
-            Client
-            <Select
-              name="client_id"
-              required
-              value={String(owner ?? '')}
-              onChange={pickClient}
-              placeholder="Choose a client"
-              options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
-            />
-          </label>
+          {clientId === undefined && (
+            <label className="field">
+              Client
+              <Select
+                name="client_id"
+                required
+                value={String(owner ?? '')}
+                onChange={pickClient}
+                placeholder="Choose a client"
+                options={clients.map((c) => ({ value: String(c.id), label: c.name }))}
+              />
+            </label>
+          )}
           <label className="field">
             Project
             <Select
