@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0E0E0D</color>
+    <color name="ink">#F2F1EC</color>
+    <color name="dim">#9D9C95</color>
+    <color name="tile">#191917</color>
+    <color name="hero">#F2F1EC</color>
+    <color name="on_hero">#1C1C1A</color>
+    <!-- Outlined in light mode only. -->
+    <color name="mark_ground">#2D2A4A</color>
+    <color name="mark_mochi">#F2F1EC</color>
+    <color name="mark_outline">#00000000</color>
+    <color name="mark_shadow">#1C1A33</color>
+    <color name="mark_face">#1C1C1A</color>
+    <color name="mark_blush">#E89F82</color>
+</resources>

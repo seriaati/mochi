@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mochi</string>
+    <string name="title_activity_main">Mochi</string>
+    <string name="package_name">moe.seria.mochi</string>
+    <string name="custom_url_scheme">moe.seria.mochi</string>
+    <string name="server_title">Your Mochi server</string>
+    <string name="server_text">Enter the address of your Mochi: the dashboard’s, or its API’s.</string>
+    <string name="server_hint">mochi.example.com</string>
+    <string name="server_continue">Continue</string>
+    <string name="server_checking">Looking for Mochi there…</string>
+    <string name="server_not_address">That isn’t a web address.</string>
+    <string name="server_https">Mochi needs an https:// address: Android doesn’t let apps use plain http, and your password would cross the network unencrypted.</string>
+    <string name="server_not_mochi">No Mochi answers at %1$s. Check the address, and that the server is up and runs a recent Mochi.</string>
+    <string name="server_unreachable">Can’t reach Mochi</string>
+    <string name="server_unreachable_text">%1$s isn’t answering. Check your connection, or whether the server is up.</string>
+    <string name="server_still_unreachable">Still no answer from %1$s.</string>
+    <string name="server_retry">Retry</string>
+    <string name="server_change">Change server</string>
+</resources>

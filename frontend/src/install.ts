@@ -1,10 +1,21 @@
 import { useSyncExternalStore } from 'react'
+import { inApp } from './native.ts'
 
 /**
  * The browser's offer to install the app, kept for the nav's install button on phones and
  * tablets. Browsers only make the offer while the app isn't installed, and only where they can
- * install on tap (Chrome and friends on Android, not iOS).
+ * install on tap (Chrome and friends on Android, not iOS). On Android, the nav offers the Android
+ * app instead.
  */
+
+const android = /Android/.test(navigator.userAgent)
+
+/** The Android app's latest release, for Android browsers; null elsewhere, in the app itself and
+ * in the installed web app. */
+export const androidAppUrl =
+  android && !inApp && !matchMedia('(display-mode: standalone)').matches
+    ? 'https://github.com/seriaati/mochi/releases/latest/download/mochi.apk'
+    : null
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -22,7 +33,7 @@ function set(next: BeforeInstallPromptEvent | null) {
 if (matchMedia('(pointer: coarse)').matches) {
   addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault() // the nav's button offers it, instead of the browser's own banner
-    set(event as BeforeInstallPromptEvent)
+    if (!android) set(event as BeforeInstallPromptEvent)
   })
   addEventListener('appinstalled', () => set(null))
 }

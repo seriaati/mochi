@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api.ts'
+import { mochi } from '../native.ts'
+import { disablePush, enablePush, firebaseSettings, syncPush } from '../push.ts'
 
 export type Settings = {
   /** IANA name, e.g. Asia/Taipei. Due dates, "today" and 09:00 reminders follow it. */
@@ -122,5 +124,42 @@ export function useChooseKeniDestination() {
   return useMutation({
     mutationFn: (input: KeniDestination) => api.put<Keni>('/settings/keni/destination', input),
     onSuccess: (keni) => queryClient.setQueryData(keniKey, keni),
+  })
+}
+
+const pushKey = ['settings', 'push'] as const
+
+/**
+ * Maintenance reminders in the Android app: whether this Mochi server can notify the app
+ * (`available`), and whether they're on here, after the app's start-up sync.
+ */
+export function useAppPush() {
+  return useQuery({
+    queryKey: pushKey,
+    queryFn: async () => {
+      await syncPush()
+      const [firebase, state] = await Promise.all([firebaseSettings(), mochi!.then(({ plugin }) => plugin.pushState())])
+      return { available: firebase !== null, enabled: state.enabled, allowed: state.allowed }
+    },
+  })
+}
+
+/** Turns them on or off here. Whether reminders go out at all can change, so maintenance refetches. */
+export function useSetAppPush() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (on: boolean) => (on ? enablePush() : disablePush()),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: pushKey }),
+        queryClient.invalidateQueries({ queryKey: ['maintenance'] }),
+      ]),
+  })
+}
+
+/** Sends a test notification to every app with them on: how many there are. */
+export function useSendPushTest() {
+  return useMutation({
+    mutationFn: () => api.post<{ devices: number }>('/notifications/test', undefined),
   })
 }

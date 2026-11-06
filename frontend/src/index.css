@@ -99,8 +99,10 @@ a {
 .shell {
   max-width: 1240px;
   margin: 0 auto;
-  /* Clear of the notch on phones held sideways. */
-  padding: 28px max(32px, env(safe-area-inset-right)) 56px max(32px, env(safe-area-inset-left));
+  /* Clear of the notch on phones held sideways, and of the status bar in the Android app, where
+     the page draws behind it. */
+  padding: calc(28px + env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) 56px
+    max(32px, env(safe-area-inset-left));
 }
 
 .topbar {
@@ -216,8 +218,8 @@ a {
 }
 
 /* Settings cog turns a little on hover and when opened. */
-a.nav-icon:hover svg,
-a.nav-icon.active svg {
+.nav a.nav-icon:hover svg,
+.nav a.nav-icon.active svg {
   transform: rotate(60deg);
 }
 
@@ -298,6 +300,20 @@ a.nav-icon.active svg {
 [class*='tint-'] {
   background: var(--tint);
 }
+
+/* The Android app's offer of its newer release (native.ts), between the top bar and the page. */
+.app-update {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 12px 12px 20px;
+  font-weight: 600;
+}
+
+.app-update p { flex: 1; }
+
+.app-update .btn { height: 40px; }
 
 /* 12-column bento grid for detail pages. */
 .bento {
@@ -709,6 +725,9 @@ button {
 /* Dialogs and forms */
 .dialog {
   width: min(440px, calc(100% - 32px));
+  /* Below the status bar in the Android app: the browser's own max-height, less the bar. */
+  top: env(safe-area-inset-top);
+  max-height: calc(100% - 6px - 2em - env(safe-area-inset-top));
   margin: auto;
   padding: 24px;
   border: 0;
@@ -1109,7 +1128,7 @@ button {
 @media (max-width: 700px) {
   .shell {
     /* Room to scroll the last tile clear of the bottom nav. */
-    padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom));
   }
 
   .nav-bar {
@@ -1141,7 +1160,7 @@ button {
 
   .nav-pill { border-radius: 14px; }
 
-  .nav-bar a.nav-icon {
+  .nav a.nav-icon {
     flex: none;
     padding: 12px 14px;
   }
@@ -1181,7 +1200,7 @@ button {
   .dialog {
     width: 100%;
     max-width: none;
-    max-height: calc(100% - 24px);
+    max-height: calc(100% - 24px - env(safe-area-inset-top));
     margin: auto 0 0;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
     border-radius: var(--radius-tile) var(--radius-tile) 0 0;

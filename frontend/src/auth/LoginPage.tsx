@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { MochiMark } from '../components/MochiMark.tsx'
+import { useBackButton } from '../native.ts'
 import { clearCache, useLogin } from './queries.ts'
 import './LoginPage.css'
 
@@ -15,6 +16,8 @@ export function LoginPage({ checkError }: { checkError?: string }) {
 
   // Nothing from the last session outlives it.
   useEffect(() => clearCache(queryClient), [queryClient])
+  // The Android app's Back leaves the app here: the history behind the login is the logged-in app.
+  useBackButton(() => false)
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

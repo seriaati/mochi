@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The page ground (bg) of src/index.css, until the page paints. -->
+    <color name="bg">#EFEEEA</color>
+    <!-- Its ink and dim for the server screen's text, tile for its field, and hero and on-hero
+         for its button (.btn). -->
+    <color name="ink">#1C1C1A</color>
+    <color name="dim">#6F6E69</color>
+    <color name="tile">#FFFFFF</color>
+    <color name="hero">#1C1C1A</color>
+    <color name="on_hero">#F4F3EF</color>
+    <!-- Mochi's mark (the mark-* tokens, public/favicon.svg): the server screen's and the splash
+         screen's. -->
+    <color name="mark_ground">#E5E3F3</color>
+    <color name="mark_mochi">#FBFAF7</color>
+    <color name="mark_outline">#1C1C1A</color>
+    <color name="mark_shadow">#CFCBE8</color>
+    <color name="mark_face">#1C1C1A</color>
+    <color name="mark_blush">#E89F82</color>
+</resources>

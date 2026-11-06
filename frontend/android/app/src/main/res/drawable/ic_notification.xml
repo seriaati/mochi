@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The notification's small icon: ic_launcher_monochrome's mochi, filling the icon's 24dp
+     instead of an adaptive icon's safe zone. Android draws only its shape. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:scaleX="0.3929"
+        android:scaleY="0.3929"
+        android:translateX="-7.643"
+        android:translateY="-8.429">
+        <path
+            android:fillColor="#FFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M22,64.2C22,43.2 34.9,31 50,31C65.1,31 78,43.2 78,64.2C78,70.9 71.3,73 50,73C28.7,73 22,70.9 22,64.2ZM39.6,54.9a2.4,2.4 0,1 0,4.8 0a2.4,2.4 0,1 0,-4.8 0ZM55.6,54.9a2.4,2.4 0,1 0,4.8 0a2.4,2.4 0,1 0,-4.8 0Z" />
+    </group>
+</vector>

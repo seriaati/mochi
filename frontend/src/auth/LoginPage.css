@@ -2,7 +2,8 @@
   display: grid;
   place-items: center;
   min-height: 100dvh;
-  padding: 16px;
+  /* Below the status bar in the Android app, where the page draws behind it. */
+  padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
 }
 
 .login-tile {

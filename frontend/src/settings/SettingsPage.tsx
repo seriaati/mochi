@@ -1,11 +1,13 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
+import { Dialog, type DialogHandle } from '../components/Dialog.tsx'
 import { DiscordLogo } from '../components/PlatformLogo.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { Select } from '../components/Select.tsx'
 import { Skeleton } from '../components/Skeleton.tsx'
 import { formatDay, plural } from '../format.ts'
 import { useSendTest } from '../maintenance/queries.ts'
+import { appInfo, inApp, mochi } from '../native.ts'
 import { applyTheme, savedTheme, type Theme } from '../theme.ts'
 import {
   useChooseKeniDestination,
@@ -14,7 +16,10 @@ import {
   useKeni,
   useKeniOptions,
   useSaveBotToken,
+  useAppPush,
   useSaveSettings,
+  useSendPushTest,
+  useSetAppPush,
   useSettings,
   type Keni,
   type KeniDestination,
@@ -70,6 +75,8 @@ export function SettingsPage() {
         <div className="bento">
           <NameTile settings={settings.data} />
           <ThemeTile />
+          {inApp && <AndroidAppTile />}
+          {inApp && <NotificationsTile />}
           <TimezoneTile settings={settings.data} />
           <DiscordTile settings={settings.data} />
           <KeniTile settings={settings.data} />
@@ -140,6 +147,130 @@ function ThemeTile() {
         ))}
       </Segmented>
     </section>
+  )
+}
+
+/** The Android app's version, and the Mochi it asked for at its first start. */
+function AndroidAppTile() {
+  const [version, setVersion] = useState('')
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => {
+    void appInfo?.then((info) => setVersion(info.version))
+  }, [])
+
+  return (
+    <section className="tile span-6 tint-blue">
+      <h2 className="tile-label">Android app</h2>
+      <p className="settings-text">
+        Version <b>{version}</b>, connected to <b>{location.host}</b>.
+      </p>
+      <div className="tile-actions">
+        <button className="btn secondary" type="button" onClick={() => setConfirming(true)}>
+          Change server
+        </button>
+      </div>
+      {confirming && <ChangeServerDialog onClose={() => setConfirming(false)} />}
+    </section>
+  )
+}
+
+/** Maintenance reminders as notifications in the Android app, on or off on this phone. */
+function NotificationsTile() {
+  const push = useAppPush()
+  const set = useSetAppPush()
+  const test = useSendPushTest()
+  const on = push.data?.enabled ?? false
+
+  return (
+    <section id="notifications" className="tile span-6 tint-blue">
+      <h2 className="tile-label">Notifications</h2>
+      {push.isPending && <p className="settings-text">Loading…</p>}
+      {push.error && <p className="form-error settings-feedback">Couldn&rsquo;t load notifications: {push.error.message}</p>}
+      {push.data && !push.data.available && (
+        <p className="settings-text">
+          This Mochi server isn&rsquo;t set up for app notifications. Set <code>FIREBASE_SERVICE_ACCOUNT</code> and{' '}
+          <code>FIREBASE_ANDROID_CONFIG</code> on the API (see <code>backend/.env.example</code>).
+        </p>
+      )}
+      {push.data?.available && (
+        <>
+          <p className="settings-text">
+            Payment reminders on this phone, at the times under Discord. Tapping one opens Record payment.
+          </p>
+          <Segmented className="settings-theme" role="group" aria-label="Notifications on this phone">
+            {[false, true].map((value) => (
+              <button
+                key={String(value)}
+                type="button"
+                aria-pressed={on === value}
+                disabled={set.isPending}
+                onClick={() => {
+                  test.reset()
+                  if (on !== value) set.mutate(value)
+                }}
+              >
+                {value ? 'On' : 'Off'}
+              </button>
+            ))}
+          </Segmented>
+          {on && !push.data.allowed && (
+            <p className="form-error settings-feedback">
+              Notifications are off for Mochi in Android&rsquo;s settings. Allow them there to get reminders.
+            </p>
+          )}
+          <div className="tile-actions">
+            <button className="btn secondary" type="button" disabled={!on || test.isPending} onClick={() => test.mutate()}>
+              Send test
+            </button>
+          </div>
+          {set.error && <p className="form-error settings-feedback">{set.error.message}</p>}
+          {test.error && <p className="form-error settings-feedback">{test.error.message}</p>}
+          {test.isSuccess && (
+            <p className="settings-feedback settings-saved">Sent to {plural(test.data.devices, 'device')}</p>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
+function ChangeServerDialog({ onClose }: { onClose: () => void }) {
+  const dialog = useRef<DialogHandle>(null)
+  const [changing, setChanging] = useState(false)
+  const [error, setError] = useState<string>()
+
+  async function change() {
+    setChanging(true)
+    setError(undefined)
+    try {
+      // On success the app leaves this page for its server screen.
+      const { plugin } = await mochi!
+      await plugin.changeServer()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't change server")
+      setChanging(false)
+    }
+  }
+
+  return (
+    <Dialog title="Change server?" ref={dialog} onClose={onClose}>
+      <div className="form">
+        <p>
+          The app forgets {location.host} and logs you out, then asks for the new server&rsquo;s address. Your data on{' '}
+          {location.host} stays as it is.
+        </p>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-actions">
+          <button className="btn" type="button" disabled={changing} onClick={() => void change()}>
+            Change server
+          </button>
+          <button className="btn secondary" type="button" disabled={changing} onClick={() => dialog.current?.close()}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </Dialog>
   )
 }
 
@@ -249,7 +380,8 @@ function DiscordTile({ settings }: { settings: Settings }) {
         <form className="form" onSubmit={submit}>
           <p className="settings-text">
             Each client gets one reminder at 09:00 on the due date in the timezone above, then every 2 days
-            while anything is unpaid. A fee counts as overdue 2 days after its due date.
+            while anything is unpaid. A fee counts as overdue 2 days after its due date. Reminders go to Discord,
+            to the Android app when its notifications are on, or both.
           </p>
           <label className="field">
             Webhook URL
@@ -264,7 +396,7 @@ function DiscordTile({ settings }: { settings: Settings }) {
             />
             <small>
               Channel settings › Integrations › Webhooks › New Webhook › Copy Webhook URL. Stored encrypted; empty
-              turns reminders off.
+              turns Discord reminders off.
             </small>
           </label>
           <label className="field">

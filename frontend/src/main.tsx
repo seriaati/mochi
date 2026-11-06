@@ -6,6 +6,7 @@ import { isUnauthorized } from './api.ts'
 import { AuthGate } from './auth/AuthGate.tsx'
 import { loggedOut } from './auth/queries.ts'
 import { AuthorizePage } from './oauth/AuthorizePage.tsx'
+import { followTheme } from './theme.ts'
 import './index.css'
 import App from './App.tsx'
 
@@ -21,6 +22,8 @@ const queryClient: QueryClient = new QueryClient({
     queries: { staleTime: 30_000, retry: (failures, error) => failures < 1 && !isUnauthorized(error) },
   },
 })
+
+followTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
