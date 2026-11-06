@@ -99,8 +99,7 @@ a {
 .shell {
   max-width: 1240px;
   margin: 0 auto;
-  /* Clear of the notch on phones held sideways, and of the status bar in the Android app, where
-     the page draws behind it. */
+  /* The Android app draws the page behind the status bar. */
   padding: calc(28px + env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) 56px
     max(32px, env(safe-area-inset-left));
 }
@@ -301,7 +300,6 @@ a {
   background: var(--tint);
 }
 
-/* The Android app's offer of its newer release (native.ts), between the top bar and the page. */
 .app-update {
   flex-direction: row;
   align-items: center;
@@ -725,7 +723,7 @@ button {
 /* Dialogs and forms */
 .dialog {
   width: min(440px, calc(100% - 32px));
-  /* Below the status bar in the Android app: the browser's own max-height, less the bar. */
+  /* The browser's own max-height, less the Android app's status bar. */
   top: env(safe-area-inset-top);
   max-height: calc(100% - 6px - 2em - env(safe-area-inset-top));
   margin: auto;

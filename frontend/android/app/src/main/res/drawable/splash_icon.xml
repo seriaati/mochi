@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The splash screen's mark: mochi.xml, in the mark_* colors so it's the dark-mode mark at night,
-     at the size the splash screen shows whole. An icon without a background is drawn on 108dp and
-     must fit the circle of 72 in its middle; the mark's rounded corners reach 56.6 of its 100
-     units from the centre, so it scales by 0.63 (63dp), centred on 54. -->
+<!-- Scaled by 0.63 so the mark's corners, 56.6 of its 100 units from the centre, fit the 72dp
+     circle the splash screen shows of a 108dp icon. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

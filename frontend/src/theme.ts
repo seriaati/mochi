@@ -5,7 +5,7 @@ export type Theme = 'system' | 'light' | 'dark'
 
 const KEY = 'theme'
 
-// The page's ground, --bg in index.css: the Android app's status and navigation bars take it.
+// --bg in index.css
 const GROUND = { light: '#efeeea', dark: '#0e0e0d' }
 
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)')
@@ -19,23 +19,19 @@ export function savedTheme(): Theme {
   }
 }
 
-/** Light or dark, as the page shows it: the theme picked (data-theme), else the system's. */
 function resolvedTheme(): 'light' | 'dark' {
   const theme = document.documentElement.dataset.theme
   if (theme === 'light' || theme === 'dark') return theme
   return systemDark.matches ? 'dark' : 'light'
 }
 
-// In the Android app, the system bars take the page's ground and icons for it, and the app the
-// picked theme, for its splash screen (MochiPlugin.setSystemBars).
 function setSystemBars() {
   const theme = resolvedTheme()
   const mode = document.documentElement.dataset.theme ? theme : 'system'
   void mochi?.then(({ plugin }) => plugin.setSystemBars({ color: GROUND[theme], dark: theme === 'dark', mode }))
 }
 
-/** Keeps the Android app's system bars on the page's theme, from the start and as the system's
- * changes. Nothing in a browser. */
+/** Keeps the Android app's system bars on the page's theme. */
 export function followTheme() {
   if (!mochi) return
   setSystemBars()

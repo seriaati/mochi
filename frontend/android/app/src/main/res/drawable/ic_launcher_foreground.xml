@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The mochi of public/maskable-512.png (the dark-mode mark of public/favicon.svg, on
-     ic_launcher_background) at the size the installed PWA shows it: Chrome fits that 512px
-     maskable icon into 82.5 of the 108dp (WebappsIconUtils pads a maskable icon by
-     0.8 / (66 / 108)). So the mark's 100 units scale by 0.825, centred on 54. -->
+<!-- Scaled by 0.825 to match the installed PWA's icon: Chrome pads a maskable icon by
+     0.8 / (66 / 108). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

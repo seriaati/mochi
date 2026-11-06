@@ -10,8 +10,6 @@ import { inApp } from './native.ts'
 
 const android = /Android/.test(navigator.userAgent)
 
-/** The Android app's latest release, for Android browsers; null elsewhere, in the app itself and
- * in the installed web app. */
 export const androidAppUrl =
   android && !inApp && !matchMedia('(display-mode: standalone)').matches
     ? 'https://github.com/seriaati/mochi/releases/latest/download/mochi.apk'

@@ -2,9 +2,8 @@ package moe.seria.mochi
 
 import android.app.Application
 
-// The app's process: Firebase starts here, from the settings Mochi gave (Push), so FCM works when
-// a message starts the app with no activity. Firebase's own start-up (FirebaseInitProvider, which
-// needs a google-services.json built in) is removed in the manifest.
+// Firebase starts here so FCM works when a message starts the app with no activity. Its own
+// start-up, which needs a built-in google-services.json, is removed in the manifest.
 class MochiApp : Application() {
     override fun onCreate() {
         super.onCreate()

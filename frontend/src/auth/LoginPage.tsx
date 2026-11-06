@@ -16,7 +16,7 @@ export function LoginPage({ checkError }: { checkError?: string }) {
 
   // Nothing from the last session outlives it.
   useEffect(() => clearCache(queryClient), [queryClient])
-  // The Android app's Back leaves the app here: the history behind the login is the logged-in app.
+  // The history behind the login is the logged-in app.
   useBackButton(() => false)
 
   function submit(event: FormEvent<HTMLFormElement>) {

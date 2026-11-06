@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The notification's small icon: ic_launcher_monochrome's mochi, filling the icon's 24dp
-     instead of an adaptive icon's safe zone. Android draws only its shape. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

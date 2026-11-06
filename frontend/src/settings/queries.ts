@@ -129,10 +129,6 @@ export function useChooseKeniDestination() {
 
 const pushKey = ['settings', 'push'] as const
 
-/**
- * Maintenance reminders in the Android app: whether this Mochi server can notify the app
- * (`available`), and whether they're on here, after the app's start-up sync.
- */
 export function useAppPush() {
   return useQuery({
     queryKey: pushKey,
@@ -144,7 +140,7 @@ export function useAppPush() {
   })
 }
 
-/** Turns them on or off here. Whether reminders go out at all can change, so maintenance refetches. */
+/** Whether reminders go out at all can change, so maintenance refetches. */
 export function useSetAppPush() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -157,7 +153,6 @@ export function useSetAppPush() {
   })
 }
 
-/** Sends a test notification to every app with them on: how many there are. */
 export function useSendPushTest() {
   return useMutation({
     mutationFn: () => api.post<{ devices: number }>('/notifications/test', undefined),

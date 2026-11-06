@@ -150,7 +150,6 @@ function ThemeTile() {
   )
 }
 
-/** The Android app's version, and the Mochi it asked for at its first start. */
 function AndroidAppTile() {
   const [version, setVersion] = useState('')
   const [confirming, setConfirming] = useState(false)
@@ -175,7 +174,6 @@ function AndroidAppTile() {
   )
 }
 
-/** Maintenance reminders as notifications in the Android app, on or off on this phone. */
 function NotificationsTile() {
   const push = useAppPush()
   const set = useSetAppPush()
@@ -244,7 +242,6 @@ function ChangeServerDialog({ onClose }: { onClose: () => void }) {
     setChanging(true)
     setError(undefined)
     try {
-      // On success the app leaves this page for its server screen.
       const { plugin } = await mochi!
       await plugin.changeServer()
     } catch (e) {

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The dark-mode mark's ground, as public/maskable-512.png: an installed app gets one icon
-         whatever the phone's theme (frontend/DESIGN.md). -->
+    <!-- The dark-mode mark's: an installed app has one icon whatever the theme (DESIGN.md). -->
     <color name="ic_launcher_background">#2D2A4A</color>
 </resources>

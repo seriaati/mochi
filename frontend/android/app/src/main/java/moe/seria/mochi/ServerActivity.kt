@@ -12,9 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import kotlin.concurrent.thread
 
-// The Mochi server the app shows: asked for at the first start and after Change server in the
-// web app, and kept once Mochi answers there. Also what shows when the server can't be reached
-// (MainActivity), with Retry and Change server, instead of the WebView's error page.
 class ServerActivity : AppCompatActivity() {
     companion object {
         const val UNREACHABLE = "moe.seria.mochi.unreachable"
@@ -30,7 +27,6 @@ class ServerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.server)
-        // Dark icons on the light ground (the bars are see-through from Android 15).
         val light = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK != Configuration.UI_MODE_NIGHT_YES
         WindowCompat.getInsetsController(window, window.decorView).run {
             isAppearanceLightStatusBars = light
@@ -47,7 +43,6 @@ class ServerActivity : AppCompatActivity() {
         if (server != null && intent.getBooleanExtra(UNREACHABLE, false)) unreachable(server) else ask()
     }
 
-    // Empty at the first start (there's no hosted Mochi), else the server kept last.
     private fun ask() {
         title.setText(R.string.server_title)
         text.setText(R.string.server_text)
@@ -81,7 +76,6 @@ class ServerActivity : AppCompatActivity() {
         }
     }
 
-    /** Opens the Mochi web app found at [server] (Server.find); else says [failed]. */
     private fun check(server: String, failed: String) {
         busy(true)
         say(getString(R.string.server_checking))
@@ -96,7 +90,6 @@ class ServerActivity : AppCompatActivity() {
         }
     }
 
-    // Another server than the one kept: what belonged to that one goes first (Server.leave).
     private fun open(server: String) {
         val start = {
             Server.remember(this, server)

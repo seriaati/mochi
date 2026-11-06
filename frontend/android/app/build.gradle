@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
-// Release signing: the keystore scripts/build-android.sh creates on the first build and reuses.
+// The keystore scripts/build-android.sh creates on the first build.
 def keystore = new Properties()
 if (rootProject.file('keystore.properties').exists()) rootProject.file('keystore.properties').withInputStream { keystore.load(it) }
 
@@ -12,8 +12,7 @@ android {
         applicationId "moe.seria.mochi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // A release build sets them (scripts/build-android.sh: VERSION_NAME, VERSION_CODE):
-        // -PversionName=1.2.0 -PversionCode=10200. Android installs only a code at least as high.
+        // Set by release builds (scripts/build-android.sh).
         versionCode((findProperty('versionCode') ?: '1').toInteger())
         versionName findProperty('versionName') ?: 'dev'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -52,7 +51,6 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
-    // Maintenance reminders (FCM), with the Firebase settings the Mochi server gives (Push.kt).
     implementation "com.google.firebase:firebase-messaging:26.0.1"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

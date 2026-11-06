@@ -65,17 +65,13 @@ export default function App() {
   const appUpdate = useAppUpdate()
   const navigate = useNavigate()
 
-  // The Android app's Back: closes what's open over the page, then follows the history; with none
-  // it goes to the Overview, and from there leaves the app.
   useBackButton((canGoBack) => {
-    // As Escape does, from the focused element: an open dropdown or calendar closes on its own,
-    // and keeps the dialog it's in open.
+    // An open dropdown or calendar closes on Escape first, keeping the dialog it's in open.
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
     const focused = document.activeElement ?? document.body
     focused.dispatchEvent(escape)
     if (escape.defaultPrevented) return true
-    // A synthetic Escape doesn't reach a <dialog>: ask it to close, which animates it out
-    // (Dialog's onCancel). The last one open is the one on top.
+    // A synthetic Escape doesn't close a <dialog>. The last one open is the one on top.
     const dialog = [...document.querySelectorAll('dialog[open]')].at(-1) as HTMLDialogElement | undefined
     if (dialog) {
       if (typeof dialog.requestClose === 'function') dialog.requestClose()
@@ -88,8 +84,6 @@ export default function App() {
     return true
   })
 
-  // The Android app's reminders: a tapped one opens its page, and the server gets the app's token
-  // again at each start (src/push.ts).
   useNotificationPath((path) => navigate(path))
   useEffect(() => void syncPush(), [])
 

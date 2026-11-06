@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Mochi's mark as src/components/MochiMark.tsx draws it, in the mark_* colors so it follows
-     the system's light or dark mode: the server screen's mark. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
