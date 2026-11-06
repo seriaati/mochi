@@ -3,12 +3,14 @@ from sqlalchemy.exc import OperationalError
 
 from app.db import get_session
 from app.main import app
+from tests.conftest import FRONTEND_ORIGIN
 
 
 def test_health(anon_client: TestClient) -> None:
     response = anon_client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    # "web" is the web app the Android app loads when given the API's address.
+    assert response.json() == {"status": "ok", "app": "mochi", "web": FRONTEND_ORIGIN}
 
 
 def test_health_reports_unreachable_database(anon_client: TestClient) -> None:

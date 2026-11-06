@@ -159,7 +159,7 @@ def test_mcp_needs_a_token(anon_client: TestClient, authorization: str | None) -
 
 
 def test_api_routes_still_win(client: TestClient) -> None:
-    assert client.get("/api/health").json() == {"status": "ok"}
+    assert client.get("/api/health").json()["status"] == "ok"
     assert client.get("/api/clients").json() == []
 
 

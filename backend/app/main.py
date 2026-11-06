@@ -79,7 +79,9 @@ def health(session: SessionDep, response: Response) -> dict[str, str]:
     except SQLAlchemyError:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "unavailable", "database": "unreachable"}
-    return {"status": "ok"}
+    # For the Android app: "app" tells a Mochi server from any other site, and "web" is the web
+    # app to load when it's hosted apart from the API.
+    return {"status": "ok", "app": "mochi", "web": config.app_url}
 
 
 # MCP clients (see app/mcp_server.py): /mcp, and the OAuth endpoints and metadata they sign in
