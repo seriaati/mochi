@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     # and it is the issuer of their OAuth tokens.
     public_url: str = "http://localhost:8000"
 
+    # Notifications in the Android app, through Firebase Cloud Messaging. Each is a file from the
+    # Firebase project, base64-encoded (`base64 -w0 file.json`): a service account key, which
+    # sends them, and the app's google-services.json (package moe.seria.mochi), which the app
+    # starts Firebase with. Without both, the app gets none.
+    firebase_service_account: Annotated[SecretStr | None, BeforeValidator(blank_to_none)] = None
+    firebase_android_config: Annotated[str | None, BeforeValidator(blank_to_none)] = None
+
     # This deployment is the public demo, whose data `python -m app.demo reset` wipes and fills
     # with made-up records. Never set it where the data matters.
     demo: bool = False

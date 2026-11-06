@@ -28,6 +28,8 @@ services:
       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      FIREBASE_ANDROID_CONFIG: ${FIREBASE_ANDROID_CONFIG:-}
       # The app and the API share the frontend's origin; nginx passes the API's paths through.
       FRONTEND_ORIGIN: ${APP_URL:-http://localhost:8080}
       PUBLIC_URL: ${APP_URL:-http://localhost:8080}

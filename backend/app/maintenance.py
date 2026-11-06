@@ -320,6 +320,15 @@ def _and(items: list[str]) -> str:
     return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
 
 
+def _ask(client_name: str, months: list[Month]) -> str:
+    return f"Ask {client_name} for NT${sum(m.amount for m in months):,}"
+
+
+def _month_names(months: list[Month], today: date) -> str:
+    """Each month named once, oldest first, e.g. "August, September"."""
+    return ", ".join(dict.fromkeys(month_name(m.period, today) for m in months))
+
+
 def reminder_line(
     client_name: str,
     months: list[Month],
@@ -333,11 +342,10 @@ def reminder_line(
     what the fees are for, named once each. A Discord handle with a user ID links to their
     profile, one click from your DM, and `record_url` adds a link that opens Record payment.
     Links are in <> so Discord doesn't embed them."""
-    names = list(dict.fromkeys(month_name(m.period, today) for m in months))
-    line = f"Ask {client_name} for NT${sum(m.amount for m in months):,}"
+    line = _ask(client_name, months)
     if projects := list(dict.fromkeys(projects)):
         line += f" for {_and(projects)}"
-    line += f" ({', '.join(names)})"
+    line += f" ({_month_names(months, today)})"
     if contact is not None:
         handle = contact.value
         if contact.kind == ContactKind.DISCORD and contact.discord_user_id is not None:
@@ -346,6 +354,22 @@ def reminder_line(
     if record_url is not None:
         line += f" · [Record payment](<{record_url}>)"
     return line
+
+
+def reminder_notification(
+    client_name: str,
+    months: list[Month],
+    contact: ContactMethod | None,
+    today: date,
+    projects: Iterable[str] = (),
+) -> tuple[str, str]:
+    """reminder_line's title and body for a notification in the app, plain text, e.g. "Ask
+    Northwind Coffee for NT$750" and "Menu bot · August, September · on Discord @danpark"."""
+    parts = [_and(projects)] if (projects := list(dict.fromkeys(projects))) else []
+    parts.append(_month_names(months, today))
+    if contact is not None:
+        parts.append(_CONTACT_PHRASES[contact.kind].format(contact.value))
+    return _ask(client_name, months), " · ".join(parts)
 
 
 def message(lines: list[str], mention_user_id: str | None) -> str:

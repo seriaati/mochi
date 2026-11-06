@@ -270,7 +270,8 @@ class RetainerPayment(Base):
 
 
 class ReminderLog(Base):
-    """A maintenance reminder posted to Discord for a client, so none is sent twice.
+    """A maintenance reminder sent for a client (to Discord, the app or both), so none is sent
+    twice.
 
     `slot_on` is the local day the reminder counts for: the scheduled 09:00 slot it stands for
     (even when sent late). The scheduler skips a slot that is
@@ -418,3 +419,14 @@ class OAuthToken(Base):
     # Setting a new password ends MCP access too, as it does browser sessions.
     password_fingerprint: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class FcmToken(Base):
+    """The Android app's Firebase Cloud Messaging registration token, one per device that turned
+    notifications on (see app/push.py)."""
+
+    __tablename__ = "fcm_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token: Mapped[str] = mapped_column(Text, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -28,7 +28,7 @@ from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import auth, discord, keni  # noqa: E402
+from app import auth, discord, keni, push  # noqa: E402
 from app.config import settings  # noqa: E402
 from app.db import engine, get_session  # noqa: E402
 from app.main import app  # noqa: E402
@@ -117,6 +117,21 @@ def _no_discord(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(discord, "fetch_user", refuse)
     monkeypatch.setattr(discord.httpx, "get", refuse)
     monkeypatch.setattr(discord.httpx, "post", refuse)
+
+
+@pytest.fixture(autouse=True)
+def _no_push(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Notifications in the app are off and nothing can reach FCM, whatever .env says. Tests
+    that need them swap in fakes. (discord.httpx is the same module, so its post is refused
+    above.)"""
+    monkeypatch.setattr(settings, "firebase_service_account", None)
+    monkeypatch.setattr(settings, "firebase_android_config", None)
+    monkeypatch.setattr(push, "_token", ("", 0.0))
+
+    def refuse(*args: object) -> None:
+        raise AssertionError("tests must not reach FCM")
+
+    monkeypatch.setattr(push, "send", refuse)
 
 
 @pytest.fixture(autouse=True)

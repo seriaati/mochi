@@ -18,6 +18,7 @@ from app.routers import (
     clients,
     keni,
     maintenance,
+    notifications,
     oauth,
     overview,
     projects,
@@ -67,6 +68,7 @@ protected.include_router(settings.router)
 protected.include_router(keni.router)
 protected.include_router(overview.router)
 protected.include_router(stats.router)
+protected.include_router(notifications.router)
 protected.include_router(oauth.router)
 app.include_router(protected)
 

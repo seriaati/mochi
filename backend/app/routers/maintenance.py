@@ -5,7 +5,7 @@ import httpx2 as httpx
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app import discord, discord_sync, maintenance, reminders
+from app import discord, discord_sync, maintenance, push, reminders
 from app.clock import Clock, ClockDep
 from app.db import SessionDep
 from app.maintenance import REMINDER_TIME, REPEAT_DAYS, MonthStatus, slot_at
@@ -164,7 +164,7 @@ def overview(
         ),
         calendar=_calendar(retainers, period, today),
         reminders=ReminderConfigOut(
-            enabled=discord.config.webhook_url is not None,
+            enabled=discord.config.webhook_url is not None or push.ready(session),
             mention_user_id=discord.config.mention_user_id,
             mention=discord_sync.mention_out(session),
             timezone=clock.tz.key,

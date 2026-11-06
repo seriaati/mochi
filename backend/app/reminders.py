@@ -14,13 +14,14 @@ timezone changes don't repeat a day, and a missed slot goes out late once.
 import asyncio
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app import discord, discord_sync, keni_sync
+from app import discord, discord_sync, keni_sync, push
 from app.clock import Clock, clock_for, utc_now
 from app.config import settings
 from app.db import SessionLocal
@@ -30,6 +31,7 @@ from app.maintenance import (
     latest_slot,
     message,
     reminder_line,
+    reminder_notification,
     unpaid_ask_months,
 )
 from app.models import Client, Collection, ContactMethod, ReminderLog, Retainer
@@ -163,10 +165,14 @@ def next_reminder(session: Session, clock: Clock) -> Reminder | None:
     )
 
 
-def record_url(reminder: Reminder) -> str:
+def record_path(reminder: Reminder) -> str:
     """The Retainers page with Record payment open for the reminder's oldest month."""
     month = f"{reminder.months[0].period:%Y-%m}"
-    return f"{settings.app_url}/maintenance?record={reminder.retainer_id}&month={month}"
+    return f"/maintenance?record={reminder.retainer_id}&month={month}"
+
+
+def record_url(reminder: Reminder) -> str:
+    return settings.app_url + record_path(reminder)
 
 
 def content(reminders: list[Reminder], clock: Clock) -> str:
@@ -177,26 +183,56 @@ def content(reminders: list[Reminder], clock: Clock) -> str:
     return message(lines, discord.config.mention_user_id)
 
 
+def notification(reminder: Reminder, clock: Clock) -> dict[str, str]:
+    """A client's reminder as a data message for the app (see app/push.py). Tapping it opens
+    `path`, and the app shows one notification per client_id."""
+    r = reminder
+    title, body = reminder_notification(r.client.name, r.months, r.contact, clock.today, r.projects)
+    return {
+        "type": "reminder",
+        "client_id": str(r.client.id),
+        "title": title,
+        "body": body,
+        "path": record_path(r),
+    }
+
+
 def send(session: Session, reminders: list[Reminder], clock: Clock) -> str:
-    """Post one message for the reminders and record them. If Discord fails, nothing is
-    recorded and the error propagates."""
+    """Post the reminders wherever they're set up to go, one message to Discord and a
+    notification per client to the app, and record them once either took them. A channel that
+    fails is logged; if all fail, nothing is recorded and the error propagates."""
     text = content(reminders, clock)
+    channels: list[tuple[str, Callable[[], object]]] = []
+    if discord.config.webhook_url is not None:
+        channels.append(("Discord", lambda: discord.post(text)))
+    if push.ready(session):
+        messages = [notification(r, clock) for r in reminders]
+        channels.append(("the app", lambda: push.broadcast(session, messages)))
+    if not channels:
+        raise RuntimeError("Reminders are off: neither Discord nor the app is set up")
+    failed: list[tuple[str, Exception]] = []
+    for name, deliver in channels:
+        # Whatever goes wrong, the other channel still gets its turn.
+        try:
+            deliver()
+        except Exception as error:  # noqa: BLE001
+            failed.append((name, error))
+    # Committed either way, so apps that FCM no longer knows stay forgotten.
+    if len(failed) == len(channels):
+        session.commit()
+        raise failed[-1][1]
+    for name, error in failed:
+        log.error("Sending maintenance reminders to %s failed", name, exc_info=error)
     session.add_all(
         ReminderLog(client_id=r.client.id, slot_on=r.slot_on, sent_at=clock.now) for r in reminders
     )
-    try:
-        session.flush()
-        discord.post(text)
-    except Exception:
-        session.rollback()
-        raise
     session.commit()
     return text
 
 
 def send_due(session: Session, now: datetime) -> int:
-    """Send whatever is due, in one post. Does nothing while no webhook is configured."""
-    if discord.config.webhook_url is None:
+    """Send whatever is due, to Discord and the app. Does nothing while neither is set up."""
+    if discord.config.webhook_url is None and not push.ready(session):
         return 0
     clock = clock_for(session, now)  # the timezone as saved right now
     due = due_now(session, clock)

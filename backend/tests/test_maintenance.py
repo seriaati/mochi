@@ -11,10 +11,10 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app import crypto, discord, maintenance, reminders
+from app import crypto, discord, maintenance, push, reminders
 from app.clock import get_now
 from app.config import settings
 from app.main import app
@@ -24,6 +24,7 @@ from app.models import (
     Collection,
     ContactKind,
     ContactMethod,
+    FcmToken,
     ReminderLog,
     Retainer,
     RetainerPayment,
@@ -1505,6 +1506,142 @@ def test_discord_errors_become_502(
     assert response.json()["detail"].startswith("Discord didn't take the message")
 
 
+# Reminders in the app
+
+
+@pytest.fixture
+def phone(session: Session, monkeypatch: pytest.MonkeyPatch) -> list[dict[str, str]]:
+    """Sets the server up for notifications in the app, registers one, and records each data
+    message instead of sending it."""
+    received: list[dict[str, str]] = []
+    monkeypatch.setattr(settings, "firebase_service_account", SecretStr("a service account key"))
+    monkeypatch.setattr(settings, "firebase_android_config", "a google-services.json")
+    monkeypatch.setattr(settings, "demo", False)
+    session.add(FcmToken(token="phone"))
+    session.flush()
+
+    def send(token: str, data: dict[str, str]) -> bool:
+        received.append(data)
+        return True
+
+    monkeypatch.setattr(push, "send", send)
+    return received
+
+
+def broken(*args: object) -> None:
+    raise RuntimeError("down")
+
+
+def test_reminders_go_to_the_app_alone(
+    client: TestClient, session: Session, phone: list[dict[str, str]]
+) -> None:
+    owner = make_client(client)
+    body = {"client_id": owner["id"], "price": 6000, "started_on": "2026-08-01"}
+    bot = client.post("/api/projects", json=body | {"name": "Menu bot"}).json()
+    retainer = make_retainer(
+        client, owner, project_id=bot["id"], amount=375, started_on="2026-08-01"
+    )
+    # Anchored on 25 Aug; the slot on 24 Oct covers August and September.
+    assert reminders.send_due(session, at("2026-10-24", 9)) == 1
+    assert phone == [
+        {
+            "type": "reminder",
+            "client_id": str(owner["id"]),
+            "title": "Ask Northwind Coffee for NT$750",
+            "body": "Menu bot · August, September · on Discord @danpark",
+            "path": f"/maintenance?record={retainer['id']}&month=2026-08",
+        }
+    ]
+    assert logged(session) == ["2026-10-24"]
+    assert overview(client)["reminders"]["enabled"] is True
+    # The Discord test still needs a webhook.
+    assert client.post("/api/maintenance/reminders/test").status_code == 409
+
+
+def test_reminders_go_to_discord_and_the_app(
+    client: TestClient, session: Session, webhook: list[str], phone: list[dict[str, str]]
+) -> None:
+    make_retainer(client, make_client(client), due_day=21, started_on="2026-09-01")
+    aurora = make_client(client, "Aurora Studio", contacts=(("line", "mei.aurora"),))
+    make_retainer(client, aurora, amount=1200, due_day=21)
+    assert reminders.send_due(session, at("2026-10-23", 9)) == 2
+    # One post to Discord, as without the app, and a notification per client.
+    assert len(webhook) == 1
+    assert webhook[0].startswith(f"<@{USER_ID}> Maintenance reminders:\n- Ask Aurora Studio")
+    assert [(m["title"], m["body"]) for m in phone] == [
+        ("Ask Aurora Studio for NT$1,200", "October · on LINE mei.aurora"),
+        ("Ask Northwind Coffee for NT$500", "September, October · on Discord @danpark"),
+    ]
+    assert logged(session) == ["2026-10-23", "2026-10-23"]
+
+
+@pytest.mark.parametrize("down", ["discord", "app"])
+def test_one_channel_failing_still_records(
+    client: TestClient,
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    webhook: list[str],
+    phone: list[dict[str, str]],
+    caplog: pytest.LogCaptureFixture,
+    down: str,
+) -> None:
+    ask_retainer(client)
+    # Migrating the test database applies alembic.ini's logging, which disables this logger.
+    monkeypatch.setattr(reminders.log, "disabled", False)
+    monkeypatch.setattr(
+        *((discord, "post", broken) if down == "discord" else (push, "send", broken))
+    )
+    assert reminders.send_due(session, at("2026-10-25", 9)) == 1
+    assert len(webhook + phone) == 1
+    assert logged(session) == ["2026-10-25"]
+    channel = "Discord" if down == "discord" else "the app"
+    assert f"Sending maintenance reminders to {channel} failed" in caplog.text
+
+
+def test_every_channel_failing_records_nothing(
+    client: TestClient,
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    webhook: list[str],
+    phone: list[dict[str, str]],
+) -> None:
+    ask_retainer(client)
+    monkeypatch.setattr(discord, "post", broken)
+    monkeypatch.setattr(push, "send", broken)
+    with pytest.raises(RuntimeError):
+        reminders.send_due(session, at("2026-10-25", 9))
+    assert logged(session) == []
+
+    monkeypatch.setattr(discord, "post", webhook.append)
+    assert reminders.send_due(session, at("2026-10-25", 9, 1)) == 1
+
+
+def test_a_gone_app_is_forgotten_even_when_nothing_is_sent(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch, phone: list
+) -> None:
+    ask_retainer(client)
+    monkeypatch.setattr(push, "send", lambda token, data: False)
+    with pytest.raises(push.NoDevice):
+        reminders.send_due(session, at("2026-10-25", 9))
+    assert logged(session) == []
+    assert session.scalars(select(FcmToken)).all() == []
+    # With no app left, reminders are off again.
+    assert reminders.send_due(session, at("2026-10-25", 9, 1)) == 0
+
+
+def test_the_app_needs_a_device_and_no_demo(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch, phone: list
+) -> None:
+    ask_retainer(client)
+    monkeypatch.setattr(settings, "demo", True)
+    assert reminders.send_due(session, at("2026-10-25", 9)) == 0
+    assert overview(client)["reminders"]["enabled"] is False
+    monkeypatch.setattr(settings, "demo", False)
+    session.execute(delete(FcmToken))
+    assert reminders.send_due(session, at("2026-10-25", 9)) == 0
+    assert phone == []
+
+
 # Message text
 
 
@@ -1614,6 +1751,35 @@ def test_reminder_names_the_projects(
         f"<@{USER_ID}> Ask Northwind Coffee for NT$350 for Giveaway bot (October) "
         "on Discord @danpark" + record(first, "2026-10")
     ]
+
+
+@pytest.mark.parametrize(
+    ("contact", "projects", "months", "body"),
+    [
+        # Plain text: no link to the Discord profile.
+        (
+            ContactMethod(kind=ContactKind.DISCORD, value="@danpark", discord_user_id=123),
+            ["Menu bot", "Site", "Menu bot"],
+            owed("2026-08-01", "2026-09-01"),
+            "Menu bot and Site · August, September · on Discord @danpark",
+        ),
+        (
+            ContactMethod(kind=ContactKind.EMAIL, value="dan@nw.coffee"),
+            [],
+            owed("2026-10-01", "2026-10-01"),
+            "October · by email at dan@nw.coffee",
+        ),
+        (None, [], owed("2025-12-01", "2026-01-01"), "December 2025, January"),
+    ],
+)
+def test_reminder_notification(
+    contact: ContactMethod | None, projects: list[str], months: list[Month], body: str
+) -> None:
+    title, text = maintenance.reminder_notification(
+        "Northwind Coffee", months, contact, TODAY, projects
+    )
+    assert title == "Ask Northwind Coffee for NT$500"
+    assert text == body
 
 
 def test_message_mention() -> None:

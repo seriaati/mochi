@@ -176,7 +176,7 @@ class CalendarDay(BaseModel):
 
 
 class ReminderConfigOut(BaseModel):
-    enabled: bool  # a webhook URL is configured
+    enabled: bool  # reminders go out: a webhook URL is set, or the app is registered for them
     mention_user_id: str | None
     mention: DiscordProfileOut | None  # your synced profile, with mention_user_id
     timezone: str
